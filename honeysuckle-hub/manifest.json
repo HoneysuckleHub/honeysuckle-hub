@@ -1,0 +1,26 @@
+{
+  "name": "Honeysuckle Hub | Low-Toxin Living, Nourished Kitchen & Home OS",
+  "short_name": "Honeysuckle Hub",
+  "description": "Your Easy Button for a Low-Toxin, Nourished Home & Homestead OS.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#FFFDF8",
+  "theme_color": "#B87D14",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
+```[cite: 3]
