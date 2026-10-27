@@ -16014,6 +16014,7 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
 (function() {
     const FOUNDER_ADMIN_EMAIL = 'contacthoneysuckleandco@gmail.com';
     let activeCameraStream = null;
+    let isInjectingTerrainWod = false;
 
     function isStrictFounderAdmin() {
         if (typeof window.isInteractiveDemoSession === 'function' && window.isInteractiveDemoSession()) return false;
@@ -16061,9 +16062,9 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
     }
 
     // =========================================================================
-    // 1. IMAGE COMPRESSOR + 1x1 BLANK IMAGE HELPER FOR TEXT-ONLY CALLS
+    // 1. IMAGE COMPRESSOR FOR CAMERA & PHOTO UPLOADS
     // =========================================================================
-    function compressImageFileToBase64(file, maxWidth = 1100, quality = 0.8) {
+    function compressImageFileToBase64(file, maxWidth = 1024, quality = 0.78) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = function(e) {
@@ -16090,16 +16091,6 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
             reader.onerror = () => reject(new Error('File reader error.'));
             reader.readAsDataURL(file);
         });
-    }
-
-    function createBlank1x1JpegBase64() {
-        const c = document.createElement('canvas');
-        c.width = 1;
-        c.height = 1;
-        const ctx = c.getContext('2d');
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, 1, 1);
-        return c.toDataURL('image/jpeg', 0.5).split(',')[1];
     }
 
     // =========================================================================
@@ -16204,7 +16195,7 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
                     shutterBtn.style.display = 'block';
                     shutterBtn.onclick = () => {
                         if (!videoEl) return;
-                        const maxWidth = 1100;
+                        const maxWidth = 1024;
                         let w = videoEl.videoWidth || 800;
                         let h = videoEl.videoHeight || 600;
                         if (w > maxWidth) {
@@ -16216,7 +16207,7 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
                         canvas.height = h;
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(videoEl, 0, 0, w, h);
-                        const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+                        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
                         const base64Data = dataUrl.split(',')[1];
                         window.closeSmartCameraModal();
                         onImageCapturedCallback({ base64Data, mimeType: 'image/jpeg', previewUrl: dataUrl });
@@ -16255,56 +16246,61 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
     };
 
     async function callHoneysuckleScannerEngine(promptText, base64Data = null, mimeType = 'image/jpeg') {
-        const finalBase64 = base64Data || createBlank1x1JpegBase64();
+        let serverErrorDetail = '';
 
         // 1. Production Netlify Serverless Function
         try {
             const res = await fetch('/.netlify/functions/gemini-scan', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt: promptText, imageBase64: finalBase64, mimeType })
+                body: JSON.stringify({
+                    prompt: promptText,
+                    imageBase64: base64Data || 'NONE',
+                    mimeType: mimeType || 'image/jpeg'
+                })
             });
-            if (res.ok) {
-                const data = await res.json();
-                if (data && data.resultText) return data.resultText;
+            const data = await res.json().catch(() => ({}));
+            if (res.ok && data && data.resultText) {
+                return data.resultText;
             }
-        } catch (e) {}
-
-        // 2. Fallback to Admin Local Key if testing locally
-        const localKey = localStorage.getItem('hh_admin_local_gemini_key');
-        if (!localKey) {
-            if (isStrictFounderAdmin()) {
-                window.openAdminGeminiKeyModal();
-                const retryKey = localStorage.getItem('hh_admin_local_gemini_key');
-                if (!retryKey) throw new Error('Scanner key required.');
-                return callDirectWithKey(retryKey, promptText, finalBase64, mimeType);
-            }
-            throw new Error('The Smart Coach & Scanner is temporarily busy. Please try again in a moment!');
+            serverErrorDetail = data?.error || `HTTP ${res.status}`;
+        } catch (e) {
+            serverErrorDetail = e.message || 'Network error';
         }
-        return callDirectWithKey(localKey, promptText, finalBase64, mimeType);
+
+        // 2. Fallback to Local Key if saved in browser
+        const localKey = localStorage.getItem('hh_admin_local_gemini_key');
+        if (localKey) {
+            return callDirectWithKey(localKey, promptText, base64Data, mimeType);
+        }
+
+        if (isStrictFounderAdmin()) {
+            throw new Error(`Netlify Function reported: "${serverErrorDetail}". (Tip: Check https://honeysucklehub.com/.netlify/functions/gemini-scan or click 🔑 Scanner Key in Admin Studio!)`);
+        }
+        throw new Error(`Scanner connection notice (${serverErrorDetail || 'Busy'}). Please try again in a moment!`);
     }
 
     async function callDirectWithKey(apiKey, promptText, base64Data, mimeType) {
-        const modelsToTry = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+        const cleanKey = apiKey.trim().replace(/^["']|["']$/g, '');
+        const modelsToTry = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.5-flash-lite', 'gemini-2.0-flash'];
         let lastErr = 'Request failed';
+        const parts = [{ text: promptText }];
+        if (base64Data && base64Data !== 'NONE') {
+            parts.push({ inline_data: { mime_type: mimeType || 'image/jpeg', data: base64Data } });
+        }
+
         for (const modelName of modelsToTry) {
             try {
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${cleanKey}`;
                 const response = await fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{
-                            parts: [
-                                { text: promptText },
-                                { inline_data: { mime_type: mimeType, data: base64Data } }
-                            ]
-                        }]
-                    })
+                    body: JSON.stringify({ contents: [{ parts }] })
                 });
                 const data = await response.json();
-                if (response.ok && data?.candidates?.[0]?.content?.parts?.[0]?.text) {
-                    return data.candidates[0].content.parts[0].text;
+                const textOut = data?.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('').trim();
+                if (response.ok && textOut) {
+                    return textOut;
                 }
                 lastErr = data?.error?.message || `HTTP ${response.status}`;
             } catch (err) {
@@ -17203,7 +17199,7 @@ Return ONLY a valid JSON object with these exact keys:
 
     // =========================================================================
     // 11. 💪 FEATURE 8: AI "WORKOUT OF THE DAY" (WOD) GENERATOR,
-    //     INTERVAL/REST TIMER & ADMIN WORKOUT LOG SYNC
+    //      INTERVAL/REST TIMER & ADMIN WORKOUT LOG SYNC
     // =========================================================================
     let wodCountdownInterval = null;
     let wodRemainingSeconds = 60;
@@ -17289,34 +17285,32 @@ Return ONLY a valid JSON object with these exact keys:
         btn.textContent = isDone ? `⬜ Round ${roundNum}` : `✓ Round ${roundNum} Done`;
     };
 
-    window.getTerrainPhaseProfile = function(stepNum, selectedGradTier = 'intermediate') {
+    window.getTerrainPhaseProfile = function(stepNum, selectedGradTier = 'phase_matched') {
         const s = Math.max(1, Math.min(16, parseInt(stepNum) || 1));
         const tState = typeof getTerrainState === 'function' ? getTerrainState() : {};
         const isGraduate = s >= 16 || tState.graduated16Steps === true;
 
-        if (isGraduate || selectedGradTier === 'intermediate' || selectedGradTier === 'advanced') {
-            if (selectedGradTier === 'advanced') {
-                return {
-                    phaseNum: 5,
-                    isGraduate: true,
-                    tierKey: 'advanced',
-                    badge: '🎓 16-Step Graduate • 🔥 Advanced Tier (25–30 Mins)',
-                    focus: 'Advanced Metabolic Recomposition, Heavy Tempo Supersets, Unilateral Strength & Mitochondrial Finisher',
-                    duration: '25–30 Minutes',
-                    intensityRule: 'Include 4 compound strength & core supersets with 3-second eccentric tempo lowers, loaded carries, and a 4-minute nasal-breathing metabolic finisher.'
-                };
-            }
-            if (isGraduate || selectedGradTier === 'intermediate') {
-                return {
-                    phaseNum: 5,
-                    isGraduate: true,
-                    tierKey: 'intermediate',
-                    badge: '🎓 16-Step Graduate • 🌟 Intermediate Tier (20–25 Mins)',
-                    focus: 'Intermediate Progressive Overload Strength, Core Stability & Zone-2 Conditioning',
-                    duration: '20–25 Minutes',
-                    intensityRule: 'Include 3 well-balanced rounds of compound functional strength (Squat, Hinge, Push, Row, Carry) with moderate dumbbells/kettlebells and pelvic-floor-safe core work.'
-                };
-            }
+        if (selectedGradTier === 'advanced') {
+            return {
+                phaseNum: 5,
+                isGraduate: true,
+                tierKey: 'advanced',
+                badge: '🎓 16-Step Graduate • 🔥 Advanced Tier (25–30 Mins)',
+                focus: 'Advanced Metabolic Recomposition, Heavy Tempo Supersets, Unilateral Strength & Mitochondrial Finisher',
+                duration: '25–30 Minutes',
+                intensityRule: 'Include 4 compound strength & core supersets with 3-second eccentric tempo lowers, loaded carries, and a 4-minute nasal-breathing metabolic finisher.'
+            };
+        }
+        if (selectedGradTier === 'intermediate' || (isGraduate && selectedGradTier === 'phase_matched')) {
+            return {
+                phaseNum: 5,
+                isGraduate: true,
+                tierKey: 'intermediate',
+                badge: '🎓 16-Step Graduate • 🌟 Intermediate Tier (20–25 Mins)',
+                focus: 'Intermediate Progressive Overload Strength, Core Stability & Zone-2 Conditioning',
+                duration: '20–25 Minutes',
+                intensityRule: 'Include 3 well-balanced rounds of compound functional strength (Squat, Hinge, Push, Row, Carry) with moderate dumbbells/kettlebells and pelvic-floor-safe core work.'
+            };
         }
 
         if (s <= 4) {
@@ -17557,204 +17551,235 @@ Return ONLY a valid JSON object with these exact keys:
     };
 
     function injectTerrainWodStudioCard() {
+        if (isInjectingTerrainWod) return;
         const container = document.getElementById('view-reclaim-terrain');
         if (!container) return;
         const tState = typeof getTerrainState === 'function' ? getTerrainState() : null;
-        if (!tState || (!tState.unlocked && !isStrictFounderAdmin()) || !tState.consultCompleted) return;
+        if (!tState || (!tState.unlocked && !isStrictFounderAdmin())) return;
 
-        // Enhance Admin Client Cards with Workout Count Badge & "🏆 Workout Log" Button if Admin Portal is visible
-        if (isStrictFounderAdmin()) {
-            const registry = getGlobalSharedData('terrain_admin_clients_registry', {});
-            container.querySelectorAll('button[onclick^="openAdminClientConsultViewer("]').forEach(btn => {
-                if (btn.dataset.wodBtnInjected) return;
-                btn.dataset.wodBtnInjected = 'true';
-                const match = (btn.getAttribute('onclick') || '').match(/'([^']+)'/);
-                const uid = match ? match[1] : null;
-                if (!uid || !registry[uid]) return;
-                const count = Array.isArray(registry[uid].wodLogs) ? registry[uid].wodLogs.length : 0;
-                const wodBtn = document.createElement('button');
-                wodBtn.type = 'button';
-                wodBtn.className = 'icon-btn';
-                wodBtn.style.cssText = 'background:#FEF5D8; color:var(--primary); border-color:#B87612;';
-                wodBtn.onclick = () => window.openAdminClientWodLogModal(uid);
-                wodBtn.innerHTML = `🏆 Workout Log (${count})`;
-                btn.insertAdjacentElement('afterend', wodBtn);
-            });
-        }
+        isInjectingTerrainWod = true;
+        try {
+            // 1. Ensure Ashton's Clinical Summarizer Bar is always present for Admin
+            if (isStrictFounderAdmin() && !document.getElementById('btn-admin-clinical-summarizer')) {
+                const adminBar = document.createElement('div');
+                adminBar.id = 'btn-admin-clinical-summarizer';
+                adminBar.className = 'clinical-panel';
+                adminBar.style.cssText = 'background:#fdf8e7; border:2px dashed #b87612; padding:16px 20px; margin-bottom:18px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;';
+                adminBar.innerHTML = `
+                    <div>
+                        <span class="card-tag">👑 Ashton's Practitioner Clinical Summarizer (Admin Only)</span>
+                        <h4 style="font-size:1.15rem; margin-top:2px;">Generate 1-Page Root-Cause Summary & Pre-Draft 16-Step Protocol</h4>
+                        <p style="font-size:0.8rem; margin:0;">Reads all 20 Functional Consult answers and pre-drafts your Practitioner Note & Step 1 adjustments.</p>
+                    </div>
+                    <button type="button" class="btn-primary" style="font-size:0.82rem;" onclick="generatePractitionerClinicalSummary()">
+                        ✨ Generate 1-Page Clinical Intake Summary
+                    </button>
+                `;
+                container.prepend(adminBar);
+            }
 
-        if (document.getElementById('hh-terrain-ai-wod-studio-card')) return;
+            // 2. Enhance Admin Client Cards with Workout Count Badge & "🏆 Workout Log" Button
+            if (isStrictFounderAdmin()) {
+                const registry = getGlobalSharedData('terrain_admin_clients_registry', {});
+                container.querySelectorAll('button[onclick^="openAdminClientConsultViewer("]').forEach(btn => {
+                    if (btn.dataset.wodBtnInjected) return;
+                    btn.dataset.wodBtnInjected = 'true';
+                    const match = (btn.getAttribute('onclick') || '').match(/'([^']+)'/);
+                    const uid = match ? match[1] : null;
+                    if (!uid || !registry[uid]) return;
+                    const count = Array.isArray(registry[uid].wodLogs) ? registry[uid].wodLogs.length : 0;
+                    const wodBtn = document.createElement('button');
+                    wodBtn.type = 'button';
+                    wodBtn.className = 'icon-btn';
+                    wodBtn.style.cssText = 'background:#FEF5D8; color:var(--primary); border-color:#B87612;';
+                    wodBtn.onclick = () => window.openAdminClientWodLogModal(uid);
+                    wodBtn.innerHTML = `🏆 Workout Log (${count})`;
+                    btn.insertAdjacentElement('afterend', wodBtn);
+                });
+            }
 
-        const curStepNum = Math.max(1, Math.min(16, parseInt(tState.currentStep) || 1));
-        const isGraduate = curStepNum >= 16 || tState.graduated16Steps === true;
-        const gradTier = tState.graduateWodTier || (isGraduate ? 'intermediate' : 'phase_matched');
-        const equipPref = tState.preferredWodEquip || 'Dumbbells, Kettlebell or Household Water Jugs';
-        const phaseProf = window.getTerrainPhaseProfile(curStepNum, gradTier);
+            // 3. Inject the AI Workout of the Day (WOD) Studio Card (Works even before 20-Q Consult is finished!)
+            if (document.getElementById('hh-terrain-ai-wod-studio-card')) return;
 
-        const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-        const todayDayIdx = (new Date().getDay() + 6) % 7;
-        const activeDayKey = tState.selectedViewDay || daysOfWeek[todayDayIdx];
-        const isMovementDoneToday = Boolean(tState.weeklyChecks && tState.weeklyChecks[`${activeDayKey}_movement`]);
+            const curStepNum = Math.max(1, Math.min(16, parseInt(tState.currentStep) || 1));
+            const isGraduate = curStepNum >= 16 || tState.graduated16Steps === true;
+            const gradTier = tState.graduateWodTier || (isGraduate ? 'intermediate' : 'phase_matched');
+            const equipPref = tState.preferredWodEquip || 'Dumbbells, Kettlebell or Household Water Jugs';
+            const phaseProf = window.getTerrainPhaseProfile(curStepNum, gradTier);
 
-        const wod = tState.todaysGeneratedWod;
-        const wodLogs = getLocalData('terrain_wod_history_logs', []);
+            const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+            const todayDayIdx = (new Date().getDay() + 6) % 7;
+            const activeDayKey = tState.selectedViewDay || daysOfWeek[todayDayIdx];
+            const isMovementDoneToday = Boolean(tState.weeklyChecks && tState.weeklyChecks[`${activeDayKey}_movement`]);
 
-        const card = document.createElement('div');
-        card.id = 'hh-terrain-ai-wod-studio-card';
-        card.className = 'clinical-panel';
-        card.style.cssText = 'background: linear-gradient(145deg, #FFFDF8 0%, #E8F2EC 100%); border: 2.5px solid var(--sage); margin-bottom: 20px;';
+            const wod = tState.todaysGeneratedWod;
+            const wodLogs = getLocalData('terrain_wod_history_logs', []);
 
-        card.innerHTML = `
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px; border-bottom:1.5px solid var(--border); padding-bottom:12px; margin-bottom:14px;">
-                <div>
-                    <span class="card-tag" style="background:var(--sage); color:#fff;">💪 AI Workout of the Day (WOD) Studio • Auto-Matched to Your Plan</span>
-                    <h3 style="font-size:1.45rem; color:var(--primary); margin:4px 0 2px 0;">
-                        ${isGraduate ? '🎓 Graduate Strength & Conditioning Generator' : `Phase ${phaseProf.phaseNum} Custom Workout Generator (Step ${curStepNum})`}
-                    </h3>
-                    <p style="font-size:0.83rem; color:var(--text-main); margin:0;">
-                        ${escapeSafeHtml(phaseProf.focus)} (${escapeSafeHtml(phaseProf.duration)})
-                    </p>
+            const card = document.createElement('div');
+            card.id = 'hh-terrain-ai-wod-studio-card';
+            card.className = 'clinical-panel';
+            card.style.cssText = 'background: linear-gradient(145deg, #FFFDF8 0%, #E8F2EC 100%); border: 2.5px solid var(--sage); margin-bottom: 20px;';
+
+            card.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px; border-bottom:1.5px solid var(--border); padding-bottom:12px; margin-bottom:14px;">
+                    <div>
+                        <span class="card-tag" style="background:var(--sage); color:#fff;">💪 AI Workout of the Day (WOD) Studio • Auto-Matched to Your Plan</span>
+                        <h3 style="font-size:1.45rem; color:var(--primary); margin:4px 0 2px 0;">
+                            ${isGraduate ? '🎓 Graduate Strength & Conditioning Generator' : `Phase ${phaseProf.phaseNum} Custom Workout Generator (Step ${curStepNum})`}
+                        </h3>
+                        <p style="font-size:0.83rem; color:var(--text-main); margin:0;">
+                            ${escapeSafeHtml(phaseProf.focus)} (${escapeSafeHtml(phaseProf.duration)})
+                        </p>
+                    </div>
+                    <button type="button" class="btn-primary" style="background:linear-gradient(135deg, #2E5A44 0%, #1F4230 100%); border-color:#173325; font-size:0.84rem; padding:10px 18px;" onclick="generateAiTerrainWorkoutOfTheDay()">
+                        ✨ ${wod ? 'Generate Fresh Workout Variation' : 'Generate My Workout of the Day'}
+                    </button>
                 </div>
-                <button type="button" class="btn-primary" style="background:linear-gradient(135deg, #2E5A44 0%, #1F4230 100%); border-color:#173325; font-size:0.84rem; padding:10px 18px;" onclick="generateAiTerrainWorkoutOfTheDay()">
-                    ✨ ${wod ? 'Generate Fresh Workout Variation' : 'Generate My Workout of the Day'}
-                </button>
-            </div>
 
-            <!-- Equipment & Graduate Intermediate/Advanced Selector Row -->
-            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:10px; margin-bottom:14px; background:#ffffff; padding:12px; border-radius:12px; border:1px solid var(--border);">
-                <div>
-                    <label style="font-size:0.75rem; font-weight:700; color:var(--sage); display:block; margin-bottom:4px;">🛠️ Equipment Available Today:</label>
-                    <select id="hh-wod-equip-sel" style="width:100%; padding:7px 10px; border:1px solid var(--border); border-radius:8px; font-size:0.82rem; font-weight:600; background:var(--bg-warm-cream);">
-                        <option value="Bodyweight Only (Zero Equipment / Living Room Rug)" ${equipPref.includes('Bodyweight') ? 'selected' : ''}>🤸‍♀️ Bodyweight Only (Living Room Rug / Counter)</option>
-                        <option value="Dumbbells, Kettlebell or Household Water Jugs" ${equipPref.includes('Dumbbells') ? 'selected' : ''}>🏋️‍♀️ Dumbbells, Kettlebell or Gallon Water Jugs</option>
-                        <option value="Resistance Bands & Bodyweight" ${equipPref.includes('Bands') ? 'selected' : ''}>🎗️ Resistance Bands & Bodyweight</option>
-                        <option value="Outdoor Walk / Stroller / Porch Only" ${equipPref.includes('Outdoor') ? 'selected' : ''}>👟 Outdoor Walk / Porch / Stroller Only</option>
-                    </select>
+                <!-- Equipment & Graduate Intermediate/Advanced Selector Row -->
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:10px; margin-bottom:14px; background:#ffffff; padding:12px; border-radius:12px; border:1px solid var(--border);">
+                    <div>
+                        <label style="font-size:0.75rem; font-weight:700; color:var(--sage); display:block; margin-bottom:4px;">🛠️ Equipment Available Today:</label>
+                        <select id="hh-wod-equip-sel" style="width:100%; padding:7px 10px; border:1px solid var(--border); border-radius:8px; font-size:0.82rem; font-weight:600; background:var(--bg-warm-cream);">
+                            <option value="Bodyweight Only (Zero Equipment / Living Room Rug)" ${equipPref.includes('Bodyweight') ? 'selected' : ''}>🤸‍♀️ Bodyweight Only (Living Room Rug / Counter)</option>
+                            <option value="Dumbbells, Kettlebell or Household Water Jugs" ${equipPref.includes('Dumbbells') ? 'selected' : ''}>🏋️‍♀️ Dumbbells, Kettlebell or Gallon Water Jugs</option>
+                            <option value="Resistance Bands & Bodyweight" ${equipPref.includes('Bands') ? 'selected' : ''}>🎗️ Resistance Bands & Bodyweight</option>
+                            <option value="Outdoor Walk / Stroller / Porch Only" ${equipPref.includes('Outdoor') ? 'selected' : ''}>👟 Outdoor Walk / Porch / Stroller Only</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label style="font-size:0.75rem; font-weight:700; color:var(--primary); display:block; margin-bottom:4px;">
+                            ${isGraduate ? '🎓 16-Step Graduate Level (Unlocked!):' : '📈 Current Phase Pacing (Or Choose Graduate Tier):'}
+                        </label>
+                        <select id="hh-wod-grad-tier-sel" onchange="setTerrainGraduateWodTier(this.value)" style="width:100%; padding:7px 10px; border:1.5px solid ${isGraduate ? 'var(--primary)' : 'var(--border)'}; border-radius:8px; font-size:0.82rem; font-weight:700; background:#FEF5D8; color:var(--text-main);">
+                            ${!isGraduate ? `<option value="phase_matched" ${gradTier === 'phase_matched' ? 'selected' : ''}>🌱 Auto-Match My Current Phase (Phase ${phaseProf.phaseNum} • Step ${curStepNum})</option>` : ''}
+                            <option value="intermediate" ${(isGraduate && gradTier !== 'advanced') || gradTier === 'intermediate' ? 'selected' : ''}>🌟 Graduate Intermediate (20–25 Min Progressive Strength)</option>
+                            <option value="advanced" ${gradTier === 'advanced' ? 'selected' : ''}>🔥 Graduate Advanced (25–30 Min Tempo Supersets & Finisher)</option>
+                        </select>
+                    </div>
                 </div>
 
-                <div>
-                    <label style="font-size:0.75rem; font-weight:700; color:var(--primary); display:block; margin-bottom:4px;">
-                        ${isGraduate ? '🎓 16-Step Graduate Level (Unlocked!):' : '📈 Current Phase Pacing (Or Choose Graduate Tier):'}
-                    </label>
-                    <select id="hh-wod-grad-tier-sel" onchange="setTerrainGraduateWodTier(this.value)" style="width:100%; padding:7px 10px; border:1.5px solid ${isGraduate ? 'var(--primary)' : 'var(--border)'}; border-radius:8px; font-size:0.82rem; font-weight:700; background:#FEF5D8; color:var(--text-main);">
-                        ${!isGraduate ? `<option value="phase_matched" ${gradTier === 'phase_matched' ? 'selected' : ''}>🌱 Auto-Match My Current Phase (Phase ${phaseProf.phaseNum} • Step ${curStepNum})</option>` : ''}
-                        <option value="intermediate" ${(isGraduate && gradTier !== 'advanced') || gradTier === 'intermediate' ? 'selected' : ''}>🌟 Graduate Intermediate (20–25 Min Progressive Strength)</option>
-                        <option value="advanced" ${gradTier === 'advanced' ? 'selected' : ''}>🔥 Graduate Advanced (25–30 Min Tempo Supersets & Finisher)</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- ⏱️ BUILT-IN INTERVAL, REST & ROUND COUNTER BAR -->
-            <div style="background:#ffffff; border:1.5px solid var(--border); border-radius:14px; padding:12px 14px; margin-bottom:14px;">
-                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:8px;">
-                    <div style="display:flex; align-items:center; gap:10px;">
-                        <span id="hh-wod-timer-display" style="font-family:var(--font-serif); font-size:1.85rem; font-weight:700; color:var(--primary); background:var(--bg-warm-cream); padding:2px 12px; border-radius:10px; border:1px solid var(--border); min-width:86px; text-align:center;">01:00</span>
-                        <div>
-                            <strong style="font-size:0.8rem; color:var(--sage); display:block;">⏱️ Built-In Set & Cortisol-Calm Rest Timer</strong>
-                            <span id="hh-wod-timer-status" style="font-size:0.74rem; color:var(--text-muted);">Tap any preset below — plays a gentle chime when done!</span>
+                <!-- ⏱️ BUILT-IN INTERVAL, REST & ROUND COUNTER BAR -->
+                <div style="background:#ffffff; border:1.5px solid var(--border); border-radius:14px; padding:12px 14px; margin-bottom:14px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:8px;">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <span id="hh-wod-timer-display" style="font-family:var(--font-serif); font-size:1.85rem; font-weight:700; color:var(--primary); background:var(--bg-warm-cream); padding:2px 12px; border-radius:10px; border:1px solid var(--border); min-width:86px; text-align:center;">01:00</span>
+                            <div>
+                                <strong style="font-size:0.8rem; color:var(--sage); display:block;">⏱️ Built-In Set & Cortisol-Calm Rest Timer</strong>
+                                <span id="hh-wod-timer-status" style="font-size:0.74rem; color:var(--text-muted);">Tap any preset below — plays a gentle chime when done!</span>
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:5px; flex-wrap:wrap;">
+                            <button type="button" class="icon-btn" onclick="startTerrainWodTimer(30, '30-Sec Carry / Core Hold')">▶ 30s Hold</button>
+                            <button type="button" class="icon-btn" onclick="startTerrainWodTimer(45, '45-Sec Work Interval')">▶ 45s Work</button>
+                            <button type="button" class="icon-btn" style="background:var(--sage-soft); color:var(--sage); border-color:var(--sage);" onclick="startTerrainWodTimer(60, '60-Sec Cortisol-Calm Rest Between Rounds')">▶ 60s Rest</button>
+                            <button type="button" class="icon-btn" onclick="startTerrainWodTimer(90, '90-Sec Parasympathetic Release')">▶ 90s Release</button>
+                            <button type="button" class="icon-btn del" onclick="stopTerrainWodTimer()">⏹️ Reset</button>
                         </div>
                     </div>
-                    <div style="display:flex; gap:5px; flex-wrap:wrap;">
-                        <button type="button" class="icon-btn" onclick="startTerrainWodTimer(30, '30-Sec Carry / Core Hold')">▶ 30s Hold</button>
-                        <button type="button" class="icon-btn" onclick="startTerrainWodTimer(45, '45-Sec Work Interval')">▶ 45s Work</button>
-                        <button type="button" class="icon-btn" style="background:var(--sage-soft); color:var(--sage); border-color:var(--sage);" onclick="startTerrainWodTimer(60, '60-Sec Cortisol-Calm Rest Between Rounds')">▶ 60s Rest</button>
-                        <button type="button" class="icon-btn" onclick="startTerrainWodTimer(90, '90-Sec Parasympathetic Release')">▶ 90s Release</button>
-                        <button type="button" class="icon-btn del" onclick="stopTerrainWodTimer()">⏹️ Reset</button>
+                    <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; padding-top:8px; border-top:1px dashed var(--border);">
+                        <span style="font-size:0.74rem; font-weight:700; color:var(--text-muted); margin-right:4px;">Track Your Rounds:</span>
+                        ${[1, 2, 3, 4].map(rNum => `
+                            <button type="button" id="hh-wod-round-pill-${rNum}" data-done="false" onclick="toggleTerrainWodRoundPill(${rNum})" style="padding:4px 11px; border-radius:999px; font-size:0.74rem; font-weight:700; cursor:pointer; background:#ffffff; color:var(--text-main); border:1px solid var(--border);">
+                                ⬜ Round ${rNum}
+                            </button>
+                        `).join('')}
                     </div>
                 </div>
-                <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; padding-top:8px; border-top:1px dashed var(--border);">
-                    <span style="font-size:0.74rem; font-weight:700; color:var(--text-muted); margin-right:4px;">Track Your Rounds:</span>
-                    ${[1, 2, 3, 4].map(rNum => `
-                        <button type="button" id="hh-wod-round-pill-${rNum}" data-done="false" onclick="toggleTerrainWodRoundPill(${rNum})" style="padding:4px 11px; border-radius:999px; font-size:0.74rem; font-weight:700; cursor:pointer; background:#ffffff; color:var(--text-main); border:1px solid var(--border);">
-                            ⬜ Round ${rNum}
-                        </button>
-                    `).join('')}
-                </div>
-            </div>
 
-            <!-- Generated WOD Display Box -->
-            ${wod ? `
-                <div style="background:#ffffff; border:2px solid var(--border); border-radius:16px; padding:18px; margin-bottom:14px;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
-                        <span class="card-tag">${escapeSafeHtml(wod.phaseBadge || phaseProf.badge)}</span>
-                        <span style="font-size:0.78rem; font-weight:700; color:var(--sage);">⏱️ ${escapeSafeHtml(wod.duration || phaseProf.duration)} • 🛠️ ${escapeSafeHtml(wod.equipment || equipPref)}</span>
-                    </div>
-                    <h4 style="font-size:1.3rem; color:var(--primary); margin:0 0 6px 0;">${escapeSafeHtml(wod.workoutTitle || 'Today\'s Terrain Workout')}</h4>
-                    <p style="font-size:0.82rem; color:var(--text-main); background:#FEF5D8; padding:8px 12px; border-radius:8px; border-left:3px solid var(--primary); margin-bottom:12px;">
-                        <strong>🧠 Clinical Why:</strong> ${escapeSafeHtml(wod.clinicalWhy || '')}
-                    </p>
+                <!-- Generated WOD Display Box -->
+                ${wod ? `
+                    <div style="background:#ffffff; border:2px solid var(--border); border-radius:16px; padding:18px; margin-bottom:14px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+                            <span class="card-tag">${escapeSafeHtml(wod.phaseBadge || phaseProf.badge)}</span>
+                            <span style="font-size:0.78rem; font-weight:700; color:var(--sage);">⏱️ ${escapeSafeHtml(wod.duration || phaseProf.duration)} • 🛠️ ${escapeSafeHtml(wod.equipment || equipPref)}</span>
+                        </div>
+                        <h4 style="font-size:1.3rem; color:var(--primary); margin:0 0 6px 0;">${escapeSafeHtml(wod.workoutTitle || 'Today\'s Terrain Workout')}</h4>
+                        <p style="font-size:0.82rem; color:var(--text-main); background:#FEF5D8; padding:8px 12px; border-radius:8px; border-left:3px solid var(--primary); margin-bottom:12px;">
+                            <strong>🧠 Clinical Why:</strong> ${escapeSafeHtml(wod.clinicalWhy || '')}
+                        </p>
 
-                    ${Array.isArray(wod.warmUp) && wod.warmUp.length ? `
+                        ${Array.isArray(wod.warmUp) && wod.warmUp.length ? `
+                            <div style="margin-bottom:10px;">
+                                <strong style="font-size:0.82rem; color:var(--sage); text-transform:uppercase; display:block; margin-bottom:4px;">☀️ 1. Nervous-System & Lymphatic Warm-Up:</strong>
+                                ${wod.warmUp.map(w => `<div style="font-size:0.84rem; padding:3px 0;">• ${escapeSafeHtml(w)}</div>`).join('')}
+                            </div>
+                        ` : ''}
+
                         <div style="margin-bottom:10px;">
-                            <strong style="font-size:0.82rem; color:var(--sage); text-transform:uppercase; display:block; margin-bottom:4px;">☀️ 1. Nervous-System & Lymphatic Warm-Up:</strong>
-                            ${wod.warmUp.map(w => `<div style="font-size:0.84rem; padding:3px 0;">• ${escapeSafeHtml(w)}</div>`).join('')}
-                        </div>
-                    ` : ''}
-
-                    <div style="margin-bottom:10px;">
-                        <strong style="font-size:0.82rem; color:var(--primary); text-transform:uppercase; display:block; margin-bottom:6px;">
-                            💪 2. Main Circuit (${escapeSafeHtml(wod.mainCircuitRounds || 'Complete 2–3 Smooth Rounds')}):
-                        </strong>
-                        <div style="display:flex; flex-direction:column; gap:8px;">
-                            ${(wod.exercises || []).map((ex, i) => `
-                                <div style="background:var(--bg-warm-cream); border:1px solid var(--border); border-radius:10px; padding:10px 12px;">
-                                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
-                                        <strong style="font-size:0.9rem; color:var(--text-main);">${i + 1}. ${escapeSafeHtml(ex.name)}</strong>
-                                        <span class="status-pill-pub" style="font-size:0.75rem;">${escapeSafeHtml(ex.reps)}</span>
+                            <strong style="font-size:0.82rem; color:var(--primary); text-transform:uppercase; display:block; margin-bottom:6px;">
+                                💪 2. Main Circuit (${escapeSafeHtml(wod.mainCircuitRounds || 'Complete 2–3 Smooth Rounds')}):
+                            </strong>
+                            <div style="display:flex; flex-direction:column; gap:8px;">
+                                ${(wod.exercises || []).map((ex, i) => `
+                                    <div style="background:var(--bg-warm-cream); border:1px solid var(--border); border-radius:10px; padding:10px 12px;">
+                                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+                                            <strong style="font-size:0.9rem; color:var(--text-main);">${i + 1}. ${escapeSafeHtml(ex.name)}</strong>
+                                            <span class="status-pill-pub" style="font-size:0.75rem;">${escapeSafeHtml(ex.reps)}</span>
+                                        </div>
+                                        <div style="font-size:0.8rem; color:var(--text-muted); margin-top:3px;"><em>Form & Breath Cue:</em> ${escapeSafeHtml(ex.formCue || '')}</div>
                                     </div>
-                                    <div style="font-size:0.8rem; color:var(--text-muted); margin-top:3px;"><em>Form & Breath Cue:</em> ${escapeSafeHtml(ex.formCue || '')}</div>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        ${Array.isArray(wod.coolDown) && wod.coolDown.length ? `
+                            <div>
+                                <strong style="font-size:0.82rem; color:var(--sage); text-transform:uppercase; display:block; margin-bottom:4px;">🌙 3. Parasympathetic Cool-Down & Cortisol Lowering:</strong>
+                                ${wod.coolDown.map(c => `<div style="font-size:0.84rem; padding:3px 0;">• ${escapeSafeHtml(c)}</div>`).join('')}
+                            </div>
+                        ` : ''}
+                    </div>
+                ` : `
+                    <div style="background:#ffffff; border:1.5px dashed var(--border); border-radius:14px; padding:16px; text-align:center; margin-bottom:14px; font-size:0.86rem; color:var(--text-muted);">
+                        Tap <strong>"✨ Generate My Workout of the Day"</strong> above to create a custom ${isGraduate ? 'Graduate Intermediate/Advanced' : ('Phase ' + phaseProf.phaseNum)} workout matched to your exact step, or check the box below after completing your standard Step ${curStepNum} movement!
+                    </div>
+                `}
+
+                <!-- 1-CLICK WORKOUT COMPLETION CHECKBOX & LOGGER -->
+                <label style="background:${isMovementDoneToday ? '#DCFCE7' : '#FEF5D8'}; border:2px solid ${isMovementDoneToday ? '#15803D' : '#B87612'}; border-radius:14px; padding:14px 18px; display:flex; justify-content:space-between; align-items:center; gap:12px; cursor:pointer; transition:all 0.2s;">
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <input type="checkbox" ${isMovementDoneToday ? 'checked' : ''} onchange="toggleCompleteTerrainWodToday(this.checked)" style="width:24px; height:24px; accent-color:var(--sage); flex-shrink:0;">
+                        <div>
+                            <strong style="font-size:0.96rem; color:${isMovementDoneToday ? '#15803D' : 'var(--primary)'}; display:block;">
+                                ${isMovementDoneToday ? `✅ ${activeDayKey}'s Workout Logged & Synced to Your 85% Compliance Gate! (+10 ⭐)` : `⬜ Check Here to Log ${activeDayKey}'s Workout Complete (+10 ⭐ Stars)`}
+                            </strong>
+                            <span style="font-size:0.78rem; color:var(--text-main);">
+                                Automatically checks off today's Movement habit on your Step ${curStepNum} checklist & Home Command Center!
+                            </span>
+                        </div>
+                    </div>
+                </label>
+
+                ${wodLogs.length > 0 ? `
+                    <details style="margin-top:10px; font-size:0.78rem;">
+                        <summary style="cursor:pointer; font-weight:700; color:var(--sage);">🏆 View My Completed Workout Log (${wodLogs.length} Workouts Logged)</summary>
+                        <div style="margin-top:6px; max-height:120px; overflow-y:auto; background:#fff; border:1px solid var(--border); border-radius:10px; padding:8px 12px;">
+                            ${wodLogs.slice(0, 15).map(lg => `
+                                <div style="padding:4px 0; border-bottom:1px dashed var(--border); display:flex; justify-content:space-between; gap:8px;">
+                                    <span><strong>${escapeSafeHtml(lg.date)} (${escapeSafeHtml(lg.dayKey)}):</strong> ${escapeSafeHtml(lg.title)}</span>
+                                    <span style="color:var(--sage); font-weight:700;">✓ ${escapeSafeHtml(lg.duration)}</span>
                                 </div>
                             `).join('')}
                         </div>
-                    </div>
+                    </details>
+                ` : ''}
+            `;
 
-                    ${Array.isArray(wod.coolDown) && wod.coolDown.length ? `
-                        <div>
-                            <strong style="font-size:0.82rem; color:var(--sage); text-transform:uppercase; display:block; margin-bottom:4px;">🌙 3. Parasympathetic Cool-Down & Cortisol Lowering:</strong>
-                            ${wod.coolDown.map(c => `<div style="font-size:0.84rem; padding:3px 0;">• ${escapeSafeHtml(c)}</div>`).join('')}
-                        </div>
-                    ` : ''}
-                </div>
-            ` : `
-                <div style="background:#ffffff; border:1.5px dashed var(--border); border-radius:14px; padding:16px; text-align:center; margin-bottom:14px; font-size:0.86rem; color:var(--text-muted);">
-                    Tap <strong>"✨ Generate My Workout of the Day"</strong> above to create a custom ${isGraduate ? 'Graduate Intermediate/Advanced' : ('Phase ' + phaseProf.phaseNum)} workout matched to your exact step, or check the box below after completing your standard Step ${curStepNum} movement!
-                </div>
-            `}
-
-            <!-- 1-CLICK WORKOUT COMPLETION CHECKBOX & LOGGER -->
-            <label style="background:${isMovementDoneToday ? '#DCFCE7' : '#FEF5D8'}; border:2px solid ${isMovementDoneToday ? '#15803D' : '#B87612'}; border-radius:14px; padding:14px 18px; display:flex; justify-content:space-between; align-items:center; gap:12px; cursor:pointer; transition:all 0.2s;">
-                <div style="display:flex; align-items:center; gap:12px;">
-                    <input type="checkbox" ${isMovementDoneToday ? 'checked' : ''} onchange="toggleCompleteTerrainWodToday(this.checked)" style="width:24px; height:24px; accent-color:var(--sage); flex-shrink:0;">
-                    <div>
-                        <strong style="font-size:0.96rem; color:${isMovementDoneToday ? '#15803D' : 'var(--primary)'}; display:block;">
-                            ${isMovementDoneToday ? `✅ ${activeDayKey}'s Workout Logged & Synced to Your 85% Compliance Gate! (+10 ⭐)` : `⬜ Check Here to Log ${activeDayKey}'s Workout Complete (+10 ⭐ Stars)`}
-                        </strong>
-                        <span style="font-size:0.78rem; color:var(--text-main);">
-                            Automatically checks off today's Movement habit on your Step ${curStepNum} checklist & Home Command Center!
-                        </span>
-                    </div>
-                </div>
-            </label>
-
-            ${wodLogs.length > 0 ? `
-                <details style="margin-top:10px; font-size:0.78rem;">
-                    <summary style="cursor:pointer; font-weight:700; color:var(--sage);">🏆 View My Completed Workout Log (${wodLogs.length} Workouts Logged)</summary>
-                    <div style="margin-top:6px; max-height:120px; overflow-y:auto; background:#fff; border:1px solid var(--border); border-radius:10px; padding:8px 12px;">
-                        ${wodLogs.slice(0, 15).map(lg => `
-                            <div style="padding:4px 0; border-bottom:1px dashed var(--border); display:flex; justify-content:space-between; gap:8px;">
-                                <span><strong>${escapeSafeHtml(lg.date)} (${escapeSafeHtml(lg.dayKey)}):</strong> ${escapeSafeHtml(lg.title)}</span>
-                                <span style="color:var(--sage); font-weight:700;">✓ ${escapeSafeHtml(lg.duration)}</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                </details>
-            ` : ''}
-        `;
-
-        const firstLeftPanel = container.querySelector('div[style*="grid-template-columns"] > div:first-child');
-        if (firstLeftPanel) {
-            firstLeftPanel.prepend(card);
-        } else {
-            container.appendChild(card);
+            const firstLeftPanel = container.querySelector('div[style*="grid-template-columns"] > div:first-child');
+            if (firstLeftPanel) {
+                firstLeftPanel.prepend(card);
+            } else {
+                const subtabsBar = container.querySelector('.coach-subtabs');
+                if (subtabsBar) {
+                    subtabsBar.insertAdjacentElement('afterend', card);
+                } else {
+                    container.appendChild(card);
+                }
+            }
+        } finally {
+            isInjectingTerrainWod = false;
         }
     }
 
@@ -17764,6 +17789,17 @@ Return ONLY a valid JSON object with these exact keys:
             _preWodRenderTerrain();
             injectTerrainWodStudioCard();
         };
+    }
+
+    // Watch #view-reclaim-terrain so any internal re-render immediately restores the WOD Studio Card & Admin Bar
+    const terrainTargetNode = document.getElementById('view-reclaim-terrain');
+    if (terrainTargetNode && typeof MutationObserver !== 'undefined') {
+        const obs = new MutationObserver(() => {
+            if (!isInjectingTerrainWod && !document.getElementById('hh-terrain-ai-wod-studio-card')) {
+                injectTerrainWodStudioCard();
+            }
+        });
+        obs.observe(terrainTargetNode, { childList: true });
     }
 
     // =========================================================================
@@ -17871,27 +17907,8 @@ Return ONLY a valid JSON object with these exact keys:
             barnHeader.appendChild(fBtn);
         }
 
-        // 7. Reclaim Your Terrain Admin Portal
+        // 7. Admin Studio Scanner Key Button
         if (isStrictFounderAdmin()) {
-            const terrainView = document.getElementById('view-reclaim-terrain');
-            if (terrainView && !document.getElementById('btn-admin-clinical-summarizer')) {
-                const adminBar = document.createElement('div');
-                adminBar.id = 'btn-admin-clinical-summarizer';
-                adminBar.className = 'clinical-panel';
-                adminBar.style.cssText = 'background:#fdf8e7; border:2px dashed #b87612; padding:16px 20px; margin-bottom:18px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;';
-                adminBar.innerHTML = `
-                    <div>
-                        <span class="card-tag">👑 Ashton's Practitioner Clinical Summarizer (Admin Only)</span>
-                        <h4 style="font-size:1.15rem; margin-top:2px;">Generate 1-Page Root-Cause Summary & Pre-Draft 16-Step Protocol</h4>
-                        <p style="font-size:0.8rem; margin:0;">Reads all 20 Functional Consult answers and pre-drafts your Practitioner Note & Step 1 adjustments.</p>
-                    </div>
-                    <button type="button" class="btn-primary" style="font-size:0.82rem;" onclick="generatePractitionerClinicalSummary()">
-                        ✨ Generate 1-Page Clinical Intake Summary
-                    </button>
-                `;
-                terrainView.prepend(adminBar);
-            }
-
             const adminStudioBtnRow = document.querySelector('#table-admin-studio div[style*="display: flex; gap: 8px"]');
             if (adminStudioBtnRow && !document.getElementById('btn-admin-gemini-key')) {
                 const keyBtn = document.createElement('button');
@@ -18000,7 +18017,6 @@ Return ONLY a valid JSON object with these exact keys:
         return { sentViaApi: false };
     }
 
-    // Sync member's email into global member directory so Ashton always has an up-to-date list
     function registerCurrentMemberInDirectory() {
         if (!currentUser || !currentUser.email || window.isInteractiveDemoSession()) return;
         const email = currentUser.email.trim().toLowerCase();
@@ -18026,7 +18042,6 @@ Return ONLY a valid JSON object with these exact keys:
         setGlobalSharedData('hh_members_email_directory', dir);
     }
 
-    // Check & deliver any due Drip Campaigns + Admin Broadcasts to the logged-in member's Mailbox
     async function checkAndDeliverDueDripsAndBroadcasts() {
         if (!currentUser || !currentUser.email || window.isInteractiveDemoSession()) return;
         registerCurrentMemberInDirectory();
@@ -18035,7 +18050,6 @@ Return ONLY a valid JSON object with these exact keys:
         const deliveredIds = new Set(myInbox.map(m => m.id));
         let changed = false;
 
-        // 1. Check Global Broadcasts & Direct Admin Replies targeted to this member
         const globalBroadcasts = getGlobalSharedData('hh_admin_email_broadcasts', []);
         const myLvl = typeof getCurrentHubLevel === 'function' ? getCurrentHubLevel() : 1;
         const myEmail = currentUser.email.trim().toLowerCase();
@@ -18064,7 +18078,6 @@ Return ONLY a valid JSON object with these exact keys:
             }
         });
 
-        // 2. Check Automated Drip Campaigns based on member's join date
         const joinIso = getLocalData('member_first_joined_iso', currentUser.created_at || new Date().toISOString());
         const daysSinceJoin = Math.max(0, Math.floor((Date.now() - new Date(joinIso).getTime()) / (1000 * 60 * 60 * 24)));
         const drips = getDripCampaignsList();
@@ -18084,7 +18097,6 @@ Return ONLY a valid JSON object with these exact keys:
                 deliveredIds.add(dripReceiptId);
                 changed = true;
 
-                // Also attempt background email send via Netlify if configured
                 await trySendAutomatedEmailViaNetlify({
                     to: myEmail,
                     subject: d.subject,
@@ -18188,12 +18200,10 @@ Return ONLY a valid JSON object with these exact keys:
             status: 'unread'
         };
 
-        // 1. Save into Global Shared Vault in Supabase so Ashton sees it immediately in Admin Inbox
         const inbox = getGlobalSharedData('hh_support_inbox_messages', []);
         inbox.unshift(ticket);
         await setGlobalSharedData('hh_support_inbox_messages', inbox.slice(0, 150));
 
-        // 2. Also try automated email notification to Ashton via Netlify function
         await trySendAutomatedEmailViaNetlify({
             to: FOUNDER_EMAIL,
             replyTo: email,
@@ -18220,7 +18230,6 @@ Return ONLY a valid JSON object with these exact keys:
         document.getElementById('hh-member-mailbox-modal')?.remove();
         const inbox = getLocalData('member_founder_mailbox', []);
 
-        // Mark all as read when opened
         inbox.forEach(m => { m.read = true; });
         setLocalData('member_founder_mailbox', inbox);
         updateMemberMailboxBadgeUI();
@@ -18303,7 +18312,6 @@ Return ONLY a valid JSON object with these exact keys:
             }
         });
 
-        // Also pull any emails from community_posts in Supabase
         try {
             const { data } = await supabaseClient.from('community_posts').select('user_id, author_name, author_email').limit(100);
             if (Array.isArray(data)) {
@@ -18538,13 +18546,11 @@ Return ONLY a valid JSON object with these exact keys:
         const replyText = prompt(`Write your reply to ${recipientName} (${recipientEmail}):\n\n(This will be delivered to their In-App Mailbox AND sent via Email!)`, `Hi ${recipientName}!\n\nThank you so much for your note! `);
         if (!replyText || !replyText.trim()) return;
 
-        // Mark ticket read
         const inbox = getGlobalSharedData('hh_support_inbox_messages', []);
         const tk = inbox.find(t => t.id === ticketId);
         if (tk) tk.status = 'replied';
         setGlobalSharedData('hh_support_inbox_messages', inbox);
 
-        // Push to global broadcasts targeted directly to this member's email
         const bcasts = getGlobalSharedData('hh_admin_email_broadcasts', []);
         bcasts.unshift({
             id: 'bcast_reply_' + Date.now(),
@@ -18641,8 +18647,8 @@ Return ONLY a valid JSON object with these exact keys:
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     prompt: `Write a warm, Christ-centered, zero-overwhelm founder update email from Ashton (Founder of Honeysuckle Hub) to her members about: "${topic}". Return ONLY JSON: {"subject": "Warm subject line with emoji", "body": "Full email body signed by Ashton 🌻"}`,
-                    imageBase64: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==',
-                    mimeType: 'image/png'
+                    imageBase64: 'NONE',
+                    mimeType: 'image/jpeg'
                 })
             });
             const data = await res.json();
@@ -18724,7 +18730,6 @@ Return ONLY a valid JSON object with these exact keys:
     // 🔗 6. INJECT CONTACT BUTTONS, TRUST FOOTER & ADMIN STUDIO BUTTONS
     // =========================================================================
     function injectContactAndEmailButtons() {
-        // 1. Public Landing Page Header: Add "💌 Contact Ashton" Button
         const landingNav = document.querySelector('#landing-view .landing-header nav');
         if (landingNav && !document.getElementById('btn-landing-contact-ashton')) {
             const cBtn = document.createElement('button');
@@ -18736,7 +18741,6 @@ Return ONLY a valid JSON object with these exact keys:
             landingNav.prepend(cBtn);
         }
 
-        // 2. Public Landing Page Footer: Add Warm Founder Trust & Contact Section below Pricing
         const landingView = document.getElementById('landing-view');
         if (landingView && !document.getElementById('hh-landing-trust-contact-footer')) {
             const footerSec = document.createElement('footer');
@@ -18762,7 +18766,6 @@ Return ONLY a valid JSON object with these exact keys:
             landingView.appendChild(footerSec);
         }
 
-        // 3. Logged-In Member Header: Add "📬 Mailbox" & "💌 Contact Ashton" Buttons
         const headerBadgeArea = document.querySelector('.user-badge-header-area');
         if (headerBadgeArea && !document.getElementById('hh-member-mailbox-btn')) {
             const mailBtn = document.createElement('button');
@@ -18786,7 +18789,6 @@ Return ONLY a valid JSON object with these exact keys:
             updateMemberMailboxBadgeUI();
         }
 
-        // 4. Admin Studio inside The Table: Add "💌 Email, Inbox & Drip Studio" Button
         if (isFounderAdminUser()) {
             const adminStudioBtnRow = document.querySelector('#table-admin-studio div[style*="display: flex; gap: 8px"]');
             if (adminStudioBtnRow && !document.getElementById('btn-admin-email-drip-studio')) {
