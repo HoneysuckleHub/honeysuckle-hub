@@ -16026,7 +16026,7 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
     }
 
     // =========================================================================
-    // 0. LAYOUT FIXES + SUPABASE TERRAIN TABLE SYNC HELPER
+    // 0. LAYOUT FIXES & PERSISTENT TERRAIN UNLOCK STORAGE HELPERS
     // =========================================================================
     if (!document.getElementById('hh-header-and-subtab-layout-fix')) {
         const fixStyle = document.createElement('style');
@@ -16050,8 +16050,51 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
         document.head.appendChild(fixStyle);
     }
 
+    function getPersistentUnlockRecord() {
+        try {
+            const raw = localStorage.getItem('hh_terrain_paid_unlock');
+            if (!raw) return null;
+            const parsed = JSON.parse(raw);
+            if (!parsed || !parsed.unlocked) return null;
+            const curEmail = (typeof currentUser !== 'undefined' && currentUser?.email) ? currentUser.email.trim().toLowerCase() : '';
+            if (parsed.email && curEmail && parsed.email !== curEmail) return null;
+            return parsed;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function savePersistentUnlockRecord(tier = 'vip') {
+        const curEmail = (typeof currentUser !== 'undefined' && currentUser?.email) ? currentUser.email.trim().toLowerCase() : '';
+        const curUid = (typeof currentUser !== 'undefined' && currentUser?.id) ? currentUser.id : '';
+        const rec = {
+            unlocked: true,
+            tier: tier === 'vip' ? 'vip' : 'guided',
+            email: curEmail,
+            uid: curUid,
+            ts: Date.now()
+        };
+        localStorage.setItem('hh_terrain_paid_unlock', JSON.stringify(rec));
+        localStorage.setItem('hh_just_started_terrain_checkout', JSON.stringify(rec));
+    }
+
+    // Wrap getTerrainState so cloud sync can never accidentally re-lock a member who just paid
+    const _baseGetTerrainState = window.getTerrainState;
+    if (typeof _baseGetTerrainState === 'function') {
+        window.getTerrainState = function() {
+            const st = _baseGetTerrainState() || {};
+            const paidRec = getPersistentUnlockRecord();
+            if (paidRec && paidRec.unlocked && !st.unlocked) {
+                st.unlocked = true;
+                st.tier = paidRec.tier || st.tier || 'vip';
+                st.planTier = st.tier;
+            }
+            return st;
+        };
+    }
+
     function getDeletedClientIds() {
-        return getGlobalSharedData('terrain_deleted_client_ids', []);
+        return typeof getGlobalSharedData === 'function' ? getGlobalSharedData('terrain_deleted_client_ids', []) : [];
     }
 
     function purgeDeletedClientsFromRegistry() {
@@ -16092,9 +16135,13 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
     // =========================================================================
     // 0B. AUTOMATIC TERRAIN UNLOCK ON PAYMENT (NO CODE!) & ADMIN CLIENT TOOLS
     // =========================================================================
-    window.unlockAndLoadTerrainConsultNow = function(planTier = 'guided', silent = false) {
+    window.unlockAndLoadTerrainConsultNow = function(planTier = 'vip', silent = false) {
         if (typeof getTerrainState !== 'function' || typeof saveTerrainState !== 'function') return;
-        const normalizedTier = (String(planTier).toLowerCase().includes('vip') || String(planTier).toLowerCase().includes('custom') || String(planTier).includes('127')) ? 'vip' : 'guided';
+        const pStr = String(planTier || '').toLowerCase();
+        const normalizedTier = (pStr.includes('vip') || pStr.includes('custom') || pStr.includes('127') || pStr.includes('149') || pStr.includes('1-on-1')) ? 'vip' : 'guided';
+
+        savePersistentUnlockRecord(normalizedTier);
+
         const tState = getTerrainState() || {};
         tState.unlocked = true;
         tState.tier = normalizedTier;
@@ -16102,7 +16149,6 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
         tState.unlockedAt = tState.unlockedAt || new Date().toISOString();
 
         if (typeof currentUser !== 'undefined' && currentUser && currentUser.id && typeof getGlobalSharedData === 'function') {
-            // Remove from deleted list if re-enrolling
             const delList = getDeletedClientIds().filter(id => id !== currentUser.id);
             setGlobalSharedData('terrain_deleted_client_ids', delList);
 
@@ -16126,8 +16172,10 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
         if (typeof switchView === 'function') switchView('reclaim-terrain');
         if (typeof renderReclaimTerrainPillar === 'function') renderReclaimTerrainPillar();
 
-        const terrainEl = document.getElementById('view-reclaim-terrain');
-        if (terrainEl) terrainEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        if (!silent) {
+            const terrainEl = document.getElementById('view-reclaim-terrain');
+            if (terrainEl) terrainEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
     };
 
     // Intercept any old prompt() asking for an unlock code from Ashton
@@ -16136,11 +16184,42 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
         const msgStr = String(message || '').toLowerCase();
         if (msgStr.includes('code') && (msgStr.includes('terrain') || msgStr.includes('ashton') || msgStr.includes('unlock') || msgStr.includes('access'))) {
             const isVip = msgStr.includes('127') || msgStr.includes('vip') || msgStr.includes('custom');
-            setTimeout(() => window.unlockAndLoadTerrainConsultNow(isVip ? 'vip' : 'guided', false), 40);
+            setTimeout(() => window.unlockAndLoadTerrainConsultNow(isVip ? 'vip' : 'guided', false), 30);
             return 'AUTO-UNLOCK';
         }
         return _nativePrompt(message, defaultVal);
     };
+
+    // GLOBAL CAPTURE-PHASE INTERCEPTOR: Catches clicks on ANY Terrain Checkout / Custom Protocol / Guided button BEFORE leaving for Stripe!
+    document.addEventListener('click', function(e) {
+        const btnOrLink = e.target.closest('button, a');
+        if (!btnOrLink) return;
+        const inTerrain = btnOrLink.closest('#view-reclaim-terrain');
+        if (!inTerrain) return;
+
+        const tState = typeof getTerrainState === 'function' ? getTerrainState() : {};
+        if (tState.unlocked || isStrictFounderAdmin()) return;
+
+        const txt = (btnOrLink.textContent || '').toLowerCase();
+        const onclickStr = (btnOrLink.getAttribute('onclick') || '').toLowerCase();
+        const hrefStr = (btnOrLink.getAttribute('href') || '').toLowerCase();
+        const cardText = (btnOrLink.closest('div[style*="border"]')?.textContent || '').toLowerCase();
+
+        // Check if this button is a checkout, enrollment, or unlock button on the paywall
+        const isVipAction = txt.includes('127') || txt.includes('149') || txt.includes('custom') || txt.includes('1-on-1') || txt.includes('vip') || onclickStr.includes('vip') || onclickStr.includes('custom') || cardText.includes('$127');
+        const isGuidedAction = txt.includes('19') || txt.includes('guided') || txt.includes('self-paced') || onclickStr.includes('guided') || cardText.includes('$19');
+        const isUnlockAction = txt.includes('unlock') || txt.includes('enroll') || txt.includes('join') || txt.includes('start') || txt.includes('code') || hrefStr.includes('stripe.com');
+
+        if (isVipAction || isGuidedAction || isUnlockAction) {
+            const chosenTier = isVipAction ? 'vip' : 'guided';
+            savePersistentUnlockRecord(chosenTier);
+
+            // Immediately unlock in state & Supabase so it's ready when they return from Stripe (or right now!)
+            setTimeout(() => {
+                window.unlockAndLoadTerrainConsultNow(chosenTier, false);
+            }, 60);
+        }
+    }, true);
 
     function checkAndSyncTerrainEnrollmentStatus() {
         if (typeof getTerrainState !== 'function' || typeof saveTerrainState !== 'function') return;
@@ -16150,35 +16229,57 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
 
         const urlParams = new URLSearchParams(window.location.search);
         const terrainParam = (urlParams.get('terrain') || urlParams.get('plan') || '').toLowerCase();
-        const pendingTier = localStorage.getItem('hh_pending_terrain_checkout');
+        const justStartedRaw = localStorage.getItem('hh_just_started_terrain_checkout');
+        const paidRec = getPersistentUnlockRecord();
 
-        if (terrainParam.includes('unlock') || terrainParam.includes('terrain') || terrainParam.includes('guided') || terrainParam.includes('custom') || terrainParam.includes('vip') || pendingTier) {
-            const tier = (terrainParam.includes('custom') || terrainParam.includes('vip') || terrainParam.includes('127') || pendingTier === 'vip') ? 'vip' : 'guided';
-            localStorage.removeItem('hh_pending_terrain_checkout');
-            window.unlockAndLoadTerrainConsultNow(tier, true);
+        // 1. If returning from Stripe checkout or URL parameter
+        if (terrainParam.includes('unlock') || terrainParam.includes('terrain') || terrainParam.includes('guided') || terrainParam.includes('custom') || terrainParam.includes('vip') || justStartedRaw) {
+            let tier = 'vip';
+            if (justStartedRaw) {
+                try { tier = JSON.parse(justStartedRaw).tier || 'vip'; } catch (e) {}
+                localStorage.removeItem('hh_just_started_terrain_checkout');
+            } else if (terrainParam.includes('guided') || terrainParam.includes('19')) {
+                tier = 'guided';
+            }
+            window.unlockAndLoadTerrainConsultNow(tier, false);
             return;
         }
 
-        if (!tState.unlocked && typeof currentUser !== 'undefined' && currentUser?.id && typeof getGlobalSharedData === 'function') {
-            const deletedIds = getDeletedClientIds();
-            if (deletedIds.includes(currentUser.id)) return;
-            const registry = getGlobalSharedData('terrain_admin_clients_registry', {});
-            const myRecord = registry[currentUser.id];
-            if (myRecord && (myRecord.state?.unlocked || myRecord.consult)) {
+        // 2. If persistent unlock record exists locally, ensure tState stays unlocked even after Supabase sync
+        if (paidRec && paidRec.unlocked) {
+            if (!tState.unlocked || tState.tier !== paidRec.tier) {
                 tState.unlocked = true;
-                tState.tier = myRecord.planTier || myRecord.tier || myRecord.state?.tier || 'guided';
+                tState.tier = paidRec.tier || 'vip';
                 tState.planTier = tState.tier;
-                if (myRecord.consult && Object.keys(myRecord.consult).length > 0) {
-                    tState.consultCompleted = true;
-                    setLocalData('terrain_consult_answers', myRecord.consult);
-                }
                 saveTerrainState(tState);
                 if (typeof renderReclaimTerrainPillar === 'function') renderReclaimTerrainPillar();
             }
         }
+
+        // 3. Check Supabase registry + terrain_clients table for this user
+        if (typeof currentUser !== 'undefined' && currentUser?.id && typeof getGlobalSharedData === 'function') {
+            const deletedIds = getDeletedClientIds();
+            if (deletedIds.includes(currentUser.id)) return;
+            const registry = getGlobalSharedData('terrain_admin_clients_registry', {});
+            const myRecord = registry[currentUser.id];
+            if (myRecord && (myRecord.state?.unlocked || myRecord.consult || myRecord.planTier)) {
+                const cloudTier = myRecord.planTier || myRecord.tier || myRecord.state?.tier || 'vip';
+                savePersistentUnlockRecord(cloudTier);
+                if (!tState.unlocked) {
+                    tState.unlocked = true;
+                    tState.tier = cloudTier;
+                    tState.planTier = cloudTier;
+                    if (myRecord.consult && Object.keys(myRecord.consult).length > 0) {
+                        tState.consultCompleted = true;
+                        setLocalData('terrain_consult_answers', myRecord.consult);
+                    }
+                    saveTerrainState(tState);
+                    if (typeof renderReclaimTerrainPillar === 'function') renderReclaimTerrainPillar();
+                }
+            }
+        }
     }
 
-    // Helper to determine if a client is $127 Custom VIP vs $19/mo Self-Paced
     function isClientVipCustom(clientObj, cardText = '') {
         const explicit = String(clientObj?.planTier || clientObj?.tier || clientObj?.state?.planTier || clientObj?.state?.tier || '').toLowerCase();
         if (explicit === 'guided' || explicit === 'self_paced' || explicit === '19') return false;
@@ -16290,7 +16391,7 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
         const currentUrl = getEssentialOilEducationUrl();
         const nextUrl = _nativePrompt(
             '💧 Essential Oils "Learn More" Destination URL\n\n' +
-            'Paste the link where members should go when they click "💧 Learn More About Pure Essential Oils" inside the Apothecary (e.g. your Hooked on Oils page, Linktree, or dōTERRA partner link):',
+            'Paste the link where members should go when they click "💧 Learn More About Essential Oils" inside the Apothecary:',
             currentUrl
         );
         if (nextUrl !== null && nextUrl.trim()) {
@@ -16317,7 +16418,6 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
             return;
         }
 
-        // Inject right below the Apothecary category subtabs so it is prominent on Essential Oils & Apothecary views
         const targetAnchor = document.getElementById('apo-category-tabs') || apoView.querySelector('.coach-subtabs') || apoView.firstElementChild;
         if (!targetAnchor) return;
 
@@ -16542,7 +16642,7 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
     }
 
     // =========================================================================
-    // 3. ALL 6 SMART CAMERA SCANNERS (INVENTORY, TOXIN, APOTHECARY, RECIPE, TOC, HOMESTEAD)
+    // 3. ALL 6 SMART CAMERA SCANNERS
     // =========================================================================
     window.triggerAiInventoryPhotoPicker = function() {
         openOnTheSpotCameraModal('Snap Fridge, Freezer, Pantry or Receipt', 'Point your camera at your open fridge, freezer, pantry shelf, or paper grocery receipt to automatically log your stock!', processCapturedInventoryImage);
@@ -17052,6 +17152,12 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
     const _preWodSaveTerrainState = window.saveTerrainState;
     if (typeof _preWodSaveTerrainState === 'function') {
         window.saveTerrainState = function(stateObj) {
+            const paidRec = getPersistentUnlockRecord();
+            if (paidRec && paidRec.unlocked && stateObj) {
+                stateObj.unlocked = true;
+                stateObj.tier = stateObj.tier || paidRec.tier || 'vip';
+                stateObj.planTier = stateObj.tier;
+            }
             _preWodSaveTerrainState(stateObj);
             purgeDeletedClientsFromRegistry();
             if (currentUser && currentUser.email && !window.isInteractiveDemoSession()) {
@@ -17106,7 +17212,7 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
 
         purgeDeletedClientsFromRegistry();
 
-        // A. Remove "Enter Code from Ashton" inputs and wire member checkout buttons to auto-unlock consult
+        // A. Remove "Enter Code from Ashton" inputs
         container.querySelectorAll('input').forEach(inp => {
             const ph = (inp.getAttribute('placeholder') || '').toLowerCase();
             if (ph.includes('code') || (inp.id || '').toLowerCase().includes('code')) {
@@ -17115,12 +17221,11 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
             }
         });
 
+        // Wire buttons on the Terrain screen
         container.querySelectorAll('button, a').forEach(el => {
             const txt = (el.textContent || '').toLowerCase();
             const onclickAttr = (el.getAttribute('onclick') || '').toLowerCase();
-            const hrefAttr = (el.getAttribute('href') || '').toLowerCase();
 
-            // Wire Admin "Test 20-Question Consult" top button so it toggles the consult preview on/off
             if (isStrictFounderAdmin() && (txt.includes('test') && txt.includes('consult'))) {
                 if (!el.dataset.hhAdminTestWired) {
                     el.dataset.hhAdminTestWired = 'true';
@@ -17139,41 +17244,42 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
                 el.removeAttribute('onclick');
                 el.textContent = '📋 Start My 20-Question Functional Consult Now →';
                 el.className = 'btn-primary';
-                el.onclick = (e) => { e.preventDefault(); window.unlockAndLoadTerrainConsultNow('guided', false); };
-                return;
-            }
-
-            const isVipBtn = txt.includes('$127') || txt.includes('$149') || txt.includes('1-on-1') || txt.includes('custom') || txt.includes('vip');
-            const isGuidedBtn = txt.includes('$19') || txt.includes('guided') || txt.includes('self-paced') || txt.includes('enroll');
-            if ((hrefAttr.includes('stripe.com') || isVipBtn || isGuidedBtn) && !txt.includes('submit') && !txt.includes('save') && !txt.includes('step') && !txt.includes('workout') && !txt.includes('customize')) {
-                const tState = typeof getTerrainState === 'function' ? getTerrainState() : {};
-                if (!tState.unlocked && !isStrictFounderAdmin()) {
-                    el.dataset.hhTerrainUpgraded = 'true';
-                    const chosenTier = isVipBtn ? 'vip' : 'guided';
-                    el.addEventListener('click', () => {
-                        localStorage.setItem('hh_pending_terrain_checkout', chosenTier);
-                        setTimeout(() => window.unlockAndLoadTerrainConsultNow(chosenTier, false), 300);
-                    });
-                }
+                el.onclick = (e) => { e.preventDefault(); window.unlockAndLoadTerrainConsultNow('vip', false); };
             }
         });
 
+        // If a non-admin member is on the locked sales screen, add a prominent 1-click "Already Paid? Open My Consult" banner at the top
+        const tState = typeof getTerrainState === 'function' ? getTerrainState() : null;
+        if (tState && !tState.unlocked && !isStrictFounderAdmin() && !document.getElementById('hh-instant-consult-unlock-bar')) {
+            const bar = document.createElement('div');
+            bar.id = 'hh-instant-consult-unlock-bar';
+            bar.className = 'clinical-panel';
+            bar.style.cssText = 'background: linear-gradient(135deg, #FEF5D8 0%, #FFFDF8 100%); border: 2.5px solid var(--sage); padding: 18px 22px; margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;';
+            bar.innerHTML = `
+                <div>
+                    <span class="card-tag" style="background:var(--sage); color:#fff;">🌿 Enrolled in Reclaim Your Terrain?</span>
+                    <h4 style="font-size:1.25rem; color:var(--primary); margin:4px 0 2px 0;">Begin Your 20-Question Functional Consult</h4>
+                    <p style="font-size:0.84rem; color:var(--text-main); margin:0;">Completed your checkout? Click your track below to open Question 1 of your 20-Question Functional Intake Consult right now!</p>
+                </div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <button type="button" class="btn-primary" style="background:linear-gradient(135deg, #2E5A44 0%, #1F4230 100%); border-color:#173325; padding:10px 16px; font-size:0.84rem;" onclick="unlockAndLoadTerrainConsultNow('vip', false)">
+                        👑 Open My Custom Protocol Consult ($127 Track) &rarr;
+                    </button>
+                    <button type="button" class="btn-secondary" style="padding:10px 16px; font-size:0.84rem;" onclick="unlockAndLoadTerrainConsultNow('guided', false)">
+                        🌱 Open My Self-Paced Consult ($19/mo Track) &rarr;
+                    </button>
+                </div>
+            `;
+            container.prepend(bar);
+        }
+
         // B. HIDE REDUNDANT BOTTOM 20-QUESTION CONSULT BOX IN ADMIN ACCOUNT
         if (isStrictFounderAdmin()) {
-            container.querySelectorAll('div, section').forEach(box => {
-                if (box.querySelector('button[onclick^="openAdminClientConsultViewer("]')) return; // Never hide admin box
-                const boxTxt = box.textContent || '';
-                const isConsultWizardCard = (boxTxt.includes('Question 1 of 20') || boxTxt.includes('PART 1 OF 6') || boxTxt.includes('Save & Next Question')) && box.children.length <= 8;
-                if (isConsultWizardCard && box.parentElement === container) {
-                    box.style.display = window._adminShowConsultPreview ? 'block' : 'none';
-                }
-            });
-            // Also catch nested wrapper if the consult card is inside a wrapper div at the bottom of #view-reclaim-terrain
             Array.from(container.children).forEach(topChild => {
                 if (topChild.id === 'btn-admin-clinical-summarizer' || topChild.id === 'hh-terrain-ai-wod-studio-card') return;
                 if (topChild.querySelector('button[onclick^="openAdminClientConsultViewer("]')) return;
                 const txt = topChild.textContent || '';
-                if ((txt.includes('PART 1 OF 6') || txt.includes('Save & Next Question →') || txt.includes('How heavy does your daily mental load')) && !txt.includes('Client Portal')) {
+                if ((txt.includes('PART 1 OF 6') || txt.includes('Save & Next Question') || txt.includes('How heavy does your daily mental load')) && !txt.includes('Client Portal')) {
                     topChild.style.display = window._adminShowConsultPreview ? 'block' : 'none';
                 }
             });
@@ -17205,7 +17311,6 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
                 if (isVip) vipCount++; else guidedCount++;
                 totalCount++;
 
-                // Update badge pill on card if tier was edited
                 const badgePill = Array.from(cardEl.querySelectorAll('span')).find(s => s.textContent.includes('127') || s.textContent.includes('VIP') || s.textContent.includes('19') || s.textContent.includes('SELF') || s.textContent.includes('GUIDED'));
                 if (badgePill) {
                     if (isVip) {
@@ -17217,42 +17322,36 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
                     }
                 }
 
-                // Filter visibility by selected Admin Subtab
                 const activeSub = window._adminTerrainSubtab || 'all';
                 const showCard = activeSub === 'all' || (activeSub === 'vip' && isVip) || (activeSub === 'guided' && !isVip);
                 cardEl.style.display = showCard ? '' : 'none';
 
-                // Inject Workout Log, Edit Client, and Delete Client buttons
                 if (!btn.dataset.hhAdminActionsInjected) {
                     btn.dataset.hhAdminActionsInjected = 'true';
                     const count = Array.isArray(clientObj.wodLogs) ? clientObj.wodLogs.length : 0;
 
                     const wodBtn = document.createElement('button');
-                    wodBtn.type = 'button';
-                    wodBtn.className = 'icon-btn';
+                    wodBtn.type = 'button'; wodBtn.className = 'icon-btn';
                     wodBtn.style.cssText = 'background:#FEF5D8; color:var(--primary); border-color:#B87612;';
                     wodBtn.onclick = () => window.openAdminClientWodLogModal(uid);
                     wodBtn.innerHTML = `🏆 Workout Log (${count})`;
                     btn.insertAdjacentElement('afterend', wodBtn);
 
                     const editBtn = document.createElement('button');
-                    editBtn.type = 'button';
-                    editBtn.className = 'icon-btn';
+                    editBtn.type = 'button'; editBtn.className = 'icon-btn';
                     editBtn.style.cssText = 'background:#E8F2EC; color:var(--sage); border-color:var(--sage);';
                     editBtn.onclick = () => window.openAdminEditTerrainClientModal(uid);
                     editBtn.innerHTML = `✏️ Edit`;
                     wodBtn.insertAdjacentElement('afterend', editBtn);
 
                     const delBtn = document.createElement('button');
-                    delBtn.type = 'button';
-                    delBtn.className = 'icon-btn del';
+                    delBtn.type = 'button'; delBtn.className = 'icon-btn del';
                     delBtn.onclick = () => window.deleteAdminTerrainClient(uid);
                     delBtn.innerHTML = `🗑️ Delete`;
                     editBtn.insertAdjacentElement('afterend', delBtn);
                 }
             });
 
-            // Inject the Subtab Filter Bar right above the Client Grid
             if (clientGridEl && !document.getElementById('hh-admin-terrain-subtabs-bar')) {
                 const activeSub = window._adminTerrainSubtab || 'all';
                 const subBar = document.createElement('div');
@@ -17309,7 +17408,6 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
                 container.prepend(adminBar);
             }
 
-            // For non-admin members who haven't finished their 20-question consult yet, keep the consult at the top
             if (!tState.consultCompleted && !isStrictFounderAdmin()) return;
             if (document.getElementById('hh-terrain-ai-wod-studio-card')) return;
 
@@ -17322,7 +17420,6 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
             const activeDayKey = tState.selectedViewDay || daysOfWeek[(new Date().getDay() + 6) % 7];
             const isMovementDoneToday = Boolean(tState.weeklyChecks && tState.weeklyChecks[`${activeDayKey}_movement`]);
             const wod = tState.todaysGeneratedWod;
-            const wodLogs = getLocalData('terrain_wod_history_logs', []);
 
             const card = document.createElement('div');
             card.id = 'hh-terrain-ai-wod-studio-card';
@@ -17507,8 +17604,9 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
         }
     }
 
+    // Run enrollment sync multiple times after page load so it catches post-Supabase auth initialization
     window.addEventListener('focus', checkAndSyncTerrainEnrollmentStatus);
-    setTimeout(checkAndSyncTerrainEnrollmentStatus, 500);
+    [400, 1100, 2200, 3800].forEach(ms => setTimeout(checkAndSyncTerrainEnrollmentStatus, ms));
     setTimeout(injectAllSmartHubButtons, 650);
     window.addEventListener('hashchange', () => setTimeout(injectAllSmartHubButtons, 300));
     document.addEventListener('click', () => setTimeout(injectAllSmartHubButtons, 200));
@@ -17603,7 +17701,7 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
         updateMemberMailboxBadgeUI();
     }
 
-    window.openContactAshtonModal = function(prefillSubject = '') {
+    window.openContactAshtonModal = function() {
         document.getElementById('hh-contact-ashton-modal')?.remove();
         const isLogged = Boolean(currentUser && currentUser.email && !window.isInteractiveDemoSession());
         const modal = document.createElement('div');
@@ -17773,7 +17871,7 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
             const cBtn = document.createElement('button');
             cBtn.type = 'button'; cBtn.id = 'btn-landing-contact-ashton'; cBtn.className = 'btn-secondary';
             cBtn.innerHTML = '💌 Contact Ashton';
-            cBtn.onclick = () => window.openContactAshtonModal('Question Before Joining Honeysuckle Hub');
+            cBtn.onclick = () => window.openContactAshtonModal();
             landingNav.prepend(cBtn);
         }
 
