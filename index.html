@@ -16062,6 +16062,177 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
     }
 
     // =========================================================================
+    // 0B. AUTOMATIC "RECLAIM YOUR TERRAIN" UNLOCK & CONSULT LOADER (NO CODE!)
+    // =========================================================================
+    window.unlockAndLoadTerrainConsultNow = function(planTier = 'guided', silent = false) {
+        if (typeof getTerrainState !== 'function' || typeof saveTerrainState !== 'function') return;
+        const tState = getTerrainState() || {};
+        tState.unlocked = true;
+        tState.planTier = planTier || tState.planTier || 'guided';
+        tState.unlockedAt = tState.unlockedAt || new Date().toISOString();
+
+        // Sync unlock status to global client registry so member stays unlocked across devices
+        if (typeof currentUser !== 'undefined' && currentUser && currentUser.id && typeof getGlobalSharedData === 'function') {
+            const registry = getGlobalSharedData('terrain_admin_clients_registry', {});
+            const existingClient = registry[currentUser.id] || {};
+            registry[currentUser.id] = {
+                ...existingClient,
+                userId: currentUser.id,
+                name: (typeof currentDisplayName !== 'undefined' && currentDisplayName) ? currentDisplayName : (currentUser.email || 'Member'),
+                email: currentUser.email || '',
+                planTier: tState.planTier,
+                state: { ...(existingClient.state || {}), ...tState, unlocked: true },
+                updatedAt: new Date().toLocaleString()
+            };
+            if (typeof setGlobalSharedData === 'function') {
+                setGlobalSharedData('terrain_admin_clients_registry', registry);
+            }
+        }
+
+        saveTerrainState(tState);
+
+        if (typeof switchView === 'function') {
+            switchView('reclaim-terrain');
+        }
+        if (typeof renderReclaimTerrainPillar === 'function') {
+            renderReclaimTerrainPillar();
+        }
+
+        const terrainEl = document.getElementById('view-reclaim-terrain');
+        if (terrainEl) {
+            terrainEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        if (!silent && !tState.consultCompleted) {
+            setTimeout(() => {
+                const firstInput = document.querySelector('#view-reclaim-terrain textarea, #view-reclaim-terrain select, #view-reclaim-terrain input[type="text"]');
+                if (firstInput) firstInput.focus();
+            }, 350);
+        }
+    };
+
+    // Intercept any legacy prompt() that asks for a "code" from Ashton and auto-unlock instead
+    const _nativeWindowPrompt = window.prompt.bind(window);
+    window.prompt = function(message, defaultVal) {
+        const msgStr = String(message || '').toLowerCase();
+        if (msgStr.includes('code') && (msgStr.includes('terrain') || msgStr.includes('ashton') || msgStr.includes('unlock') || msgStr.includes('access'))) {
+            setTimeout(() => window.unlockAndLoadTerrainConsultNow('guided', false), 50);
+            return 'HONEYSUCKLE-AUTO-UNLOCK';
+        }
+        return _nativeWindowPrompt(message, defaultVal);
+    };
+
+    // Restore unlock state from cloud registry if member already enrolled on another device or via URL param
+    function checkAndSyncTerrainEnrollmentStatus() {
+        if (typeof getTerrainState !== 'function' || typeof saveTerrainState !== 'function') return;
+        const tState = getTerrainState();
+        if (!tState) return;
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const terrainParam = (urlParams.get('terrain') || urlParams.get('plan') || '').toLowerCase();
+        const pendingTier = localStorage.getItem('hh_pending_terrain_checkout');
+
+        if (terrainParam.includes('unlock') || terrainParam.includes('terrain') || terrainParam.includes('guided') || terrainParam.includes('custom') || pendingTier) {
+            const tier = (terrainParam.includes('custom') || pendingTier === 'custom_1on1') ? 'custom_1on1' : 'guided';
+            localStorage.removeItem('hh_pending_terrain_checkout');
+            window.unlockAndLoadTerrainConsultNow(tier, true);
+            return;
+        }
+
+        // Check if member is already marked unlocked in Supabase registry
+        if (!tState.unlocked && typeof currentUser !== 'undefined' && currentUser?.id && typeof getGlobalSharedData === 'function') {
+            const registry = getGlobalSharedData('terrain_admin_clients_registry', {});
+            const myRecord = registry[currentUser.id];
+            if (myRecord && (myRecord.state?.unlocked || myRecord.consult)) {
+                tState.unlocked = true;
+                if (myRecord.consult && Object.keys(myRecord.consult).length > 0) {
+                    tState.consultCompleted = true;
+                    setLocalData('terrain_consult_answers', myRecord.consult);
+                }
+                saveTerrainState(tState);
+                if (typeof renderReclaimTerrainPillar === 'function') renderReclaimTerrainPillar();
+            }
+        }
+    }
+
+    // Automatically clean up any "Enter Code from Ashton" UI inside #view-reclaim-terrain and wire checkout buttons to auto-open the Consult
+    function upgradeTerrainPaywallAndConsultFlow() {
+        const container = document.getElementById('view-reclaim-terrain');
+        if (!container) return;
+
+        // 1. Hide any input fields asking for an unlock/access code
+        container.querySelectorAll('input').forEach(inp => {
+            const ph = (inp.getAttribute('placeholder') || '').toLowerCase();
+            const id = (inp.id || '').toLowerCase();
+            if (ph.includes('code') || id.includes('code')) {
+                const parentBox = inp.closest('div');
+                if (parentBox) parentBox.style.display = 'none';
+                else inp.style.display = 'none';
+            }
+        });
+
+        // 2. Rewire any buttons or links inside #view-reclaim-terrain that mention "code", "unlock", "enroll", "join", "add", or "start"
+        container.querySelectorAll('button, a').forEach(el => {
+            if (el.dataset.hhTerrainUpgraded) return;
+            const txt = (el.textContent || '').toLowerCase();
+            const onclickAttr = (el.getAttribute('onclick') || '').toLowerCase();
+            const hrefAttr = (el.getAttribute('href') || '').toLowerCase();
+
+            // If button was asking to verify/enter a code, turn it into a 1-click "Start My 20-Question Consult" button
+            if (txt.includes('code') || onclickAttr.includes('code') || onclickAttr.includes('unlock')) {
+                el.dataset.hhTerrainUpgraded = 'true';
+                el.removeAttribute('onclick');
+                el.textContent = '📋 Start My 20-Question Functional Consult Now →';
+                el.className = 'btn-primary';
+                el.onclick = (e) => {
+                    e.preventDefault();
+                    window.unlockAndLoadTerrainConsultNow('guided', false);
+                };
+                return;
+            }
+
+            // If it's a Stripe checkout link or enrollment button for Guided ($19) or Custom 1-on-1 ($149)
+            const isGuidedCheckout = txt.includes('$19') || txt.includes('guided') || txt.includes('enroll') || txt.includes('unlock');
+            const isCustomCheckout = txt.includes('$149') || txt.includes('1-on-1') || txt.includes('custom');
+            if ((hrefAttr.includes('stripe.com') || isGuidedCheckout || isCustomCheckout) && !txt.includes('submit') && !txt.includes('save') && !txt.includes('step') && !txt.includes('workout')) {
+                const tState = typeof getTerrainState === 'function' ? getTerrainState() : {};
+                if (!tState.unlocked) {
+                    el.dataset.hhTerrainUpgraded = 'true';
+                    const chosenTier = isCustomCheckout ? 'custom_1on1' : 'guided';
+                    el.addEventListener('click', () => {
+                        localStorage.setItem('hh_pending_terrain_checkout', chosenTier);
+                        setTimeout(() => {
+                            window.unlockAndLoadTerrainConsultNow(chosenTier, false);
+                        }, 300);
+                    });
+                }
+            }
+        });
+
+        // 3. If the screen is currently showing the locked sales screen, inject a clear 1-click "Start My 20-Question Consult" banner at the top
+        const tState = typeof getTerrainState === 'function' ? getTerrainState() : null;
+        if (tState && !tState.unlocked && !document.getElementById('hh-instant-consult-unlock-bar')) {
+            const bar = document.createElement('div');
+            bar.id = 'hh-instant-consult-unlock-bar';
+            bar.className = 'clinical-panel';
+            bar.style.cssText = 'background: linear-gradient(135deg, #FEF5D8 0%, #FFFDF8 100%); border: 2.5px solid var(--sage); padding: 18px 22px; margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;';
+            bar.innerHTML = `
+                <div>
+                    <span class="card-tag" style="background:var(--sage); color:#fff;">🌿 Ready to Begin Your 16-Step Journey?</span>
+                    <h4 style="font-size:1.25rem; color:var(--primary); margin:4px 0 2px 0;">Complete Your 20-Question Functional Consult</h4>
+                    <p style="font-size:0.84rem; color:var(--text-main); margin:0;"> Enrolled in <em>Reclaim Your Terrain</em>? Click the button to open your 20-Question Functional Intake Consult right now—no access code needed!</p>
+                </div>
+                <button type="button" class="btn-primary" style="background:linear-gradient(135deg, #2E5A44 0%, #1F4230 100%); border-color:#173325; padding:12px 20px; font-size:0.9rem;" onclick="unlockAndLoadTerrainConsultNow('guided', false)">
+                    📋 Open My 20-Question Consult Now &rarr;
+                </button>
+            `;
+            container.prepend(bar);
+        }
+    }
+
+    window.addEventListener('focus', checkAndSyncTerrainEnrollmentStatus);
+    setTimeout(checkAndSyncTerrainEnrollmentStatus, 500);
+
+    // =========================================================================
     // 1. IMAGE COMPRESSOR FOR CAMERA & PHOTO UPLOADS
     // =========================================================================
     function compressImageFileToBase64(file, maxWidth = 1024, quality = 0.78) {
@@ -16275,7 +16446,7 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
         }
 
         if (isStrictFounderAdmin()) {
-            throw new Error(`Netlify Function reported: "${serverErrorDetail}". (Tip: Check https://honeysucklehub.com/.netlify/functions/gemini-scan or click 🔑 Scanner Key in Admin Studio!)`);
+            throw new Error(`Netlify Function reported: "${serverErrorDetail}".`);
         }
         throw new Error(`Scanner connection notice (${serverErrorDetail || 'Busy'}). Please try again in a moment!`);
     }
@@ -17446,7 +17617,6 @@ Return ONLY a valid JSON object with these exact keys:
         }
     };
 
-    // Sync WOD History into Ashton's Admin Client Registry every time saveTerrainState runs
     const _preWodSaveTerrainState = window.saveTerrainState;
     if (typeof _preWodSaveTerrainState === 'function') {
         window.saveTerrainState = function(stateObj) {
@@ -17461,7 +17631,6 @@ Return ONLY a valid JSON object with these exact keys:
         };
     }
 
-    // Upgrade Admin Consult Viewer so it also includes the client's Completed Workout Log
     window.openAdminClientConsultViewer = function(uid) {
         const registry = getGlobalSharedData('terrain_admin_clients_registry', {});
         const client = registry[uid];
@@ -17489,7 +17658,6 @@ Return ONLY a valid JSON object with these exact keys:
         ], () => {});
     };
 
-    // Dedicated 1-Click Admin Modal to inspect a client's Completed Workout Log
     window.openAdminClientWodLogModal = function(uid) {
         const registry = getGlobalSharedData('terrain_admin_clients_registry', {});
         const client = registry[uid];
@@ -17554,11 +17722,15 @@ Return ONLY a valid JSON object with these exact keys:
         if (isInjectingTerrainWod) return;
         const container = document.getElementById('view-reclaim-terrain');
         if (!container) return;
-        const tState = typeof getTerrainState === 'function' ? getTerrainState() : null;
-        if (!tState || (!tState.unlocked && !isStrictFounderAdmin())) return;
 
         isInjectingTerrainWod = true;
         try {
+            // Always strip out any "enter code from Ashton" inputs and wire checkout buttons to open the Consult
+            upgradeTerrainPaywallAndConsultFlow();
+
+            const tState = typeof getTerrainState === 'function' ? getTerrainState() : null;
+            if (!tState || (!tState.unlocked && !isStrictFounderAdmin())) return;
+
             // 1. Ensure Ashton's Clinical Summarizer Bar is always present for Admin
             if (isStrictFounderAdmin() && !document.getElementById('btn-admin-clinical-summarizer')) {
                 const adminBar = document.createElement('div');
@@ -17598,7 +17770,10 @@ Return ONLY a valid JSON object with these exact keys:
                 });
             }
 
-            // 3. Inject the AI Workout of the Day (WOD) Studio Card (Works even before 20-Q Consult is finished!)
+            // 3. If the member just unlocked the program and hasn't submitted their 20-Question Consult yet,
+            // keep the 20-Question Consult form front-and-center at the very top!
+            if (!tState.consultCompleted && !isStrictFounderAdmin()) return;
+
             if (document.getElementById('hh-terrain-ai-wod-studio-card')) return;
 
             const curStepNum = Math.max(1, Math.min(16, parseInt(tState.currentStep) || 1));
@@ -17791,11 +17966,10 @@ Return ONLY a valid JSON object with these exact keys:
         };
     }
 
-    // Watch #view-reclaim-terrain so any internal re-render immediately restores the WOD Studio Card & Admin Bar
     const terrainTargetNode = document.getElementById('view-reclaim-terrain');
     if (terrainTargetNode && typeof MutationObserver !== 'undefined') {
         const obs = new MutationObserver(() => {
-            if (!isInjectingTerrainWod && !document.getElementById('hh-terrain-ai-wod-studio-card')) {
+            if (!isInjectingTerrainWod) {
                 injectTerrainWodStudioCard();
             }
         });
