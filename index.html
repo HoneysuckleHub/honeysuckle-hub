@@ -16026,7 +16026,7 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
     }
 
     // =========================================================================
-    // 0. LAYOUT FIXES & PERSISTENT TERRAIN UNLOCK STORAGE HELPERS
+    // 0. LAYOUT FIXES & PERSISTENT TERRAIN UNLOCK + CONSULT COMPLETION HELPERS
     // =========================================================================
     if (!document.getElementById('hh-header-and-subtab-layout-fix')) {
         const fixStyle = document.createElement('style');
@@ -16067,9 +16067,11 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
     function savePersistentUnlockRecord(tier = 'vip') {
         const curEmail = (typeof currentUser !== 'undefined' && currentUser?.email) ? currentUser.email.trim().toLowerCase() : '';
         const curUid = (typeof currentUser !== 'undefined' && currentUser?.id) ? currentUser.id : '';
+        const existing = getPersistentUnlockRecord() || {};
         const rec = {
             unlocked: true,
             tier: tier === 'vip' ? 'vip' : 'guided',
+            consultCompleted: existing.consultCompleted || false,
             email: curEmail,
             uid: curUid,
             ts: Date.now()
@@ -16078,16 +16080,53 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
         localStorage.setItem('hh_just_started_terrain_checkout', JSON.stringify(rec));
     }
 
-    // Wrap getTerrainState so cloud sync can never accidentally re-lock a member who just paid
+    function markConsultCompletedPermanently() {
+        const rec = getPersistentUnlockRecord() || { unlocked: true };
+        rec.consultCompleted = true;
+        rec.completedAt = new Date().toISOString();
+        localStorage.setItem('hh_terrain_paid_unlock', JSON.stringify(rec));
+
+        if (typeof getTerrainState === 'function' && typeof saveTerrainState === 'function') {
+            const tState = getTerrainState();
+            tState.consultCompleted = true;
+            tState.unlocked = true;
+            if (!tState.currentStep) tState.currentStep = 1;
+            saveTerrainState(tState);
+        }
+
+        if (typeof currentUser !== 'undefined' && currentUser?.id && typeof getGlobalSharedData === 'function') {
+            const registry = getGlobalSharedData('terrain_admin_clients_registry', {});
+            const client = registry[currentUser.id] || {};
+            const answers = typeof getLocalData === 'function' ? getLocalData('terrain_consult_answers', {}) : {};
+            registry[currentUser.id] = {
+                ...client,
+                userId: currentUser.id,
+                name: (typeof currentDisplayName !== 'undefined' && currentDisplayName) ? currentDisplayName : (currentUser.email || 'Member'),
+                email: currentUser.email || '',
+                consult: answers,
+                state: { ...(client.state || {}), unlocked: true, consultCompleted: true, currentStep: 1 },
+                updatedAt: new Date().toLocaleString()
+            };
+            if (typeof setGlobalSharedData === 'function') {
+                setGlobalSharedData('terrain_admin_clients_registry', registry);
+            }
+            syncClientToSupabaseTerrainTable(registry[currentUser.id]);
+        }
+    }
+
+    // Wrap getTerrainState so cloud fetch cannot overwrite completion
     const _baseGetTerrainState = window.getTerrainState;
     if (typeof _baseGetTerrainState === 'function') {
         window.getTerrainState = function() {
             const st = _baseGetTerrainState() || {};
             const paidRec = getPersistentUnlockRecord();
-            if (paidRec && paidRec.unlocked && !st.unlocked) {
+            if (paidRec && paidRec.unlocked) {
                 st.unlocked = true;
                 st.tier = paidRec.tier || st.tier || 'vip';
                 st.planTier = st.tier;
+                if (paidRec.consultCompleted) {
+                    st.consultCompleted = true;
+                }
             }
             return st;
         };
@@ -16178,7 +16217,7 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
         }
     };
 
-    // Intercept any old prompt() asking for an unlock code from Ashton
+    // Intercept any prompt() asking for an access code
     const _nativePrompt = window.prompt.bind(window);
     window.prompt = function(message, defaultVal) {
         const msgStr = String(message || '').toLowerCase();
@@ -16190,22 +16229,35 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
         return _nativePrompt(message, defaultVal);
     };
 
-    // GLOBAL CAPTURE-PHASE INTERCEPTOR: Catches clicks on ANY Terrain Checkout / Custom Protocol / Guided button BEFORE leaving for Stripe!
+    // GLOBAL CAPTURE-PHASE INTERCEPTOR: Hooks checkout clicks AND catches the Consult Submission button
     document.addEventListener('click', function(e) {
         const btnOrLink = e.target.closest('button, a');
         if (!btnOrLink) return;
+
+        const txt = (btnOrLink.textContent || '').trim().toLowerCase();
+        const onclickStr = (btnOrLink.getAttribute('onclick') || '').toLowerCase();
+
+        // CATCH: Finish 20-Question Consult Button
+        if (txt.includes('submit consult') || txt.includes('finish consult') || txt.includes('complete consult') || onclickStr.includes('submitterrainconsult') || (txt.includes('save') && txt.includes('finish') && btnOrLink.closest('#view-reclaim-terrain'))) {
+            markConsultCompletedPermanently();
+            setTimeout(() => {
+                if (typeof renderReclaimTerrainPillar === 'function') renderReclaimTerrainPillar();
+                const step1El = document.querySelector('#view-reclaim-terrain .clinical-panel') || document.getElementById('hh-terrain-ai-wod-studio-card');
+                if (step1El) step1El.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 100);
+            return;
+        }
+
+        // CATCH: Checkout & Unlock Buttons
         const inTerrain = btnOrLink.closest('#view-reclaim-terrain');
         if (!inTerrain) return;
 
         const tState = typeof getTerrainState === 'function' ? getTerrainState() : {};
         if (tState.unlocked || isStrictFounderAdmin()) return;
 
-        const txt = (btnOrLink.textContent || '').toLowerCase();
-        const onclickStr = (btnOrLink.getAttribute('onclick') || '').toLowerCase();
         const hrefStr = (btnOrLink.getAttribute('href') || '').toLowerCase();
         const cardText = (btnOrLink.closest('div[style*="border"]')?.textContent || '').toLowerCase();
 
-        // Check if this button is a checkout, enrollment, or unlock button on the paywall
         const isVipAction = txt.includes('127') || txt.includes('149') || txt.includes('custom') || txt.includes('1-on-1') || txt.includes('vip') || onclickStr.includes('vip') || onclickStr.includes('custom') || cardText.includes('$127');
         const isGuidedAction = txt.includes('19') || txt.includes('guided') || txt.includes('self-paced') || onclickStr.includes('guided') || cardText.includes('$19');
         const isUnlockAction = txt.includes('unlock') || txt.includes('enroll') || txt.includes('join') || txt.includes('start') || txt.includes('code') || hrefStr.includes('stripe.com');
@@ -16213,8 +16265,6 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
         if (isVipAction || isGuidedAction || isUnlockAction) {
             const chosenTier = isVipAction ? 'vip' : 'guided';
             savePersistentUnlockRecord(chosenTier);
-
-            // Immediately unlock in state & Supabase so it's ready when they return from Stripe (or right now!)
             setTimeout(() => {
                 window.unlockAndLoadTerrainConsultNow(chosenTier, false);
             }, 60);
@@ -16232,7 +16282,6 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
         const justStartedRaw = localStorage.getItem('hh_just_started_terrain_checkout');
         const paidRec = getPersistentUnlockRecord();
 
-        // 1. If returning from Stripe checkout or URL parameter
         if (terrainParam.includes('unlock') || terrainParam.includes('terrain') || terrainParam.includes('guided') || terrainParam.includes('custom') || terrainParam.includes('vip') || justStartedRaw) {
             let tier = 'vip';
             if (justStartedRaw) {
@@ -16245,18 +16294,24 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
             return;
         }
 
-        // 2. If persistent unlock record exists locally, ensure tState stays unlocked even after Supabase sync
         if (paidRec && paidRec.unlocked) {
+            let modified = false;
             if (!tState.unlocked || tState.tier !== paidRec.tier) {
                 tState.unlocked = true;
                 tState.tier = paidRec.tier || 'vip';
                 tState.planTier = tState.tier;
+                modified = true;
+            }
+            if (paidRec.consultCompleted && !tState.consultCompleted) {
+                tState.consultCompleted = true;
+                modified = true;
+            }
+            if (modified) {
                 saveTerrainState(tState);
                 if (typeof renderReclaimTerrainPillar === 'function') renderReclaimTerrainPillar();
             }
         }
 
-        // 3. Check Supabase registry + terrain_clients table for this user
         if (typeof currentUser !== 'undefined' && currentUser?.id && typeof getGlobalSharedData === 'function') {
             const deletedIds = getDeletedClientIds();
             if (deletedIds.includes(currentUser.id)) return;
@@ -16265,14 +16320,19 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
             if (myRecord && (myRecord.state?.unlocked || myRecord.consult || myRecord.planTier)) {
                 const cloudTier = myRecord.planTier || myRecord.tier || myRecord.state?.tier || 'vip';
                 savePersistentUnlockRecord(cloudTier);
+                let changed = false;
                 if (!tState.unlocked) {
                     tState.unlocked = true;
                     tState.tier = cloudTier;
                     tState.planTier = cloudTier;
-                    if (myRecord.consult && Object.keys(myRecord.consult).length > 0) {
-                        tState.consultCompleted = true;
-                        setLocalData('terrain_consult_answers', myRecord.consult);
-                    }
+                    changed = true;
+                }
+                if (myRecord.consult && Object.keys(myRecord.consult).length > 0) {
+                    tState.consultCompleted = true;
+                    setLocalData('terrain_consult_answers', myRecord.consult);
+                    changed = true;
+                }
+                if (changed) {
                     saveTerrainState(tState);
                     if (typeof renderReclaimTerrainPillar === 'function') renderReclaimTerrainPillar();
                 }
@@ -17157,6 +17217,9 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
                 stateObj.unlocked = true;
                 stateObj.tier = stateObj.tier || paidRec.tier || 'vip';
                 stateObj.planTier = stateObj.tier;
+                if (paidRec.consultCompleted) {
+                    stateObj.consultCompleted = true;
+                }
             }
             _preWodSaveTerrainState(stateObj);
             purgeDeletedClientsFromRegistry();
@@ -17247,31 +17310,6 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
                 el.onclick = (e) => { e.preventDefault(); window.unlockAndLoadTerrainConsultNow('vip', false); };
             }
         });
-
-        // If a non-admin member is on the locked sales screen, add a prominent 1-click "Already Paid? Open My Consult" banner at the top
-        const tState = typeof getTerrainState === 'function' ? getTerrainState() : null;
-        if (tState && !tState.unlocked && !isStrictFounderAdmin() && !document.getElementById('hh-instant-consult-unlock-bar')) {
-            const bar = document.createElement('div');
-            bar.id = 'hh-instant-consult-unlock-bar';
-            bar.className = 'clinical-panel';
-            bar.style.cssText = 'background: linear-gradient(135deg, #FEF5D8 0%, #FFFDF8 100%); border: 2.5px solid var(--sage); padding: 18px 22px; margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;';
-            bar.innerHTML = `
-                <div>
-                    <span class="card-tag" style="background:var(--sage); color:#fff;">🌿 Enrolled in Reclaim Your Terrain?</span>
-                    <h4 style="font-size:1.25rem; color:var(--primary); margin:4px 0 2px 0;">Begin Your 20-Question Functional Consult</h4>
-                    <p style="font-size:0.84rem; color:var(--text-main); margin:0;">Completed your checkout? Click your track below to open Question 1 of your 20-Question Functional Intake Consult right now!</p>
-                </div>
-                <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                    <button type="button" class="btn-primary" style="background:linear-gradient(135deg, #2E5A44 0%, #1F4230 100%); border-color:#173325; padding:10px 16px; font-size:0.84rem;" onclick="unlockAndLoadTerrainConsultNow('vip', false)">
-                        👑 Open My Custom Protocol Consult ($127 Track) &rarr;
-                    </button>
-                    <button type="button" class="btn-secondary" style="padding:10px 16px; font-size:0.84rem;" onclick="unlockAndLoadTerrainConsultNow('guided', false)">
-                        🌱 Open My Self-Paced Consult ($19/mo Track) &rarr;
-                    </button>
-                </div>
-            `;
-            container.prepend(bar);
-        }
 
         // B. HIDE REDUNDANT BOTTOM 20-QUESTION CONSULT BOX IN ADMIN ACCOUNT
         if (isStrictFounderAdmin()) {
@@ -17604,7 +17642,6 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
         }
     }
 
-    // Run enrollment sync multiple times after page load so it catches post-Supabase auth initialization
     window.addEventListener('focus', checkAndSyncTerrainEnrollmentStatus);
     [400, 1100, 2200, 3800].forEach(ms => setTimeout(checkAndSyncTerrainEnrollmentStatus, ms));
     setTimeout(injectAllSmartHubButtons, 650);
@@ -17907,9 +17944,11 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
         }
     }
 
-    setTimeout(() => { injectContactAndEmailButtons(); checkAndDeliverDueDripsAndBroadcasts(); }, 950);
-    window.addEventListener('hashchange', () => setTimeout(injectContactAndEmailButtons, 300));
-    document.addEventListener('click', () => setTimeout(injectContactAndEmailButtons, 350));
+    window.addEventListener('focus', checkAndSyncTerrainEnrollmentStatus);
+    [400, 1100, 2200, 3800].forEach(ms => setTimeout(checkAndSyncTerrainEnrollmentStatus, ms));
+    setTimeout(injectAllSmartHubButtons, 650);
+    window.addEventListener('hashchange', () => setTimeout(injectAllSmartHubButtons, 300));
+    document.addEventListener('click', () => setTimeout(injectAllSmartHubButtons, 200));
 })();
 </script>
 
