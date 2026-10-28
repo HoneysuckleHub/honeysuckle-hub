@@ -17952,5 +17952,643 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
 })();
 </script>
 
+<!-- ================= BLOCK 1: 102 WHOLE-FOOD RECIPES, LOCKED TERRAIN RECIPE SUBTAB & WORDING SCRUBBER ================= -->
+<script>
+(function() {
+    const FOUNDER_EMAIL = 'contacthoneysuckleandco@gmail.com';
+
+    function isTerrainUnlockedForRecipes() {
+        const email = (typeof currentUser !== 'undefined' && currentUser?.email) ? currentUser.email.trim().toLowerCase() : '';
+        if (email === FOUNDER_EMAIL) return true;
+        try {
+            const paid = JSON.parse(localStorage.getItem('hh_terrain_paid_unlock') || '{}');
+            if (paid && paid.unlocked) return true;
+        } catch (e) {}
+        if (typeof getTerrainState === 'function') {
+            const st = getTerrainState();
+            if (st && st.unlocked) return true;
+        }
+        return false;
+    }
+
+    function getGrainNoteForLevel(storeBoughtText, freshMilledText) {
+        const lvl = (typeof window.getCurrentHubLevel === 'function') ? window.getCurrentHubLevel() : 1;
+        return lvl >= 3
+            ? `${freshMilledText} (Level 3–4 Freshly Milled Grain Choice)`
+            : `${storeBoughtText} (Level 1–2 Simple Store-Bought Choice • Lvl 3–4: ${freshMilledText})`;
+    }
+
+    function mkRec(id, title, category, subTab, time, tools, temp, steps, ingredients, minLevel = 1) {
+        return {
+            id,
+            title,
+            category, // 'breakfast', 'lunch', 'dinner', 'snack' (for meal planner compatibility)
+            vaultSubtab: subTab, // 'smoothie', 'breakfast', 'lunch_kid', 'lunch_adult', 'dinner_family', 'dinner_special', 'dinner_quick', 'snack', 'drink', 'terrain'
+            cutType: 'balanced',
+            visibility: 'public',
+            minLevel,
+            author: 'Ashton • Honeysuckle Hub',
+            prepCookTime: time,
+            toolsNeeded: tools,
+            stoveTemp: temp,
+            steps,
+            desc: steps.map((s, i) => `Step ${i + 1}: ${s}`).join(' '),
+            ingredients
+        };
+    }
+
+    // =========================================================================
+    // 102 WHOLE-FOOD, REFINED-SUGAR-FREE RECIPES (SCALE TO 1-ADULT BASE)
+    // =========================================================================
+    const HONEYSUCKLE_WHOLE_FOOD_RECIPES = [
+        // --- 10 SMOOTHIES & SHAKES (1-10) ---
+        mkRec('wf_sm_1', '🥤 Berry Collagen & Raw Honey Glow Smoothie', 'breakfast', 'smoothie', '5 Mins', 'Blender', 'No Cook',
+            ['Add milk, mixed berries, collagen peptides, chia seeds, and raw honey to blender.', 'Blend on high for 45 seconds until silky and pour into a chilled glass.'],
+            [{ name: 'Organic Mixed Berries (Fresh or Frozen)', qty: 0.75, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Whole Milk or Coconut Milk', qty: 1, unit: 'cups', category: 'Eggs & Raw Dairy' }, { name: 'Grass-Fed Collagen Peptides', qty: 2, unit: 'tbsp', category: 'Traditional Fats & Pantry Staples' }, { name: 'Raw Local Honey', qty: 1, unit: 'tbsp', category: 'Traditional Fats & Pantry Staples' }]),
+        mkRec('wf_sm_2', '🥤 Creamy Banana, Almond Butter & Cinnamon Protein Shake', 'breakfast', 'smoothie', '5 Mins', 'Blender', 'No Cook',
+            ['Combine frozen banana, creamy almond butter, milk, protein/collagen, and Ceylon cinnamon.', 'Blend until thick and frosty.'],
+            [{ name: 'Ripe Banana (Frozen)', qty: 1, unit: 'whole', category: 'Fruits & Produce' }, { name: 'Creamy Almond Butter', qty: 2, unit: 'tbsp', category: 'Traditional Fats & Pantry Staples' }, { name: 'Whole Milk', qty: 1, unit: 'cups', category: 'Eggs & Raw Dairy' }, { name: 'Collagen or Clean Whey Protein', qty: 2, unit: 'tbsp', category: 'Traditional Fats & Pantry Staples' }]),
+        mkRec('wf_sm_3', '🥤 Tropical Mango, Pineapple & Coconut Cream Smoothie', 'breakfast', 'smoothie', '5 Mins', 'Blender', 'No Cook',
+            ['Add mango, pineapple, coconut water, coconut cream, and fresh lime squeeze to blender.', 'Blend until smooth and garnish with hemp hearts.'],
+            [{ name: 'Frozen Mango & Pineapple Chunks', qty: 1, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Pure Coconut Water', qty: 0.75, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Full-Fat Coconut Cream', qty: 0.25, unit: 'cups', category: 'Traditional Fats & Pantry Staples' }, { name: 'Hemp Hearts', qty: 1, unit: 'tbsp', category: 'Traditional Fats & Pantry Staples' }]),
+        mkRec('wf_sm_4', '🥤 Peaches & Cream Vanilla Kefir Gut-Friendly Shake', 'breakfast', 'smoothie', '5 Mins', 'Blender', 'No Cook',
+            ['Blend sliced peaches, whole milk kefir (or Greek yogurt), raw honey, and vanilla extract until creamy.'],
+            [{ name: 'Sliced Peaches', qty: 1, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Whole Milk Kefir or Greek Yogurt', qty: 1, unit: 'cups', category: 'Eggs & Raw Dairy' }, { name: 'Raw Local Honey', qty: 1, unit: 'tbsp', category: 'Traditional Fats & Pantry Staples' }]),
+        mkRec('wf_sm_5', '🥤 Dark Chocolate Cherry Recovery Shake', 'breakfast', 'smoothie', '5 Mins', 'Blender', 'No Cook',
+            ['Blend pitted dark sweet cherries, raw cacao powder, milk, almond butter, collagen, and pure maple syrup until rich and smooth.'],
+            [{ name: 'Pitted Dark Sweet Cherries', qty: 0.75, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Raw Cacao Powder', qty: 1.5, unit: 'tbsp', category: 'Traditional Fats & Pantry Staples' }, { name: 'Whole Milk', qty: 1, unit: 'cups', category: 'Eggs & Raw Dairy' }, { name: 'Pure Maple Syrup', qty: 1, unit: 'tbsp', category: 'Traditional Fats & Pantry Staples' }]),
+        mkRec('wf_sm_6', '🥤 Green Orchard Crisp Apple, Spinach & Ginger Smoothie', 'breakfast', 'smoothie', '5 Mins', 'Blender', 'No Cook',
+            ['Core and chop apple; add to blender with baby spinach, cucumber, fresh ginger, lemon juice, Greek yogurt, and raw honey.', 'Blend 60 seconds until bright green and smooth.'],
+            [{ name: 'Honeycrisp or Granny Smith Apple', qty: 1, unit: 'whole', category: 'Fruits & Produce' }, { name: 'Organic Baby Spinach', qty: 1, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Whole Milk Greek Yogurt', qty: 0.5, unit: 'cups', category: 'Eggs & Raw Dairy' }, { name: 'Raw Local Honey', qty: 1, unit: 'tbsp', category: 'Traditional Fats & Pantry Staples' }]),
+        mkRec('wf_sm_7', '🥤 Wild Blueberry, Avocado & Lemon Brain-Boost Shake', 'breakfast', 'smoothie', '5 Mins', 'Blender', 'No Cook',
+            ['Blend wild blueberries, half a ripe avocado, milk, lemon zest, collagen peptides, and raw honey until velvety.'],
+            [{ name: 'Wild Blueberries', qty: 0.75, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Ripe Avocado', qty: 0.5, unit: 'whole', category: 'Fruits & Produce' }, { name: 'Whole Milk or Almond Milk', qty: 1, unit: 'cups', category: 'Eggs & Raw Dairy' }, { name: 'Grass-Fed Collagen Peptides', qty: 2, unit: 'tbsp', category: 'Traditional Fats & Pantry Staples' }]),
+        mkRec('wf_sm_8', '🥤 Spiced Pumpkin Pie & Pecan Protein Smoothie', 'breakfast', 'smoothie', '5 Mins', 'Blender', 'No Cook',
+            ['Blend pumpkin puree, pecans, whole milk, pure maple syrup, pumpkin pie spice, and collagen with a handful of ice.'],
+            [{ name: 'Pure Pumpkin Puree', qty: 0.5, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Raw Pecans', qty: 0.25, unit: 'cups', category: 'Traditional Fats & Pantry Staples' }, { name: 'Whole Milk', qty: 1, unit: 'cups', category: 'Eggs & Raw Dairy' }, { name: 'Pure Maple Syrup', qty: 1, unit: 'tbsp', category: 'Traditional Fats & Pantry Staples' }]),
+        mkRec('wf_sm_9', '🥤 Strawberries & Cream Cashew-Date Shake', 'breakfast', 'smoothie', '5 Mins', 'Blender', 'No Cook',
+            ['Blend fresh or frozen strawberries, raw cashews, pitted Medjool date, whole milk, and a pinch of sea salt until thick.'],
+            [{ name: 'Strawberries', qty: 1, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Raw Cashews', qty: 0.25, unit: 'cups', category: 'Traditional Fats & Pantry Staples' }, { name: 'Pitted Medjool Dates', qty: 2, unit: 'whole', category: 'Fruits & Produce' }, { name: 'Whole Milk', qty: 1, unit: 'cups', category: 'Eggs & Raw Dairy' }]),
+        mkRec('wf_sm_10', '🥤 Golden Turmeric, Orange & Creamy Mango Sunshine Shake', 'breakfast', 'smoothie', '5 Mins', 'Blender', 'No Cook',
+            ['Blend peeled whole orange, mango chunks, Greek yogurt, ground turmeric, pinch of black pepper, and raw honey.'],
+            [{ name: 'Peeled Navel Orange', qty: 1, unit: 'whole', category: 'Fruits & Produce' }, { name: 'Mango Chunks', qty: 0.5, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Whole Milk Greek Yogurt', qty: 0.5, unit: 'cups', category: 'Eggs & Raw Dairy' }, { name: 'Raw Local Honey', qty: 1, unit: 'tbsp', category: 'Traditional Fats & Pantry Staples' }]),
+
+        // --- 10 REGULAR BREAKFASTS (5 EVERYDAY + 5 BIG FAMILY SPREADS/PANCAKES/WAFFLES/PASTRIES) (11-20) ---
+        mkRec('wf_bf_1', '🍳 Garden Veggie, Spinach & Sharp Cheddar Egg Scramble', 'breakfast', 'breakfast', '12 Mins', 'Cast-Iron Skillet', 'Medium Heat (5/10)',
+            ['Sauté diced bell peppers and onions in butter for 3 minutes until tender.', 'Toss in baby spinach until wilted, pour in whisked pasture eggs, and fold in sharp cheddar.'],
+            [{ name: 'Pasture-Raised Eggs', qty: 3, unit: 'eggs', category: 'Eggs & Raw Dairy' }, { name: 'Bell Peppers & Baby Spinach', qty: 0.75, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Raw Sharp Cheddar', qty: 1.5, unit: 'oz', category: 'Eggs & Raw Dairy' }, { name: 'Grass-Fed Butter', qty: 1, unit: 'tbsp', category: 'Traditional Fats & Pantry Staples' }]),
+        mkRec('wf_bf_2', '🍳 Sweet Potato, Crisp Apple & Herb Sausage Breakfast Hash', 'breakfast', 'breakfast', '20 Mins', 'Large Skillet', 'Medium-High Heat (6/10)',
+            ['Brown ground breakfast sausage in skillet; add diced sweet potatoes and cover 8 minutes until tender.', 'Stir in diced apples and fresh rosemary; top with sunny-side-up eggs.'],
+            [{ name: 'Pasture Pork or Turkey Sausage', qty: 0.25, unit: 'lbs', category: 'Meats & Organs' }, { name: 'Diced Sweet Potato & Apple', qty: 1, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Pasture-Raised Eggs', qty: 2, unit: 'eggs', category: 'Eggs & Raw Dairy' }]),
+        mkRec('wf_bf_3', '🥣 Warm Cinnamon-Apple Rolled Oatmeal with Walnuts & Cream', 'breakfast', 'breakfast', '12 Mins', 'Small Saucepan', 'Medium-Low Heat (4/10)',
+            ['Simmer rolled oats in whole milk and water with diced apples and Ceylon cinnamon for 8 minutes.', 'Top with grass-fed butter, toasted walnuts, and pure maple syrup.'],
+            [{ name: 'Organic Rolled or Steel-Cut Oats', qty: 0.5, unit: 'cups', category: 'Traditional Fats & Pantry Staples' }, { name: 'Diced Apple', qty: 0.5, unit: 'whole', category: 'Fruits & Produce' }, { name: 'Whole Milk', qty: 0.75, unit: 'cups', category: 'Eggs & Raw Dairy' }, { name: 'Pure Maple Syrup', qty: 1, unit: 'tbsp', category: 'Traditional Fats & Pantry Staples' }]),
+        mkRec('wf_bf_4', '🍓 Greek Yogurt, Warm Honey-Berry Compote & Pecan Parfait', 'breakfast', 'breakfast', '8 Mins', 'Small Saucepan & Bowl', 'Low Heat (3/10)',
+            ['Warm mixed berries with a drizzle of raw honey for 3 minutes until jammy.', 'Layer over cold whole-milk Greek yogurt and top with toasted pecans and pumpkin seeds.'],
+            [{ name: 'Whole Milk Greek Yogurt', qty: 1, unit: 'cups', category: 'Eggs & Raw Dairy' }, { name: 'Mixed Berries', qty: 0.75, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Raw Pecans & Pumpkin Seeds', qty: 0.25, unit: 'cups', category: 'Traditional Fats & Pantry Staples' }]),
+        mkRec('wf_bf_5', '🥑 Avocado, Heirloom Tomato & Poached Egg Sourdough Toast', 'breakfast', 'breakfast', '10 Mins', 'Toaster & Skillet', 'Medium Heat (5/10)',
+            ['Toast bread slices (Level 1–2 store-bought sourdough/unbleached bread; Level 3–4 freshly milled sourdough loaf) and rub with butter.', 'Top with smashed avocado, sliced heirloom tomatoes, sea salt, and two poached or fried eggs.'],
+            [{ name: 'Sourdough or Whole-Grain Bread Slices', qty: 2, unit: 'whole', category: 'Traditional Fats & Pantry Staples' }, { name: 'Ripe Avocado & Tomato', qty: 1, unit: 'whole', category: 'Fruits & Produce' }, { name: 'Pasture-Raised Eggs', qty: 2, unit: 'eggs', category: 'Eggs & Raw Dairy' }]),
+        mkRec('wf_bf_6', '🥞 [Big Family Breakfast] Fluffy Buttermilk Flapjacks with Maple-Berry Syrup', 'breakfast', 'breakfast', '20 Mins', 'Griddle or Large Skillet', 'Medium Heat (5/10)',
+            ['Whisk flour (Level 1–2: store-bought unbleached flour; Level 3–4: freshly milled soft white wheat flour), baking powder, sea salt, buttermilk, eggs, and melted butter.', 'Ladle onto buttered griddle, dot with wild blueberries, flip when bubbly, and serve with warm pure maple syrup.'],
+            [{ name: 'Unbleached Flour (Lvl 1-2) or Freshly Milled Soft White Wheat (Lvl 3-4)', qty: 0.5, unit: 'cups', category: 'Traditional Fats & Pantry Staples' }, { name: 'Buttermilk or Whole Milk', qty: 0.5, unit: 'cups', category: 'Eggs & Raw Dairy' }, { name: 'Pasture-Raised Eggs', qty: 1, unit: 'eggs', category: 'Eggs & Raw Dairy' }, { name: 'Blueberries & Pure Maple Syrup', qty: 0.5, unit: 'cups', category: 'Fruits & Produce' }]),
+        mkRec('wf_bf_7', '🧇 [Big Family Breakfast] Crispy Golden Waffles with Whipped Cream & Strawberries', 'breakfast', 'breakfast', '20 Mins', 'Waffle Iron', 'Medium-High',
+            ['Mix flour (Level 1–2: store-bought unbleached flour; Level 3–4: freshly milled einkorn or soft wheat), eggs, milk, melted butter, and raw honey.', 'Bake in hot buttered waffle iron until crisp and golden; top with sliced strawberries and lightly honey-sweetened whipped cream.'],
+            [{ name: 'Unbleached Flour (Lvl 1-2) or Freshly Milled Einkorn/Wheat (Lvl 3-4)', qty: 0.5, unit: 'cups', category: 'Traditional Fats & Pantry Staples' }, { name: 'Pasture-Raised Eggs', qty: 1, unit: 'eggs', category: 'Eggs & Raw Dairy' }, { name: 'Fresh Strawberries', qty: 0.75, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Heavy Whipping Cream & Butter', qty: 0.25, unit: 'cups', category: 'Eggs & Raw Dairy' }]),
+        mkRec('wf_bf_8', '🥓 [Big Family Breakfast] Saturday Homestead Big Breakfast Platter', 'breakfast', 'breakfast', '25 Mins', '2 Large Skillets', 'Medium Heat (5/10)',
+            ['Crisp uncured bacon and roast cubed breakfast potatoes with diced bell peppers and onions in the pan drippings.', 'Scramble a big batch of pasture eggs with chives and serve with fresh orange wedges.'],
+            [{ name: 'Pasture-Raised Eggs', qty: 3, unit: 'eggs', category: 'Eggs & Raw Dairy' }, { name: 'Uncured Pasture Bacon', qty: 0.2, unit: 'lbs', category: 'Meats & Organs' }, { name: 'Potatoes, Bell Peppers & Oranges', qty: 1, unit: 'cups', category: 'Fruits & Produce' }]),
+        mkRec('wf_bf_9', '🥐 [Big Family Pastry] Warm Cinnamon-Maple Swirl Morning Rolls', 'breakfast', 'breakfast', '45 Mins', 'Baking Dish', 'Oven 350°F',
+            ['Roll out sweet milk dough (Level 1–2: unbleached store-bought flour; Level 3–4: freshly milled hard red & soft white wheat), brush with softened butter, Ceylon cinnamon, and maple sugar/honey.', 'Slice into rolls, bake at 350°F for 22 minutes, and drizzle with a cream cheese & pure maple glaze.'],
+            [{ name: 'Unbleached Flour (Lvl 1-2) or Freshly Milled Wheat (Lvl 3-4)', qty: 0.6, unit: 'cups', category: 'Traditional Fats & Pantry Staples' }, { name: 'Grass-Fed Butter & Cream Cheese', qty: 2, unit: 'tbsp', category: 'Eggs & Raw Dairy' }, { name: 'Pure Maple Syrup & Cinnamon', qty: 1.5, unit: 'tbsp', category: 'Traditional Fats & Pantry Staples' }]),
+        mkRec('wf_bf_10', '🫐 [Big Family Breakfast] Baked Blueberry-Lemon French Toast Casserole', 'breakfast', 'breakfast', '40 Mins', '9x13 Baking Dish', 'Oven 350°F',
+            ['Cube bread (Level 1–2: store-bought bakery sourdough; Level 3–4: homemade freshly milled loaf) into buttered dish and scatter with blueberries.', 'Whisk eggs, milk, cream, lemon zest, and pure maple syrup; pour over bread and bake 30 minutes until puffed and golden.'],
+            [{ name: 'Artisan Bread Cubes (Store-Bought or Freshly Milled)', qty: 1.5, unit: 'cups', category: 'Traditional Fats & Pantry Staples' }, { name: 'Pasture-Raised Eggs', qty: 2, unit: 'eggs', category: 'Eggs & Raw Dairy' }, { name: 'Blueberries & Lemon', qty: 0.5, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Whole Milk & Pure Maple Syrup', qty: 0.5, unit: 'cups', category: 'Eggs & Raw Dairy' }]),
+
+        // --- 20 SNACKS, BATCH-PREP BITES & ELIXIRS (21-40) ---
+        mkRec('wf_sn_1', '🥩 Homemade Hickory-Maple Beef Jerky Strips (Batch-Prep)', 'snack', 'snack', '3 Hrs (Dehydrator/Low Oven)', 'Baking Racks', 'Oven 175°F',
+            ['Marinate thin strips of lean top round beef in coconut aminos, pure maple syrup, garlic, and smoked paprika.', 'Dehydrate at 175°F for 3 hours until chewy-dry and store in glass jars for grab-and-go protein.'],
+            [{ name: 'Lean Top Round Beef', qty: 0.35, unit: 'lbs', category: 'Meats & Organs' }, { name: 'Coconut Aminos & Pure Maple Syrup', qty: 1, unit: 'tbsp', category: 'Traditional Fats & Pantry Staples' }]),
+        mkRec('wf_sn_2', '🧀 Raw Cheddar Cubes, Honeycrisp Apple Slices & Walnuts', 'snack', 'snack', '3 Mins', 'Cutting Board', 'No Cook',
+            ['Cube raw sharp cheddar, slice a crisp apple, and pair with raw walnut halves.'],
+            [{ name: 'Raw Sharp Cheddar Cheese', qty: 2, unit: 'oz', category: 'Eggs & Raw Dairy' }, { name: 'Honeycrisp Apple', qty: 1, unit: 'whole', category: 'Fruits & Produce' }, { name: 'Raw Walnuts', qty: 0.25, unit: 'cups', category: 'Traditional Fats & Pantry Staples' }]),
+        mkRec('wf_sn_3', ' crackers Crispy Sea-Salt & Rosemary Artisan Crackers', 'snack', 'snack', '20 Mins', 'Baking Sheet & Rolling Pin', 'Oven 400°F',
+            ['Mix flour (Level 1–2: unbleached flour; Level 3–4: freshly milled soft wheat or sourdough discard), olive oil/butter, water, and minced rosemary.', 'Roll paper-thin, score into squares, sprinkle with flaky sea salt, and bake 12 minutes at 400°F until crisp.'],
+            [{ name: 'Unbleached Flour (Lvl 1-2) or Freshly Milled Soft Wheat (Lvl 3-4)', qty: 0.5, unit: 'cups', category: 'Traditional Fats & Pantry Staples' }, { name: 'Extra-Virgin Olive Oil or Butter', qty: 1.5, unit: 'tbsp', category: 'Traditional Fats & Pantry Staples' }]),
+        mkRec('wf_sn_4', '🍯 No-Bake Oatmeal, Peanut Butter & Honey Energy Bites', 'snack', 'snack', '10 Mins', 'Mixing Bowl', 'No Cook',
+            ['Stir rolled oats, natural peanut butter, raw honey, ground flax, and cacao nibs; roll into bite-sized balls and chill.'],
+            [{ name: 'Organic Rolled Oats', qty: 0.5, unit: 'cups', category: 'Traditional Fats & Pantry Staples' }, { name: 'Natural Peanut or Almond Butter', qty: 2, unit: 'tbsp', category: 'Traditional Fats & Pantry Staples' }, { name: 'Raw Local Honey', qty: 1, unit: 'tbsp', category: 'Traditional Fats & Pantry Staples' }]),
+        mkRec('wf_sn_5', '🍊 Afternoon Adrenal Citrus & Sea-Salt Cream Elixir', 'snack', 'snack', '3 Mins', 'Glass & Frother', 'No Cook',
+            ['Whisk fresh squeezed orange juice, splash of heavy cream or coconut cream, collagen peptides, and a pinch of Redmond/Celtic sea salt over ice.'],
+            [{ name: 'Fresh Squeezed Orange Juice', qty: 0.75, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Heavy Cream or Coconut Cream', qty: 2, unit: 'tbsp', category: 'Eggs & Raw Dairy' }, { name: 'Collagen Peptides & Celtic Sea Salt', qty: 1, unit: 'tbsp', category: 'Traditional Fats & Pantry Staples' }]),
+        mkRec('wf_sn_6', '🥕 Rainbow Veggie Sticks with Garlic-Dill Greek Yogurt Ranch', 'snack', 'snack', '8 Mins', 'Small Bowl', 'No Cook',
+            ['Whisk Greek yogurt with fresh dill, garlic powder, onion powder, lemon juice, and sea salt.', 'Serve with sliced carrots, cucumbers, celery, and bell pepper strips.'],
+            [{ name: 'Carrots, Cucumbers & Bell Peppers', qty: 1, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Whole Milk Greek Yogurt & Fresh Dill', qty: 0.5, unit: 'cups', category: 'Eggs & Raw Dairy' }]),
+        mkRec('wf_sn_7', '🧁 Batch-Prep Bacon & Gruyère Sous-Vide Style Egg Bites', 'snack', 'snack', '25 Mins', 'Muffin Tin', 'Oven 325°F',
+            ['Blend eggs, cottage cheese, and sea salt until smooth; pour into buttered muffin cups and top with crispy diced bacon and shredded Gruyère/cheddar.', 'Bake at 325°F for 18 minutes for a grab-and-go high-protein snack.'],
+            [{ name: 'Pasture-Raised Eggs', qty: 2, unit: 'eggs', category: 'Eggs & Raw Dairy' }, { name: 'Whole Milk Cottage Cheese & Cheddar', qty: 0.25, unit: 'cups', category: 'Eggs & Raw Dairy' }, { name: 'Uncured Bacon', qty: 1, unit: 'oz', category: 'Meats & Organs' }]),
+        mkRec('wf_sn_8', '🥜 Cinnamon-Maple Roasted Pecans & Pumpkin Seed Trail Mix', 'snack', 'snack', '18 Mins', 'Baking Sheet', 'Oven 325°F',
+            ['Toss pecans, almonds, and pumpkin seeds with pure maple syrup, melted butter, cinnamon, and sea salt; roast 14 minutes at 325°F.'],
+            [{ name: 'Raw Pecans, Almonds & Pumpkin Seeds', qty: 0.5, unit: 'cups', category: 'Traditional Fats & Pantry Staples' }, { name: 'Pure Maple Syrup', qty: 1, unit: 'tbsp', category: 'Traditional Fats & Pantry Staples' }]),
+        mkRec('wf_sn_9', '🍓 Homemade Strawberry-Lemon Grass-Fed Gelatin Gummies', 'snack', 'snack', '15 Mins + Chill', 'Saucepan & Silicone Mold', 'Low Heat (3/10)',
+            ['Blend fresh strawberries and lemon juice; warm gently in saucepan, whisk in raw honey and grass-fed beef gelatin until dissolved, and chill in molds.'],
+            [{ name: 'Fresh Strawberries & Lemon Juice', qty: 0.75, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Grass-Fed Beef Gelatin & Raw Honey', qty: 1.5, unit: 'tbsp', category: 'Traditional Fats & Pantry Staples' }]),
+        mkRec('wf_sn_10', '🥑 Fresh Smashed Guacamole with Bell Pepper Scoops', 'snack', 'snack', '6 Mins', 'Bowl', 'No Cook',
+            ['Mash ripe avocado with lime juice, minced cilantro, red onion, and sea salt; scoop with sweet mini bell pepper halves.'],
+            [{ name: 'Ripe Avocado & Mini Bell Peppers', qty: 1, unit: 'whole', category: 'Fruits & Produce' }, { name: 'Fresh Lime & Cilantro', qty: 1, unit: 'whole', category: 'Fruits & Produce' }]),
+        mkRec('wf_sn_11', '🍎 Crisp Apple "Donut" Rings with Almond Butter & Hemp Seeds', 'snack', 'snack', '5 Mins', 'Cutting Board', 'No Cook',
+            ['Core a crisp apple and slice horizontally into rings; spread with almond butter and sprinkle with hemp hearts, shredded coconut, and cinnamon.'],
+            [{ name: 'Crisp Apple', qty: 1, unit: 'whole', category: 'Fruits & Produce' }, { name: 'Almond Butter & Hemp Seeds', qty: 1.5, unit: 'tbsp', category: 'Traditional Fats & Pantry Staples' }]),
+        mkRec('wf_sn_12', '🍌 Batch-Prep Banana-Walnut Honey Snack Muffins', 'snack', 'snack', '25 Mins', 'Muffin Tin', 'Oven 350°F',
+            ['Whisk mashed ripe bananas, melted butter, eggs, and raw honey; fold in flour (Level 1–2: unbleached flour; Level 3–4: freshly milled soft white wheat), baking soda, and walnuts.', 'Bake at 350°F for 18 minutes.'],
+            [{ name: 'Ripe Bananas', qty: 1, unit: 'whole', category: 'Fruits & Produce' }, { name: 'Unbleached Flour (Lvl 1-2) or Freshly Milled Soft Wheat (Lvl 3-4)', qty: 0.5, unit: 'cups', category: 'Traditional Fats & Pantry Staples' }, { name: 'Walnuts & Raw Honey', qty: 2, unit: 'tbsp', category: 'Traditional Fats & Pantry Staples' }]),
+        mkRec('wf_sn_13', '🍈 Prosciutto-Wrapped Cantaloupe & Fresh Mozzarella Skewers', 'snack', 'snack', '6 Mins', 'Toothpicks', 'No Cook',
+            ['Thread cubes of sweet cantaloupe, folded uncured prosciutto, fresh mozzarella pearls, and basil leaves onto skewers.'],
+            [{ name: 'Cantaloupe Cubes & Fresh Basil', qty: 0.75, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Fresh Mozzarella & Uncured Prosciutto', qty: 2, unit: 'oz', category: 'Eggs & Raw Dairy' }]),
+        mkRec('wf_sn_14', '🍑 Whipped Cottage Cheese Bowl with Fresh Peaches & Honey', 'snack', 'snack', '5 Mins', 'Bowl', 'No Cook',
+            ['Spoon whole-milk cottage cheese into a bowl and top with sliced fresh peaches, raw honey drizzle, and a dash of cinnamon.'],
+            [{ name: 'Whole Milk Cottage Cheese', qty: 0.75, unit: 'cups', category: 'Eggs & Raw Dairy' }, { name: 'Sliced Peaches', qty: 0.5, unit: 'cups', category: 'Fruits & Produce' }]),
+        mkRec('wf_sn_15', '🥣 Crispy Garlic-Parmesan Roasted Chickpeas', 'snack', 'snack', '25 Mins', 'Baking Sheet', 'Oven 400°F',
+            ['Pat rinsed chickpeas dry, toss with olive oil, garlic powder, and sea salt, roast 20 minutes at 400°F, and toss with grated Parmesan.'],
+            [{ name: 'Organic Chickpeas (Rinsed & Dried)', qty: 0.5, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Olive Oil & Grated Parmesan', qty: 1.5, unit: 'tbsp', category: 'Eggs & Raw Dairy' }]),
+        mkRec('wf_sn_16', '🌴 Medjool Dates Stuffed with Goat Cheese & Pistachios', 'snack', 'snack', '5 Mins', 'Plate', 'No Cook',
+            ['Slice open pitted Medjool dates, fill with creamy goat cheese, and top with crushed pistachios and a drop of raw honey.'],
+            [{ name: 'Pitted Medjool Dates', qty: 3, unit: 'whole', category: 'Fruits & Produce' }, { name: 'Creamy Goat Cheese & Pistachios', qty: 1.5, unit: 'oz', category: 'Eggs & Raw Dairy' }]),
+        mkRec('wf_sn_17', '☕ Warm Golden Milk Turmeric-Ginger Calming Elixir', 'snack', 'snack', '6 Mins', 'Small Saucepan', 'Medium-Low Heat (4/10)',
+            ['Warm whole milk or coconut milk with turmeric, grated fresh ginger, cinnamon, pinch of black pepper, and raw honey; froth and sip warm.'],
+            [{ name: 'Whole Milk or Coconut Milk', qty: 1, unit: 'cups', category: 'Eggs & Raw Dairy' }, { name: 'Fresh Ginger, Turmeric & Raw Honey', qty: 1, unit: 'tbsp', category: 'Traditional Fats & Pantry Staples' }]),
+        mkRec('wf_sn_18', '🥒 Roasted Turkey, Cheddar & Dill Pickle Pinwheel Roll-Ups', 'snack', 'snack', '5 Mins', 'Cutting Board', 'No Cook',
+            ['Layer sliced oven-roasted turkey breast and cheddar cheese around crunchy dill pickle spears; slice into bite-sized coins.'],
+            [{ name: 'Oven-Roasted Turkey Breast', qty: 0.2, unit: 'lbs', category: 'Meats & Organs' }, { name: 'Cheddar Slices & Dill Pickles', qty: 1.5, unit: 'oz', category: 'Eggs & Raw Dairy' }]),
+        mkRec('wf_sn_19', '🍫 Dark Cacao, Banana & Peanut Butter Freezer Bark', 'snack', 'snack', '10 Mins + Freeze', 'Parchment Sheet', 'No Cook',
+            ['Arrange banana coins on parchment, drizzle with melted cacao/coconut oil/honey and natural peanut butter, sprinkle flaky salt, and freeze 30 minutes.'],
+            [{ name: 'Sliced Banana', qty: 1, unit: 'whole', category: 'Fruits & Produce' }, { name: 'Peanut Butter, Cacao & Raw Honey', qty: 2, unit: 'tbsp', category: 'Traditional Fats & Pantry Staples' }]),
+        mkRec('wf_sn_20', '🥚 Hard-Boiled Pasture Eggs with Cucumber & Sesame-Garlic Salt', 'snack', 'snack', '10 Mins', 'Saucepan', 'Medium Heat',
+            ['Halve hard-boiled pasture eggs, serve alongside crisp cucumber rounds, and sprinkle with sesame, garlic, and flaky sea salt.'],
+            [{ name: 'Pasture-Raised Eggs', qty: 2, unit: 'eggs', category: 'Eggs & Raw Dairy' }, { name: 'Sliced Cucumber', qty: 0.5, unit: 'cups', category: 'Fruits & Produce' }]),
+
+        // --- 20 LUNCHES: 10 KID-FRIENDLY (41-50) + 10 FAST HIGH-PROTEIN ADULT (51-60) ---
+        mkRec('wf_lk_1', '👧 [Kid-Friendly] DIY Bistro Lunchbox Board (Turkey, Cheese, Fruit & Crackers)', 'lunch', 'lunch_kid', '5 Mins', 'Lunch Plate', 'No Cook',
+            ['Arrange rolled turkey slices, raw cheddar cubes, seedless grapes, cucumber coins, and simple or freshly milled crackers on a plate.'],
+            [{ name: 'Roasted Turkey & Cheddar Cubes', qty: 0.25, unit: 'lbs', category: 'Meats & Organs' }, { name: 'Grapes & Cucumber Coins', qty: 0.75, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Artisan Crackers (Store-Bought or Freshly Milled)', qty: 1, unit: 'oz', category: 'Traditional Fats & Pantry Staples' }]),
+        mkRec('wf_lk_2', '👧 [Kid-Friendly] Golden Toasted Cheddar & Crisp Apple Panini with Carrot Sticks', 'lunch', 'lunch_kid', '10 Mins', 'Skillet', 'Medium Heat (5/10)',
+            ['Layer sharp cheddar and thin apple slices between buttered bread (Level 1–2 store-bought sourdough; Level 3–4 freshly milled loaf) and grill until golden.', 'Serve with crunchy carrot sticks.'],
+            [{ name: 'Bread Slices (Store-Bought or Freshly Milled)', qty: 2, unit: 'whole', category: 'Traditional Fats & Pantry Staples' }, { name: 'Sharp Cheddar Cheese', qty: 2, unit: 'oz', category: 'Eggs & Raw Dairy' }, { name: 'Apple & Carrots', qty: 1, unit: 'cups', category: 'Fruits & Produce' }]),
+        mkRec('wf_lk_3', '👧 [Kid-Friendly] Mini Flatbread Personal Pizzas with Veggie-Rich Marinara', 'lunch', 'lunch_kid', '15 Mins', 'Baking Sheet', 'Oven 400°F',
+            ['Spread pure crushed tomato & blended zucchini marinara over flatbread (Level 1–2 store-bought; Level 3–4 freshly milled flatbread), top with mozzarella, and bake 8 minutes.'],
+            [{ name: 'Flatbread or Pita (Store-Bought or Freshly Milled)', qty: 1, unit: 'whole', category: 'Traditional Fats & Pantry Staples' }, { name: 'Shredded Mozzarella', qty: 2, unit: 'oz', category: 'Eggs & Raw Dairy' }, { name: 'Tomato-Zucchini Marinara', qty: 0.3, unit: 'cups', category: 'Fruits & Produce' }]),
+        mkRec('wf_lk_4', '👧 [Kid-Friendly] Creamy Stovetop Cheddar Mac & Cheese with Sweet Peas', 'lunch', 'lunch_kid', '15 Mins', 'Saucepan', 'Medium Heat (5/10)',
+            ['Boil pasta (Level 1–2 organic store-bought elbows; Level 3–4 freshly milled/einkorn pasta) until tender.', 'Stir in butter, splash of milk, shredded sharp cheddar, and sweet green peas until creamy.'],
+            [{ name: 'Elbow Pasta (Lvl 1-2 Store-Bought or Lvl 3-4 Einkorn/Fresh Milled)', qty: 0.5, unit: 'cups', category: 'Traditional Fats & Pantry Staples' }, { name: 'Sharp Cheddar & Whole Milk', qty: 2.5, unit: 'oz', category: 'Eggs & Raw Dairy' }, { name: 'Sweet Green Peas', qty: 0.4, unit: 'cups', category: 'Fruits & Produce' }]),
+        mkRec('wf_lk_5', '👧 [Kid-Friendly] Crispy Skillet Chicken Tenders with Honey-Mustard & Strawberries', 'lunch', 'lunch_kid', '15 Mins', 'Skillet', 'Medium Heat (5/10)',
+            ['Coat chicken breast strips in egg wash and seasoned breadcrumbs/almond flour; pan-sear in butter/olive oil 4 minutes per side and serve with honey-mustard and strawberries.'],
+            [{ name: 'Chicken Breast Strips', qty: 0.3, unit: 'lbs', category: 'Meats & Organs' }, { name: 'Fresh Strawberries', qty: 0.75, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Raw Honey & Dijon Mustard', qty: 1, unit: 'tbsp', category: 'Traditional Fats & Pantry Staples' }]),
+        mkRec('wf_lk_6', '👧 [Kid-Friendly] Cheesy Beef & Black Bean Quesadilla Triangles with Avocado', 'lunch', 'lunch_kid', '10 Mins', 'Skillet', 'Medium Heat (5/10)',
+            ['Fill tortilla (Level 1–2 store-bought; Level 3–4 freshly pressed wheat/masa tortilla) with seasoned ground beef, black beans, and Monterey Jack; toast until melty and serve with diced avocado.'],
+            [{ name: 'Seasoned Ground Beef', qty: 0.25, unit: 'lbs', category: 'Meats & Organs' }, { name: 'Monterey Jack Cheese', qty: 1.5, unit: 'oz', category: 'Eggs & Raw Dairy' }, { name: 'Black Beans & Avocado', qty: 0.5, unit: 'cups', category: 'Fruits & Produce' }]),
+        mkRec('wf_lk_7', '👧 [Kid-Friendly] Peanut Butter, Raw Honey & Banana Sushi Roll-Ups', 'lunch', 'lunch_kid', '5 Mins', 'Cutting Board', 'No Cook',
+            ['Spread natural peanut butter and raw honey on a soft tortilla, place a peeled banana inside, roll tightly, and slice into bite-sized sushi coins with celery sticks on the side.'],
+            [{ name: 'Ripe Banana & Celery Sticks', qty: 1, unit: 'whole', category: 'Fruits & Produce' }, { name: 'Natural Peanut Butter & Raw Honey', qty: 2, unit: 'tbsp', category: 'Traditional Fats & Pantry Staples' }]),
+        mkRec('wf_lk_8', '👧 [Kid-Friendly] Creamy Tomato-Basil Bone-Broth Soup with Dipping Cheese Toast', 'lunch', 'lunch_kid', '15 Mins', 'Saucepan & Skillet', 'Medium Heat (5/10)',
+            ['Simmer crushed tomatoes, chicken bone broth, splash of heavy cream, and fresh basil for 10 minutes; serve with warm grilled cheese toast strips.'],
+            [{ name: 'Crushed Tomatoes & Bone Broth', qty: 1, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Cheddar Cheese & Sourdough Bread', qty: 2, unit: 'oz', category: 'Eggs & Raw Dairy' }]),
+        mkRec('wf_lk_9', '👧 [Kid-Friendly] Warm Ham & Swiss Sliders on Honey-Wheat Dinner Rolls', 'lunch', 'lunch_kid', '12 Mins', 'Baking Dish', 'Oven 350°F',
+            ['Layer uncured ham and Swiss cheese inside soft dinner rolls (Level 1–2 store-bought; Level 3–4 freshly milled rolls), brush tops with butter, warm 10 minutes, and serve with orange slices.'],
+            [{ name: 'Uncured Ham & Swiss Cheese', qty: 0.25, unit: 'lbs', category: 'Meats & Organs' }, { name: 'Orange Wedges', qty: 1, unit: 'whole', category: 'Fruits & Produce' }]),
+        mkRec('wf_lk_10', '👧 [Kid-Friendly] Taco Turkey & Cheddar Mini Bell-Pepper Nacho Boats', 'lunch', 'lunch_kid', '15 Mins', 'Baking Sheet', 'Oven 375°F',
+            ['Halve sweet mini bell peppers, fill with warm taco-seasoned ground turkey and shredded cheddar, bake 8 minutes until melted, and top with diced tomatoes.'],
+            [{ name: 'Ground Turkey', qty: 0.25, unit: 'lbs', category: 'Meats & Organs' }, { name: 'Mini Sweet Bell Peppers & Tomatoes', qty: 1, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Shredded Cheddar', qty: 1.5, unit: 'oz', category: 'Eggs & Raw Dairy' }]),
+
+        // --- 10 FAST, HIGH-PROTEIN ADULT LUNCHES (51-60) ---
+        mkRec('wf_la_1', '🥗 [Fast High-Protein] 10-Min Mediterranean Grilled Chicken, Cucumber & Feta Bowl (42g Protein)', 'lunch', 'lunch_adult', '10 Mins', 'Skillet or Bowl', 'Medium-High',
+            ['Layer baby greens, diced cucumber, cherry tomatoes, kalamata olives, and warm sliced lemon-oregano chicken breast; top with sheep/goat feta and extra-virgin olive oil.'],
+            [{ name: 'Chicken Breast', qty: 0.4, unit: 'lbs', category: 'Meats & Organs' }, { name: 'Cucumber, Cherry Tomatoes & Greens', qty: 1.5, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Feta Cheese & Olive Oil', qty: 1.5, unit: 'oz', category: 'Eggs & Raw Dairy' }]),
+        mkRec('wf_la_2', '🐟 [Fast High-Protein] Wild Salmon, Avocado & Crisp Romaine Caesar Wrap (38g Protein)', 'lunch', 'lunch_adult', '8 Mins', 'Cutting Board', 'No Cook',
+            ['Toss flaked wild salmon, chopped crisp romaine, diced avocado, grated Parmesan, and lemon-yogurt Caesar dressing; wrap or serve as a bowl.'],
+            [{ name: 'Wild Salmon (Cooked or Canned)', qty: 0.35, unit: 'lbs', category: 'Meats & Organs' }, { name: 'Romaine Lettuce & Avocado', qty: 1.5, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Parmesan & Greek Yogurt Dressing', qty: 1.5, unit: 'oz', category: 'Eggs & Raw Dairy' }]),
+        mkRec('wf_la_3', '🥩 [Fast High-Protein] Steakhouse Cobb Salad with Pasture Eggs & Avocado (45g Protein)', 'lunch', 'lunch_adult', '12 Mins', 'Cast-Iron Skillet', 'High Heat (7/10)',
+            ['Sear sirloin steak strips 3 minutes in butter; serve over mixed greens with sliced hard-boiled eggs, avocado, cherry tomatoes, cheddar, and olive oil vinaigrette.'],
+            [{ name: 'Sirloin Steak', qty: 0.35, unit: 'lbs', category: 'Meats & Organs' }, { name: 'Pasture-Raised Eggs', qty: 2, unit: 'eggs', category: 'Eggs & Raw Dairy' }, { name: 'Mixed Greens, Avocado & Tomatoes', qty: 1.5, unit: 'cups', category: 'Fruits & Produce' }]),
+        mkRec('wf_la_4', '🍲 [Fast High-Protein] 12-Min Ground Beef, Zucchini & Sweet Pepper Taco Bowl (38g Protein)', 'lunch', 'lunch_adult', '12 Mins', 'Skillet', 'Medium-High Heat (6/10)',
+            ['Brown ground beef with cumin, garlic, diced zucchini, and bell peppers for 8 minutes; top with fresh salsa, cilantro, lime, and sliced avocado.'],
+            [{ name: '80/20 Grass-Fed Ground Beef', qty: 0.35, unit: 'lbs', category: 'Meats & Organs' }, { name: 'Zucchini, Bell Peppers & Avocado', qty: 1.25, unit: 'cups', category: 'Fruits & Produce' }]),
+        mkRec('wf_la_5', '🥣 [Fast High-Protein] Cottage Cheese, Wild Tuna, Celery & Dill Power Salad (42g Protein)', 'lunch', 'lunch_adult', '5 Mins', 'Bowl', 'No Cook',
+            ['Mix wild albacore tuna with whole-milk cottage cheese, diced celery, red onion, fresh dill, lemon juice, and black pepper; scoop with bell pepper halves and crackers.'],
+            [{ name: 'Wild Albacore Tuna', qty: 0.3, unit: 'lbs', category: 'Meats & Organs' }, { name: 'Whole Milk Cottage Cheese', qty: 0.5, unit: 'cups', category: 'Eggs & Raw Dairy' }, { name: 'Celery, Red Onion & Bell Peppers', qty: 1, unit: 'cups', category: 'Fruits & Produce' }]),
+        mkRec('wf_la_6', '🥪 [Fast High-Protein] Hot Cast-Iron Turkey, Avocado, Tomato & Swiss Melt (36g Protein)', 'lunch', 'lunch_adult', '10 Mins', 'Skillet', 'Medium Heat (5/10)',
+            ['Pile thick-sliced roasted turkey breast, Swiss cheese, tomato slices, and avocado onto sourdough bread and toast in butter until crisp and melted.'],
+            [{ name: 'Roasted Turkey Breast', qty: 0.35, unit: 'lbs', category: 'Meats & Organs' }, { name: 'Swiss Cheese', qty: 1.5, unit: 'oz', category: 'Eggs & Raw Dairy' }, { name: 'Avocado & Tomato', qty: 1, unit: 'whole', category: 'Fruits & Produce' }]),
+        mkRec('wf_la_7', '🥙 [Fast High-Protein] Greek Beef Gyro Bowl with Cucumber-Mint Tzatziki (40g Protein)', 'lunch', 'lunch_adult', '12 Mins', 'Skillet', 'Medium-High Heat (6/10)',
+            ['Sear oregano-garlic ground beef or lamb; serve over crisp romaine, diced cucumbers, tomatoes, and red onion with a generous scoop of homemade Greek-yogurt tzatziki.'],
+            [{ name: 'Ground Beef or Lamb', qty: 0.35, unit: 'lbs', category: 'Meats & Organs' }, { name: 'Cucumbers, Tomatoes & Romaine', qty: 1.5, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Greek Yogurt Tzatziki', qty: 0.3, unit: 'cups', category: 'Eggs & Raw Dairy' }]),
+        mkRec('wf_la_8', '🥢 [Fast High-Protein] 12-Min Egg-Roll-In-A-Bowl with Cabbage, Carrots & Ginger (35g Protein)', 'lunch', 'lunch_adult', '12 Mins', 'Large Skillet', 'Medium-High Heat (6/10)',
+            ['Brown ground pork or turkey with grated fresh ginger and garlic; toss in shredded green & purple cabbage, carrots, and coconut aminos until tender-crisp.'],
+            [{ name: 'Ground Pork or Turkey', qty: 0.35, unit: 'lbs', category: 'Meats & Organs' }, { name: 'Shredded Cabbage, Carrots & Ginger', qty: 1.5, unit: 'cups', category: 'Fruits & Produce' }]),
+        mkRec('wf_la_9', '🍋 [Fast High-Protein] Tuscan Salmon, White Bean & Arugula Lemon Salad (38g Protein)', 'lunch', 'lunch_adult', '6 Mins', 'Large Bowl', 'No Cook',
+            ['Toss wild salmon, rinsed cannellini beans, peppery arugula, cherry tomatoes, red onion, extra-virgin olive oil, and fresh lemon juice.'],
+            [{ name: 'Wild Salmon', qty: 0.35, unit: 'lbs', category: 'Meats & Organs' }, { name: 'Arugula, Cherry Tomatoes & White Beans', qty: 1.5, unit: 'cups', category: 'Fruits & Produce' }]),
+        mkRec('wf_la_10', '🍎 [Fast High-Protein] Harvest Chicken, Crisp Apple, Pecan & Goat Cheese Salad (36g Protein)', 'lunch', 'lunch_adult', '8 Mins', 'Salad Bowl', 'No Cook',
+            ['Top mixed baby greens with shredded chicken breast, diced Honeycrisp apple, toasted pecans, creamy goat cheese, and olive-oil maple balsamic dressing.'],
+            [{ name: 'Shredded Chicken Breast', qty: 0.35, unit: 'lbs', category: 'Meats & Organs' }, { name: 'Mixed Greens & Diced Apple', qty: 1.5, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Goat Cheese & Pecans', qty: 1.5, unit: 'oz', category: 'Eggs & Raw Dairy' }]),
+
+        // --- 20 DINNERS: 10 LARGE FAMILY (61-70) + 5 SPECIAL OCCASION (71-75) + 5 QUICK (76-80) ---
+        mkRec('wf_df_1', '🥘 [Large Family Dinner] Sunday Pot Roast with Carrots, Potatoes & Bone-Broth Gravy', 'dinner', 'dinner_family', '3.5 Hrs (Slow Cook)', 'Dutch Oven or Slow Cooker', 'Oven 300°F / Slow Cooker',
+            ['Sear chuck roast in butter; surround with halved yellow potatoes, thick carrots, onions, celery, rosemary, and beef bone broth.', 'Braise until fork-tender and whisk pan juices into a rich gravy.'],
+            [{ name: 'Beef Chuck Roast', qty: 0.45, unit: 'lbs', category: 'Meats & Organs' }, { name: 'Carrots, Potatoes, Celery & Onion', qty: 1.5, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Beef Bone Broth', qty: 0.75, unit: 'cups', category: 'Traditional Fats & Pantry Staples' }]),
+        mkRec('wf_df_2', '🥧 [Large Family Dinner] Homestead Shepherd’s Pie with Garlic Mashed Potatoes', 'dinner', 'dinner_family', '40 Mins', '9x13 Baking Dish', 'Oven 375°F',
+            ['Simmer browned ground beef with diced carrots, sweet peas, onion, garlic, tomato paste, and bone broth.', 'Top with creamy butter-whipped mashed potatoes and bake 20 minutes until golden.'],
+            [{ name: '80/20 Ground Beef', qty: 0.4, unit: 'lbs', category: 'Meats & Organs' }, { name: 'Potatoes, Carrots & Peas', qty: 1.5, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Grass-Fed Butter & Milk', qty: 2, unit: 'tbsp', category: 'Eggs & Raw Dairy' }]),
+        mkRec('wf_df_3', '🍲 [Large Family Dinner] Farmhouse Chicken & Herb Dumplings in Golden Broth', 'dinner', 'dinner_family', '35 Mins', 'Dutch Oven', 'Medium-Low Simmer',
+            ['Simmer diced chicken, carrots, celery, and onions in rich chicken bone broth with thyme.', 'Drop spoonfuls of herb dumpling batter (Level 1–2: unbleached flour; Level 3–4: freshly milled soft wheat) on top, cover, and steam 15 minutes.'],
+            [{ name: 'Chicken Breast or Thighs', qty: 0.4, unit: 'lbs', category: 'Meats & Organs' }, { name: 'Carrots, Celery & Onion', qty: 1, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Unbleached Flour (Lvl 1-2) or Freshly Milled Wheat (Lvl 3-4)', qty: 0.4, unit: 'cups', category: 'Traditional Fats & Pantry Staples' }]),
+        mkRec('wf_df_4', '🍝 [Large Family Dinner] Baked Ziti with Meat Sauce, Spinach & Whole-Milk Ricotta', 'dinner', 'dinner_family', '40 Mins', '9x13 Baking Dish', 'Oven 375°F',
+            ['Simmer ground beef and garlic in crushed tomatoes with fresh basil and baby spinach.', 'Toss with cooked ziti (Level 1–2 store-bought pasta; Level 3–4 freshly milled/einkorn pasta), layer with whole-milk ricotta and mozzarella, and bake 20 minutes.'],
+            [{ name: 'Ground Beef', qty: 0.35, unit: 'lbs', category: 'Meats & Organs' }, { name: 'Ziti Pasta (Store-Bought or Freshly Milled)', qty: 0.6, unit: 'cups', category: 'Traditional Fats & Pantry Staples' }, { name: 'Crushed Tomatoes & Baby Spinach', qty: 1, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Whole-Milk Ricotta & Mozzarella', qty: 2.5, unit: 'oz', category: 'Eggs & Raw Dairy' }]),
+        mkRec('wf_df_5', '🍗 [Large Family Dinner] Sheet-Pan Honey-Mustard Chicken, Broccoli & Sweet Potatoes', 'dinner', 'dinner_family', '30 Mins', '2 Large Sheet Pans', 'Oven 400°F',
+            ['Arrange chicken thighs, cubed sweet potatoes, and broccoli florets on sheet pans; brush with olive oil, Dijon mustard, raw honey, and garlic, and roast 25 minutes.'],
+            [{ name: 'Chicken Thighs or Breasts', qty: 0.4, unit: 'lbs', category: 'Meats & Organs' }, { name: 'Sweet Potatoes & Broccoli Florets', qty: 1.5, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Raw Honey, Dijon & Olive Oil', qty: 1.5, unit: 'tbsp', category: 'Traditional Fats & Pantry Staples' }]),
+        mkRec('wf_df_6', '🌮 [Large Family Dinner] Slow-Cooker Citrus Carnitas Taco Bar with Rainbow Peppers', 'dinner', 'dinner_family', '4 Hrs (Slow Cooker)', 'Slow Cooker', 'Low',
+            ['Slow-cook pork shoulder with fresh orange juice, lime juice, garlic, cumin, and oregano until shreddable.', 'Serve with sautéed bell peppers, onions, cilantro, avocado, and warm tortillas.'],
+            [{ name: 'Pork Shoulder Roast', qty: 0.4, unit: 'lbs', category: 'Meats & Organs' }, { name: 'Bell Peppers, Onion, Orange & Avocado', qty: 1.25, unit: 'cups', category: 'Fruits & Produce' }]),
+        mkRec('wf_df_7', '🥩 [Large Family Dinner] Classic Homestead Meatloaf with Tangy Honey-Tomato Glaze & Green Beans', 'dinner', 'dinner_family', '45 Mins', 'Baking Sheet', 'Oven 375°F',
+            ['Mix ground beef, eggs, finely diced onion, garlic, and breadcrumbs; shape into a loaf, top with tomato-paste & raw-honey glaze, and bake alongside fresh green beans.'],
+            [{ name: '80/20 Ground Beef', qty: 0.4, unit: 'lbs', category: 'Meats & Organs' }, { name: 'Fresh Green Beans & Onion', qty: 1.25, unit: 'cups', category: 'Fruits & Produce' }]),
+        mkRec('wf_df_8', '🌿 [Large Family Dinner] Creamy Tuscan Garlic Chicken with Spinach & Tomatoes', 'dinner', 'dinner_family', '25 Mins', 'Large Skillet', 'Medium Heat (5/10)',
+            ['Golden-sear chicken breasts in butter; simmer in heavy cream, bone broth, garlic, Parmesan, cherry tomatoes, and baby spinach.'],
+            [{ name: 'Chicken Breasts', qty: 0.4, unit: 'lbs', category: 'Meats & Organs' }, { name: 'Baby Spinach & Cherry Tomatoes', qty: 1.25, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Heavy Cream & Parmesan', qty: 0.3, unit: 'cups', category: 'Eggs & Raw Dairy' }]),
+        mkRec('wf_df_9', '🥣 [Large Family Dinner] Hearty Beef, Root Vegetable & Herb Farmhouse Stew', 'dinner', 'dinner_family', '90 Mins', 'Dutch Oven', 'Low Simmer',
+            ['Brown stew beef in butter; simmer gently with carrots, parsnips, yellow potatoes, celery, diced tomatoes, and beef bone broth until rich and tender.'],
+            [{ name: 'Beef Stew Meat', qty: 0.4, unit: 'lbs', category: 'Meats & Organs' }, { name: 'Carrots, Potatoes, Parsnips & Celery', qty: 1.5, unit: 'cups', category: 'Fruits & Produce' }]),
+        mkRec('wf_df_10', '🫔 [Large Family Dinner] Shredded Chicken & Poblano Enchilada Suiza Bake', 'dinner', 'dinner_family', '35 Mins', '9x13 Baking Dish', 'Oven 375°F',
+            ['Roll shredded chicken and sautéed poblano peppers into tortillas; top with tangy tomatillo-yogurt verde sauce and Monterey Jack, and bake 20 minutes.'],
+            [{ name: 'Shredded Chicken', qty: 0.35, unit: 'lbs', category: 'Meats & Organs' }, { name: 'Poblano Peppers, Tomatillos & Cilantro', qty: 1, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Monterey Jack & Greek Yogurt', qty: 2, unit: 'oz', category: 'Eggs & Raw Dairy' }]),
+
+        // --- 5 SPECIAL OCCASION DINNERS (71-75) ---
+        mkRec('wf_ds_1', '👑 [Special Occasion] Herb-Crusted Prime Rib / Beef Tenderloin with Asparagus & Baby Potatoes', 'dinner', 'dinner_special', '75 Mins', 'Roasting Pan', 'Oven 375°F',
+            ['Rub beef roast generously with softened butter, minced garlic, fresh rosemary, thyme, and sea salt.', 'Roast to medium-rare alongside baby gold potatoes and tender asparagus spears.'],
+            [{ name: 'Prime Rib or Beef Tenderloin Roast', qty: 0.45, unit: 'lbs', category: 'Meats & Organs' }, { name: 'Fresh Asparagus & Baby Gold Potatoes', qty: 1.5, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Grass-Fed Butter & Fresh Herbs', qty: 2, unit: 'tbsp', category: 'Traditional Fats & Pantry Staples' }]),
+        mkRec('wf_ds_2', '👑 [Special Occasion] Pan-Seared Wild Salmon with Lemon-Dill Butter & Balsamic Brussels Sprouts', 'dinner', 'dinner_special', '25 Mins', 'Cast-Iron Skillet & Sheet Pan', 'Medium-High Heat (6/10)',
+            ['Roast halved Brussels sprouts with olive oil and a touch of honey-balsamic; pan-sear wild salmon skin-side down in butter and finish with fresh lemon and dill.'],
+            [{ name: 'Wild Salmon Fillet', qty: 0.4, unit: 'lbs', category: 'Meats & Organs' }, { name: 'Brussels Sprouts & Lemon', qty: 1.25, unit: 'cups', category: 'Fruits & Produce' }]),
+        mkRec('wf_ds_3', '👑 [Special Occasion] Braised Beef Short Ribs over Creamy Parmesan Polenta', 'dinner', 'dinner_special', '2.5 Hrs', 'Dutch Oven', 'Oven 325°F',
+            ['Braise bone-in beef short ribs with shallots, carrots, garlic, and bone broth until falling off the bone; serve over stone-ground corn grits/polenta stirred with butter and Parmesan.'],
+            [{ name: 'Bone-In Beef Short Ribs', qty: 0.45, unit: 'lbs', category: 'Meats & Organs' }, { name: 'Carrots & Shallots', qty: 1, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Stone-Ground Corn Grits & Parmesan', qty: 0.4, unit: 'cups', category: 'Traditional Fats & Pantry Staples' }]),
+        mkRec('wf_ds_4', '👑 [Special Occasion] Roast Whole Herb-Butter Chicken with Caramelized Rainbow Carrots', 'dinner', 'dinner_special', '70 Mins', 'Roasting Pan', 'Oven 400°F',
+            ['Stuff whole pasture chicken with lemon halves, garlic, and thyme; rub skin with butter and roast over a bed of rainbow carrots, parsnips, and red onions.'],
+            [{ name: 'Whole Pasture Chicken', qty: 0.45, unit: 'lbs', category: 'Meats & Organs' }, { name: 'Rainbow Carrots, Parsnips & Red Onion', qty: 1.5, unit: 'cups', category: 'Fruits & Produce' }]),
+        mkRec('wf_ds_5', '👑 [Special Occasion] Garlic-Herb Ribeye Steaks with Loaded Baked Sweet Potatoes & Crisp Salad', 'dinner', 'dinner_special', '25 Mins', 'Cast-Iron Skillet or Grill', 'High Heat (8/10)',
+            ['Sear ribeye steaks in cast iron and baste with garlic-parsley butter; serve with fluffy baked sweet potatoes and a crisp garden salad.'],
+            [{ name: 'Grass-Fed Ribeye Steak', qty: 0.45, unit: 'lbs', category: 'Meats & Organs' }, { name: 'Sweet Potato & Mixed Salad Greens', qty: 1.5, unit: 'cups', category: 'Fruits & Produce' }]),
+
+        // --- 5 QUICK DINNERS (GRILLED MEATS, BURGERS, SCRATCH PIZZAS) (76-80) ---
+        mkRec('wf_dq_1', '🍕 [Quick Dinner] Cast-Iron Scratch Margherita & Garden Veggie Pizza', 'dinner', 'dinner_quick', '22 Mins', 'Cast-Iron Skillet', 'Oven 450°F',
+            ['Press dough (Level 1–2: quick unbleached flour dough; Level 3–4: freshly milled wheat/sourdough crust) into hot oiled skillet.', 'Top with crushed tomato sauce, fresh mozzarella, bell peppers, mushrooms, and fresh basil; bake 12 minutes.'],
+            [{ name: 'Pizza Dough (Lvl 1-2 Unbleached or Lvl 3-4 Freshly Milled)', qty: 0.5, unit: 'cups', category: 'Traditional Fats & Pantry Staples' }, { name: 'Fresh Mozzarella', qty: 2.5, unit: 'oz', category: 'Eggs & Raw Dairy' }, { name: 'Crushed Tomatoes, Bell Peppers & Basil', qty: 1, unit: 'cups', category: 'Fruits & Produce' }]),
+        mkRec('wf_dq_2', '🍔 [Quick Dinner] Juicy Backyard Cheddar Cheeseburgers & Crispy Oven Potato Wedges', 'dinner', 'dinner_quick', '20 Mins', 'Grill or Skillet', 'Medium-High Heat (7/10)',
+            ['Sear seasoned ground beef patties 4 minutes per side and top with sharp cheddar; serve on lettuce wraps or artisan buns with tomato, red onion, and roasted potato wedges.'],
+            [{ name: '80/20 Grass-Fed Ground Beef', qty: 0.4, unit: 'lbs', category: 'Meats & Organs' }, { name: 'Potatoes, Tomato, Lettuce & Onion', qty: 1.5, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Sharp Cheddar Cheese', qty: 1.5, unit: 'oz', category: 'Eggs & Raw Dairy' }]),
+        mkRec('wf_dq_3', '🍢 [Quick Dinner] 15-Minute Grilled Lemon-Garlic Chicken & Rainbow Veggie Skewers', 'dinner', 'dinner_quick', '15 Mins', 'Grill or Grill Pan', 'Medium-High Heat (7/10)',
+            ['Thread marinated chicken breast cubes, zucchini coins, red & yellow bell peppers, and red onion onto skewers; grill 10 minutes, turning once.'],
+            [{ name: 'Chicken Breast Cubes', qty: 0.4, unit: 'lbs', category: 'Meats & Organs' }, { name: 'Zucchini, Bell Peppers & Red Onion', qty: 1.5, unit: 'cups', category: 'Fruits & Produce' }]),
+        mkRec('wf_dq_4', '🌮 [Quick Dinner] 20-Minute Blackened Wild Fish Tacos with Purple Cabbage Slaw', 'dinner', 'dinner_quick', '20 Mins', 'Skillet', 'Medium-High Heat (6/10)',
+            ['Sear paprika-garlic seasoned wild cod or mahi-mahi 3 minutes per side; serve in warm tortillas topped with crunchy purple cabbage, cilantro, and lime-yogurt crema.'],
+            [{ name: 'Wild Cod or Mahi-Mahi Fillets', qty: 0.35, unit: 'lbs', category: 'Meats & Organs' }, { name: 'Purple Cabbage, Cilantro, Lime & Avocado', qty: 1.25, unit: 'cups', category: 'Fruits & Produce' }]),
+        mkRec('wf_dq_5', '🥩 [Quick Dinner] Sizzling Skillet Steak Fajitas with Peppers, Onions & Guacamole', 'dinner', 'dinner_quick', '18 Mins', 'Cast-Iron Skillet', 'High Heat (8/10)',
+            ['Flash-sear sliced skirt or sirloin steak with sliced red, yellow, and green bell peppers, onions, lime juice, and cumin; serve with fresh guacamole.'],
+            [{ name: 'Skirt or Sirloin Steak Strips', qty: 0.4, unit: 'lbs', category: 'Meats & Organs' }, { name: 'Bell Peppers, Onions, Lime & Avocado', qty: 1.5, unit: 'cups', category: 'Fruits & Produce' }]),
+
+        // --- 10 HYDRATING DRINK VARIETIES (MINERAL WATER, LEMONADES, EVENT PUNCHES) (81-90) ---
+        mkRec('wf_dr_1', '🍋 Daily Citrus-Maple Adrenal Mineral Water (Redmond/Celtic Salt)', 'snack', 'drink', '2 Mins', 'Mason Jar', 'No Cook',
+            ['Combine filtered water, fresh squeezed lime juice, pure maple syrup, and a generous pinch of Redmond Real Salt or Celtic sea salt; stir over ice for cellular hydration.'],
+            [{ name: 'Fresh Lime', qty: 1, unit: 'whole', category: 'Fruits & Produce' }, { name: 'Pure Maple Syrup & Redmond/Celtic Salt', qty: 1, unit: 'tbsp', category: 'Traditional Fats & Pantry Staples' }]),
+        mkRec('wf_dr_2', '🍋 Front-Porch Raw Honey Fresh-Squeezed Lemonade', 'snack', 'drink', '8 Mins', 'Pitcher', 'No Cook',
+            ['Dissolve raw local honey in a splash of warm water; stir in fresh-squeezed lemon juice, cold filtered water, ice, and fresh mint leaves.'],
+            [{ name: 'Fresh Lemons & Mint', qty: 2, unit: 'whole', category: 'Fruits & Produce' }, { name: 'Raw Local Honey', qty: 2, unit: 'tbsp', category: 'Traditional Fats & Pantry Staples' }]),
+        mkRec('wf_dr_3', '🌺 Sparkling Hibiscus, Pomegranate & Lime Event Punch', 'snack', 'drink', '10 Mins', 'Large Punch Bowl or Pitcher', 'No Cook',
+            ['Combine chilled brewed hibiscus tea, 100% pomegranate juice, fresh lime juice, and raw honey; top with sparkling mineral water and orange wheels right before serving.'],
+            [{ name: 'Pomegranate Juice, Lime & Orange Slices', qty: 1, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Sparkling Mineral Water & Hibiscus Tea', qty: 1, unit: 'cups', category: 'Traditional Fats & Pantry Staples' }]),
+        mkRec('wf_dr_4', '🍉 Watermelon, Lime & Mint Agua Fresca (Natural Electrolytes)', 'snack', 'drink', '5 Mins', 'Blender & Pitcher', 'No Cook',
+            ['Blend fresh cubed watermelon, cold water, fresh lime juice, mint leaves, and a pinch of Celtic sea salt until refreshing and smooth.'],
+            [{ name: 'Fresh Cubed Watermelon & Lime', qty: 1.5, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Fresh Mint & Celtic Sea Salt', qty: 1, unit: 'tbsp', category: 'Fruits & Produce' }]),
+        mkRec('wf_dr_5', '🍓 Strawberry-Basil Muddled Honey Lemonade', 'snack', 'drink', '8 Mins', 'Pitcher', 'No Cook',
+            ['Muddle ripe strawberries and fresh basil leaves with raw honey; stir in fresh lemon juice and chilled water over ice.'],
+            [{ name: 'Fresh Strawberries, Lemon & Basil', qty: 1, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Raw Local Honey', qty: 1.5, unit: 'tbsp', category: 'Traditional Fats & Pantry Staples' }]),
+        mkRec('wf_dr_6', '🍎 Warm Mulled Apple Cider with Cinnamon Sticks & Orange Peel (Gathering Drink)', 'snack', 'drink', '20 Mins', 'Dutch Oven or Slow Cooker', 'Low Simmer',
+            ['Simmer 100% unfiltered pressed apple cider with cinnamon sticks, whole cloves, fresh ginger slices, and sliced oranges for 15 minutes.'],
+            [{ name: '100% Unfiltered Pressed Apple Cider & Orange', qty: 1.25, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Cinnamon Sticks & Whole Cloves', qty: 1, unit: 'whole', category: 'Traditional Fats & Pantry Staples' }]),
+        mkRec('wf_dr_7', '🫚 Ginger-Lime & Raw Honey Sparkling Mule Mocktail', 'snack', 'drink', '5 Mins', 'Copper Mug or Glass', 'No Cook',
+            ['Stir grated fresh ginger juice, fresh lime juice, and raw honey with sparkling mineral water over crushed ice; garnish with lime and mint.'],
+            [{ name: 'Fresh Ginger Root & Lime', qty: 1, unit: 'whole', category: 'Fruits & Produce' }, { name: 'Sparkling Mineral Water & Raw Honey', qty: 1, unit: 'cups', category: 'Traditional Fats & Pantry Staples' }]),
+        mkRec('wf_dr_8', '🥒 Cucumber, Lemon, Spearmint & Trace-Mineral Pitcher Water', 'snack', 'drink', '5 Mins', 'Glass Pitcher', 'No Cook',
+            ['Infuse cold filtered water with thin cucumber ribbons, lemon wheels, fresh spearmint, and a pinch of Redmond/Celtic sea salt.'],
+            [{ name: 'Cucumber, Lemon & Spearmint', qty: 1, unit: 'cups', category: 'Fruits & Produce' }]),
+        mkRec('wf_dr_9', '🍑 Iced Herbal Peach, Rooibos & Raw Honey Sun Tea', 'snack', 'drink', '15 Mins', 'Pitcher', 'Steeped',
+            ['Steep organic rooibos tea with sliced fresh peaches, raw honey, and a squeeze of fresh lemon; chill over ice.'],
+            [{ name: 'Fresh Sliced Peaches & Lemon', qty: 0.75, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Rooibos Tea & Raw Honey', qty: 1, unit: 'tbsp', category: 'Traditional Fats & Pantry Staples' }]),
+        mkRec('wf_dr_10', '🍒 Cranberry-Orange Maple Holiday Spritzer Punch (Event Pitcher)', 'snack', 'drink', '5 Mins', 'Pitcher', 'No Cook',
+            ['Stir 100% unsweetened cranberry juice, fresh squeezed orange juice, pure maple syrup, and sparkling mineral water; garnish with fresh rosemary sprigs.'],
+            [{ name: '100% Unsweetened Cranberry & Fresh Orange Juice', qty: 1, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Pure Maple Syrup & Sparkling Water', qty: 1, unit: 'tbsp', category: 'Traditional Fats & Pantry Staples' }]),
+
+        // --- 12 EXCLUSIVE "RECLAIM YOUR TERRAIN" CLINICAL RECIPES (LOCKED BONUS SUBTAB) (91-102) ---
+        mkRec('wf_rt_1', '🌿 [Terrain Step 1] Morning Cellular Hydration & Adrenal Mineral Elixir', 'snack', 'terrain', '2 Mins', 'Glass', 'No Cook',
+            ['Before coffee, stir warm or room-temp filtered water with fresh squeezed lime/lemon juice, 1/4 tsp Celtic or Redmond salt, and a splash of coconut water or pure maple syrup.'],
+            [{ name: 'Fresh Lemon or Lime', qty: 1, unit: 'whole', category: 'Fruits & Produce' }, { name: 'Celtic/Redmond Salt & Coconut Water Splash', qty: 0.25, unit: 'cups', category: 'Traditional Fats & Pantry Staples' }]),
+        mkRec('wf_rt_2', '🌿 [Terrain Phase 1] Gut-Soothing Golden Ginger, Turmeric & Bone-Broth Bowl', 'lunch', 'terrain', '15 Mins', 'Saucepan', 'Medium Simmer',
+            ['Simmer rich chicken bone broth with grated fresh ginger, turmeric, shredded chicken breast, and spiralized zucchini ribbons for calm parasympathetic digestion.'],
+            [{ name: 'Shredded Chicken Breast', qty: 0.35, unit: 'lbs', category: 'Meats & Organs' }, { name: 'Zucchini, Fresh Ginger & Turmeric', qty: 1, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Chicken Bone Broth', qty: 1.25, unit: 'cups', category: 'Traditional Fats & Pantry Staples' }]),
+        mkRec('wf_rt_3', '🌿 [Terrain Phase 1] 35g-Protein Savory Bison, Bitter Greens & Sweet Potato Skillet', 'breakfast', 'terrain', '15 Mins', 'Cast-Iron Skillet', 'Medium Heat (5/10)',
+            ['Brown ground bison or grass-fed beef with cubed sweet potatoes; fold in dandelion greens/spinach and top with a pasture egg to anchor blood sugar all morning.'],
+            [{ name: 'Ground Bison or Grass-Fed Beef', qty: 0.35, unit: 'lbs', category: 'Meats & Organs' }, { name: 'Sweet Potato & Leafy Greens', qty: 1, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Pasture-Raised Egg', qty: 1, unit: 'eggs', category: 'Eggs & Raw Dairy' }]),
+        mkRec('wf_rt_4', '🌿 [Terrain Phase 2] Bile-Flow Roasted Beet, Arugula, Grapefruit & Wild Salmon Plate', 'lunch', 'terrain', '12 Mins', 'Salad Bowl', 'No Cook / Pre-Roasted',
+            ['Arrange wild salmon over bitter arugula, roasted beets, and fresh citrus segments; drizzle with extra-virgin olive oil and raw apple cider vinegar to support liver drainage.'],
+            [{ name: 'Wild Salmon', qty: 0.35, unit: 'lbs', category: 'Meats & Organs' }, { name: 'Arugula, Roasted Beets & Grapefruit', qty: 1.5, unit: 'cups', category: 'Fruits & Produce' }]),
+        mkRec('wf_rt_5', '🌿 [Terrain Phase 2] Microbiome-Building Kraut, Grass-Fed Burger & Avocado Plate', 'dinner', 'terrain', '15 Mins', 'Skillet', 'Medium-High Heat (6/10)',
+            ['Sear grass-fed beef patty with sea salt; serve alongside raw fermented sauerkraut, sliced avocado, and roasted carrots.'],
+            [{ name: 'Grass-Fed Ground Beef', qty: 0.4, unit: 'lbs', category: 'Meats & Organs' }, { name: 'Raw Sauerkraut, Avocado & Carrots', qty: 1.25, unit: 'cups', category: 'Fruits & Produce' }]),
+        mkRec('wf_rt_6', '🌿 [Terrain Phase 2] Prebiotic Wild Blueberry, Collagen & Kefir Gut-Repair Shake', 'breakfast', 'terrain', '5 Mins', 'Blender', 'No Cook',
+            ['Blend polyphenol-rich wild blueberries, whole-milk kefir, grass-fed collagen peptides, Ceylon cinnamon, and a touch of raw honey.'],
+            [{ name: 'Wild Blueberries', qty: 0.75, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Whole Milk Kefir & Collagen Peptides', qty: 1, unit: 'cups', category: 'Eggs & Raw Dairy' }]),
+        mkRec('wf_rt_7', '🌿 [Terrain Phase 3] Metabolic Fire 40g-Protein Steak & Fresh Herb Chimichurri', 'dinner', 'terrain', '20 Mins', 'Cast-Iron Skillet', 'High Heat (7/10)',
+            ['Sear sirloin steak in butter; top with vibrant parsley-cilantro-garlic olive oil chimichurri and serve with crispy roasted potatoes and asparagus.'],
+            [{ name: 'Sirloin Steak', qty: 0.4, unit: 'lbs', category: 'Meats & Organs' }, { name: 'Parsley, Cilantro, Asparagus & Potatoes', qty: 1.5, unit: 'cups', category: 'Fruits & Produce' }]),
+        mkRec('wf_rt_8', '🌿 [Terrain Phase 3] Thyroid-Warming Coconut, Carrot, Spinach & Chicken Curry', 'dinner', 'terrain', '25 Mins', 'Dutch Oven', 'Medium Simmer',
+            ['Simmer cubed chicken thighs in full-fat coconut milk, bone broth, ginger, garlic, turmeric, carrots, and baby spinach.'],
+            [{ name: 'Chicken Thighs', qty: 0.4, unit: 'lbs', category: 'Meats & Organs' }, { name: 'Carrots, Baby Spinach & Ginger', qty: 1.25, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Full-Fat Coconut Milk', qty: 0.5, unit: 'cups', category: 'Traditional Fats & Pantry Staples' }]),
+        mkRec('wf_rt_9', '🌿 [Terrain Phase 4] Follicular-Phase Fresh-Milled Einkorn & Cottage Cheese Protein Pancakes', 'breakfast', 'terrain', '15 Mins', 'Griddle', 'Medium Heat (5/10)',
+            ['Blend pasture eggs, cottage cheese, and freshly milled einkorn (or unbleached flour); cook golden pancakes on a buttered griddle and top with warm berries.'],
+            [{ name: 'Pasture-Raised Eggs & Cottage Cheese', qty: 0.5, unit: 'cups', category: 'Eggs & Raw Dairy' }, { name: 'Freshly Milled Einkorn Flour & Berries', qty: 0.5, unit: 'cups', category: 'Fruits & Produce' }]),
+        mkRec('wf_rt_10', '🌿 [Terrain Phase 4] Luteal-Phase Magnesium Cacao, Almond & Pumpkin Seed Truffles', 'snack', 'terrain', '10 Mins', 'Food Processor', 'No Cook',
+            ['Pulse Medjool dates, almond butter, raw cacao powder, pumpkin seeds, and sea salt; roll into truffles to support progesterone and luteal mineral needs.'],
+            [{ name: 'Pitted Medjool Dates', qty: 3, unit: 'whole', category: 'Fruits & Produce' }, { name: 'Almond Butter, Cacao & Pumpkin Seeds', qty: 2, unit: 'tbsp', category: 'Traditional Fats & Pantry Staples' }]),
+        mkRec('wf_rt_11', '🌿 [Terrain Phase 4] Estrogen-Clearance Cruciferous Crunch & Lemon-Garlic Chicken Salad', 'lunch', 'terrain', '12 Mins', 'Large Bowl', 'No Cook',
+            ['Toss finely shaved Brussels sprouts, broccoli slaw, kale, pomegranate arils, pumpkin seeds, and grilled lemon-garlic chicken with olive oil dressing.'],
+            [{ name: 'Grilled Chicken Breast', qty: 0.35, unit: 'lbs', category: 'Meats & Organs' }, { name: 'Shaved Brussels Sprouts, Kale & Pomegranate', qty: 1.5, unit: 'cups', category: 'Fruits & Produce' }]),
+        mkRec('wf_rt_12', '🌿 [Terrain Evening] 9 PM Glycogen-Steady Tart Cherry, Collagen & Honey Nightcap', 'snack', 'terrain', '4 Mins', 'Mug', 'Warm',
+            ['Whisk a splash of 100% tart cherry juice, warm chamomile tea (or warm milk), 1 scoop collagen peptides, and 1 tsp raw honey to prevent 2 AM cortisol wake-ups.'],
+            [{ name: '100% Tart Cherry Juice', qty: 0.25, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Collagen Peptides & Raw Honey', qty: 1.5, unit: 'tbsp', category: 'Traditional Fats & Pantry Staples' }])
+    ];
+
+    // =========================================================================
+    // INSTALL 102 RECIPES INTO VAULT & MEAL PLANNER + SUBTAB FILTER BAR
+    // =========================================================================
+    window._activeRecipeVaultSubtab = window._activeRecipeVaultSubtab || 'all';
+
+    function installExpandedWholeFoodRecipes() {
+        if (typeof DEFAULT_RECIPES !== 'undefined' && Array.isArray(DEFAULT_RECIPES)) {
+            DEFAULT_RECIPES.length = 0;
+            HONEYSUCKLE_WHOLE_FOOD_RECIPES.forEach(r => DEFAULT_RECIPES.push(r));
+        }
+        window.HONEYSUCKLE_WHOLE_FOOD_RECIPES = HONEYSUCKLE_WHOLE_FOOD_RECIPES;
+
+        // Merge any custom scanned/private recipes with the 102 master whole-food recipes
+        if (typeof getLocalData === 'function' && typeof setLocalData === 'function') {
+            const existingCustom = (getLocalData('custom_public_recipes', []) || []).filter(r => r && r.id && !String(r.id).startsWith('wf_') && !String(r.id).startsWith('rec_'));
+            setLocalData('custom_public_recipes', [...existingCustom, ...HONEYSUCKLE_WHOLE_FOOD_RECIPES], true);
+        }
+    }
+
+    // Scrub "Animal-Based" / "Animal Fats & Pantry" wording everywhere in the DOM
+    function scrubAnimalBasedWordingInDOM() {
+        const replacements = [
+            [/Animal-Based\s*&\s*Low-Toxin/gi, 'Nourishing Whole-Food & Low-Toxin'],
+            [/Animal-Based\s*Meal\s*Planner/gi, 'Whole-Food Family Meal Planner'],
+            [/Animal-Based/gi, 'Whole-Food'],
+            [/animal-based/gi, 'whole-food'],
+            [/Animal Fats & Pantry/g, 'Traditional Fats & Pantry Staples']
+        ];
+
+        const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
+        let node;
+        while ((node = walker.nextNode())) {
+            const val = node.nodeValue;
+            if (val && (/animal-based/i.test(val) || /Animal Fats & Pantry/.test(val))) {
+                let updated = val;
+                replacements.forEach(([regex, rep]) => { updated = updated.replace(regex, rep); });
+                if (updated !== val) node.nodeValue = updated;
+            }
+        }
+    }
+
+    window.selectRecipeVaultSubtab = function(subKey) {
+        if (subKey === 'terrain' && !isTerrainUnlockedForRecipes()) {
+            alert('🔒 Exclusive "Reclaim Your Terrain" Clinical Recipes\n\nThese 12 hormone, gut-drainage, and metabolic-fire recipes are a special bonus for Reclaim Your Terrain members! Head to the "🌿 Reclaim Your Terrain" tab to enroll and unlock them automatically.');
+            return;
+        }
+        window._activeRecipeVaultSubtab = subKey;
+        if (typeof renderRecipeVault === 'function') renderRecipeVault();
+        applyRecipeVaultSubtabFilter();
+    };
+
+    function applyRecipeVaultSubtabFilter() {
+        const vaultTab = document.getElementById('tool-tab-recipe-vault');
+        if (!vaultTab) return;
+
+        // Inject the Subtab Bar inside Recipe Vault
+        let bar = document.getElementById('hh-recipe-vault-subtabs-bar');
+        const unlockedTerrain = isTerrainUnlockedForRecipes();
+        const activeSub = window._activeRecipeVaultSubtab || 'all';
+
+        const tabs = [
+            { key: 'all', lbl: '🍽️ All Whole-Food (90)' },
+            { key: 'smoothie', lbl: '🥤 Smoothies & Shakes (10)' },
+            { key: 'breakfast', lbl: '🥞 Breakfasts & Family Spreads (10)' },
+            { key: 'lunch_kid', lbl: '👧 Kid-Friendly Lunches (10)' },
+            { key: 'lunch_adult', lbl: '🥗 Fast High-Protein Lunches (10)' },
+            { key: 'dinner_family', lbl: '🥘 Large-Family Dinners (10)' },
+            { key: 'dinner_special', lbl: '👑 Special Occasion (5)' },
+            { key: 'dinner_quick', lbl: '🍕 Quick 20-Min Dinners (5)' },
+            { key: 'snack', lbl: '🧀 Snacks, Crackers & Elixirs (20)' },
+            { key: 'drink', lbl: '🍋 Hydrating Drinks & Punches (10)' },
+            { key: 'terrain', lbl: `🌿 Reclaim Your Terrain Bonus (12) ${unlockedTerrain ? '✓' : '🔒'}` }
+        ];
+
+        const barHtml = tabs.map(t => `
+            <button type="button" class="coach-subtab-btn ${activeSub === t.key ? 'active' : ''}"
+                style="padding:7px 13px; font-size:0.78rem; ${t.key === 'terrain' ? 'border:1.5px solid var(--sage); background:' + (activeSub === 'terrain' ? 'var(--sage)' : '#E8F2EC') + '; color:' + (activeSub === 'terrain' ? '#fff' : 'var(--sage)') + ';' : ''}"
+                onclick="selectRecipeVaultSubtab('${t.key}')">
+                ${t.lbl}
+            </button>
+        `).join('');
+
+        if (!bar) {
+            bar = document.createElement('div');
+            bar.id = 'hh-recipe-vault-subtabs-bar';
+            bar.className = 'coach-subtabs';
+            bar.style.cssText = 'margin: 12px 0 16px 0; padding: 10px 12px; background: #FFFDF8; border: 1.5px solid var(--border); border-radius: 14px;';
+            const gridEl = document.getElementById('recipe-vault-grid');
+            if (gridEl) gridEl.insertAdjacentElement('beforebegin', bar);
+            else vaultTab.prepend(bar);
+        }
+        bar.innerHTML = barHtml;
+
+        // Filter the rendered recipe cards in #recipe-vault-grid
+        const gridEl = document.getElementById('recipe-vault-grid');
+        if (!gridEl) return;
+
+        const lookupByTitle = {};
+        HONEYSUCKLE_WHOLE_FOOD_RECIPES.forEach(r => { lookupByTitle[r.title.trim().toLowerCase()] = r; });
+
+        Array.from(gridEl.children).forEach(card => {
+            const titleEl = card.querySelector('h4, h3, strong');
+            const cardTitle = (titleEl ? titleEl.textContent : card.textContent || '').trim().toLowerCase();
+            const matchedRec = lookupByTitle[cardTitle] || HONEYSUCKLE_WHOLE_FOOD_RECIPES.find(r => cardTitle.includes(r.title.slice(3).trim().toLowerCase()));
+
+            if (!matchedRec) {
+                card.style.display = (activeSub === 'all') ? '' : 'none';
+                return;
+            }
+
+            // Hide Terrain bonus recipes from 'all' unless user clicks the Terrain subtab (or if locked)
+            if (matchedRec.vaultSubtab === 'terrain') {
+                card.style.display = (activeSub === 'terrain' && unlockedTerrain) ? '' : 'none';
+                return;
+            }
+
+            if (activeSub === 'all') {
+                card.style.display = '';
+            } else {
+                card.style.display = (matchedRec.vaultSubtab === activeSub) ? '' : 'none';
+            }
+        });
+    }
+
+    installExpandedWholeFoodRecipes();
+
+    const _origRenderVault = window.renderRecipeVault;
+    if (typeof _origRenderVault === 'function') {
+        window.renderRecipeVault = function() {
+            installExpandedWholeFoodRecipes();
+            _origRenderVault();
+            applyRecipeVaultSubtabFilter();
+            scrubAnimalBasedWordingInDOM();
+        };
+    }
+
+    setTimeout(() => {
+        installExpandedWholeFoodRecipes();
+        if (typeof renderRecipeVault === 'function') renderRecipeVault();
+        if (typeof generateAnimalBasedPlan === 'function') generateAnimalBasedPlan();
+        scrubAnimalBasedWordingInDOM();
+    }, 600);
+
+    document.addEventListener('click', () => setTimeout(() => {
+        applyRecipeVaultSubtabFilter();
+        scrubAnimalBasedWordingInDOM();
+    }, 180));
+})();
+</script>
+
+<!-- ================= BLOCK 2: RECLAIM YOUR TERRAIN CONSULT -> STEP 1 REDIRECT & REFRESH FIX ================= -->
+<script>
+(function() {
+    function isConsultMarkedDone() {
+        try {
+            const paid = JSON.parse(localStorage.getItem('hh_terrain_paid_unlock') || '{}');
+            if (paid && paid.consultCompleted) return true;
+        } catch (e) {}
+        if (localStorage.getItem('hh_terrain_consult_done_flag') === 'true') return true;
+        if (typeof getTerrainState === 'function') {
+            const st = getTerrainState();
+            if (st && (st.consultCompleted || st.consultDone || st.intakeCompleted)) return true;
+        }
+        return false;
+    }
+
+    window.forceCompleteConsultAndGoToStep1 = function() {
+        localStorage.setItem('hh_terrain_consult_done_flag', 'true');
+        try {
+            const paid = JSON.parse(localStorage.getItem('hh_terrain_paid_unlock') || '{}');
+            paid.unlocked = true;
+            paid.consultCompleted = true;
+            paid.consultDone = true;
+            localStorage.setItem('hh_terrain_paid_unlock', JSON.stringify(paid));
+        } catch (e) {}
+
+        if (typeof getTerrainState === 'function' && typeof saveTerrainState === 'function') {
+            const st = getTerrainState() || {};
+            st.unlocked = true;
+            st.consultCompleted = true;
+            st.consultDone = true;
+            st.intakeCompleted = true;
+            st.questionnaireCompleted = true;
+            st.showConsult = false;
+            st.retakeConsult = false;
+            st.currentStep = st.currentStep || 1;
+            saveTerrainState(st);
+        }
+
+        if (typeof switchView === 'function') switchView('reclaim-terrain');
+        if (typeof renderReclaimTerrainPillar === 'function') renderReclaimTerrainPillar();
+        enforceStep1ViewWhenConsultDone();
+
+        const terrainView = document.getElementById('view-reclaim-terrain');
+        if (terrainView) terrainView.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
+    // 1. Intercept the exact alert that pops up when Question 20 is finished!
+    const _origAlert = window.alert.bind(window);
+    window.alert = function(msg) {
+        _origAlert(msg);
+        const s = String(msg || '').toLowerCase();
+        if ((s.includes('complete') || s.includes('saved') || s.includes('unlocked')) && (s.includes('step 1') || s.includes('consult') || s.includes('questionnaire') || s.includes('terrain'))) {
+            setTimeout(() => window.forceCompleteConsultAndGoToStep1(), 50);
+        }
+    };
+
+    // 2. If the user has completed the consult (or is on Question 20), ensure the Question 1 wizard never traps them again
+    function enforceStep1ViewWhenConsultDone() {
+        const container = document.getElementById('view-reclaim-terrain');
+        if (!container) return;
+
+        // Also add a 1-click "Go Straight to Step 1 Dashboard ->" button inside the consult card in case a test account already finished it
+        container.querySelectorAll('div').forEach(box => {
+            const txt = box.textContent || '';
+            if ((txt.includes('PART 1 OF 6') || txt.includes('Question 1 of 20') || txt.includes('Save & Next Question')) && !box.querySelector('.hh-skip-to-step1-btn')) {
+                const headerRow = box.querySelector('div');
+                if (headerRow) {
+                    const skipBtn = document.createElement('button');
+                    skipBtn.type = 'button';
+                    skipBtn.className = 'btn-secondary hh-skip-to-step1-btn';
+                    skipBtn.style.cssText = 'margin-top:8px; padding:6px 12px; font-size:0.76rem; border-color:var(--sage); color:var(--sage);';
+                    skipBtn.innerHTML = '✓ Already Completed Consult? Go Straight to Step 1 Dashboard &rarr;';
+                    skipBtn.onclick = () => window.forceCompleteConsultAndGoToStep1();
+                    headerRow.appendChild(skipBtn);
+                }
+            }
+        });
+
+        if (!isConsultMarkedDone()) return;
+
+        // Ensure state has consultCompleted = true before checking DOM
+        if (typeof getTerrainState === 'function') {
+            const st = getTerrainState();
+            if (st && (!st.consultCompleted || !st.consultDone)) {
+                st.unlocked = true;
+                st.consultCompleted = true;
+                st.consultDone = true;
+                st.intakeCompleted = true;
+                st.retakeConsult = false;
+                if (typeof saveTerrainState === 'function') saveTerrainState(st);
+                if (typeof _preWodRenderTerrain === 'function') _preWodRenderTerrain();
+            }
+        }
+
+        // Hide any lingering 20-Question Consult Wizard box once consult is completed
+        Array.from(container.querySelectorAll('div, section')).forEach(el => {
+            if (el.id === 'view-reclaim-terrain' || el.querySelector('button[onclick^="openAdminClientConsultViewer("]')) return;
+            const t = el.textContent || '';
+            if ((t.includes('PART 1 OF 6') || t.includes('Question 1 of 20') || t.includes('Save & Next Question')) && !t.includes('Daily Habit Checklist') && el.parentElement === container) {
+                if (!window._adminShowConsultPreview) {
+                    el.style.display = 'none';
+                }
+            }
+        });
+    }
+
+    [300, 900, 1800, 3000].forEach(ms => setTimeout(enforceStep1ViewWhenConsultDone, ms));
+    document.addEventListener('click', () => setTimeout(enforceStep1ViewWhenConsultDone, 150));
+})();
+</script>
+
 </body>
 </html>
