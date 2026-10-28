@@ -19242,7 +19242,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
 })();
 </script>
 
-<!-- ================= BLOCK 4 (UPGRADED): REAL-DATE SYNCED MEAL PLANNER & 4-VIEW KITCHEN CALENDAR OS ================= -->
+<!-- ================= BLOCK 4 (FIXED LAYOUT): FULL-WIDTH REAL-DATE MEAL PLANNER & 4-VIEW KITCHEN CALENDAR OS ================= -->
 <script>
 (function() {
     const DAY_NAMES_SUN_FIRST = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -19257,7 +19257,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         adultsAtLunch: 1,
         breakfastMode: 'quick_wkdy_big_wknd',
         includeSnacksAndDrinks: true,
-        startDateIso: '' // Empty string = automatically starts on Today's real date!
+        startDateIso: '' // Empty = starts on Today's real calendar date
     };
 
     function getTodayIsoLocal() {
@@ -19404,6 +19404,14 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         return pickFrom(filtered.length ? filtered : allDinners, usedSet);
     }
 
+    // Hook "Shuffle" button in top bar so clicking it shuffles the 6-slot cards!
+    window.shuffleAnimalBasedPlan = function() {
+        buildAndRenderCustomPlanCards(true);
+        if (typeof window.rebuildAndRenderRestoredShoppingList === 'function') {
+            window.rebuildAndRenderRestoredShoppingList();
+        }
+    };
+
     // =========================================================================
     // 1. UPGRADE STEP 2 UI (WITH REAL START DATE PICKER) & MOVE GENERATE BUTTON
     // =========================================================================
@@ -19431,7 +19439,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             }
         });
 
-        // Bind the "Days to Plan" number input so changing 7 -> 4 immediately updates the calendar!
         const allNumInputs = Array.from(document.querySelectorAll('input[type="number"]'));
         const daysInp = allNumInputs.find(inp => {
             const lbl = (inp.previousElementSibling?.textContent || inp.parentElement?.textContent || '').toLowerCase();
@@ -19459,7 +19466,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             box.id = 'hh-step2-lunch-rhythm-box';
             box.style.cssText = 'background: #FFFDF8; border: 2px solid var(--sage); border-radius: 14px; padding: 12px 14px; margin: 12px 0; box-shadow: 0 4px 12px rgba(46,90,68,0.08);';
             box.innerHTML = `
-                <!-- Real Calendar Start Date Sync Row -->
                 <div style="background:#E8F2EC; border:1.5px solid var(--sage); border-radius:10px; padding:9px 12px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
                     <div>
                         <strong style="font-size:0.78rem; color:var(--sage); display:block;">📅 Sync Plan to Real Calendar Day (Day 1 Start Date):</strong>
@@ -19678,7 +19684,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         const nextState = isCheckedOverride !== null ? !!isCheckedOverride : !curState;
         plan[dayIdx].cookedSlots[slotKey] = nextState;
 
-        // Deduct or restore ingredients in household inventory + award Hub Stars!
         const recId = plan[dayIdx][slotKey];
         const rec = getAllVaultRecipes().find(r => r && r.id === recId);
         const portions = window.readStep1PortionMultipliers();
@@ -19706,7 +19711,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         buildAndRenderCustomPlanCards(false);
     };
 
-    // Pin or swap a specific recipe onto any calendar date!
     window.openPinMealToDateModal = function(defaultDateIso = '', defaultSlotKey = 'dinnerId') {
         const all = getAllVaultRecipes();
         let plan = [];
@@ -19718,7 +19722,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             { name: 'slotKey', label: '2. Which Meal Slot?', type: 'select', value: defaultSlotKey, options: [
                 { value: 'breakfastId', label: '☀️ Breakfast' },
                 { value: 'kidLunchId', label: '👧 Kids\' Lunch' },
-                { value: 'adultLunchId', label: '🥗 My Filling Adult Lunch' },
+                { value: 'adultLunchId', label: '🥗 Adult Lunch' },
                 { value: 'dinnerId', label: '🌙 Family Dinner' },
                 { value: 'snackId', label: '🧀 Batch-Prep Snack / Elixir' },
                 { value: 'drinkId', label: '🍋 Hydrating Drink' }
@@ -19734,7 +19738,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                 if (vals.prepNote) targetDay.prepNote = vals.prepNote;
                 try { localStorage.setItem('hh_step2_generated_days', JSON.stringify(savedPlan)); } catch (e) {}
             } else {
-                // Save in date-pinned overrides map so Monthly view & future plans use it!
                 const pinnedMap = JSON.parse(localStorage.getItem('hh_pinned_meals_by_date') || '{}');
                 if (!pinnedMap[vals.dateIso]) pinnedMap[vals.dateIso] = {};
                 pinnedMap[vals.dateIso][vals.slotKey] = vals.recipeId;
@@ -19748,9 +19751,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         });
     };
 
-    // =========================================================================
-    // 3. CALENDAR VIEW MODE SWITCHERS & PRINTABLE PLAN-BOOK SPREAD
-    // =========================================================================
     window.setMealCalViewMode = function(mode) {
         window.mealCalViewMode = mode;
         window.mealCalOffset = 0;
@@ -19827,15 +19827,12 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
     };
 
     // =========================================================================
-    // 4. GENERATE & RENDER REAL-DATE SYNCED MEAL PLAN + 4-VIEW CALENDAR OS
+    // 3. GENERATE & RENDER FULL-WIDTH REAL-DATE MEAL PLANNER
     // =========================================================================
     function buildAndRenderCustomPlanCards(forceRegenerate = false) {
-        const summaryBanner = document.getElementById('ab-plan-summary-text') ||
-            Array.from(document.querySelectorAll('span, p')).find(el => (el.textContent || '').trim().startsWith('Planning for ') && (el.textContent || '').includes('Adult Portions'));
-
+        const summaryBanner = document.getElementById('ab-plan-summary-text');
         const oldDaysGrid = document.getElementById('ab-days-grid');
-        const anchorEl = summaryBanner || oldDaysGrid;
-        if (!anchorEl) return;
+        if (!oldDaysGrid && !summaryBanner) return;
 
         const cfg = getStep2Config();
         const portions = window.readStep1PortionMultipliers();
@@ -19855,7 +19852,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         const recMap = new Map();
         allRecipes.forEach(r => { if (r && r.id) recMap.set(r.id, r); });
 
-        // Regenerate if count changed, forced, or if old cached plan wasn't synced to expectedStartIso!
         const needsDateResync = !Array.isArray(plan) || plan.length !== daysCount || !plan[0]?.dateIso || plan[0].dateIso !== expectedStartIso;
 
         if (needsDateResync || forceRegenerate) {
@@ -19878,11 +19874,10 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             let prevDinnerId = null;
 
             plan = Array.from({ length: daysCount }, (_, i) => {
-                // Calculate the REAL calendar date for Day (i + 1)!
                 const dObj = new Date(startDateObj);
                 dObj.setDate(startDateObj.getDate() + i);
                 const dIso = formatDateToIsoLocal(dObj);
-                const jsDay = dObj.getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
+                const jsDay = dObj.getDay();
                 const realDayName = DAY_NAMES_SUN_FIRST[jsDay];
                 const isWeekend = (jsDay === 0 || jsDay === 6);
                 const shortDateLabel = dObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
@@ -19890,14 +19885,12 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
 
                 const pinned = pinnedByDate[dIso] || {};
 
-                // 1. Breakfast (Uses real weekday vs. weekend!)
                 let bPool = quickBreakfasts;
                 if (cfg.breakfastMode === 'big_daily') bPool = bigBreakfasts.length ? bigBreakfasts : breakfasts;
                 else if (cfg.breakfastMode === 'smoothie_focus') bPool = isWeekend ? bigBreakfasts : smoothies;
                 else bPool = isWeekend ? (bigBreakfasts.length ? bigBreakfasts : breakfasts) : [...quickBreakfasts, ...smoothies.slice(0, 4)];
                 const bRec = pickFrom(bPool, used);
 
-                // 2. Kid Lunch & Adult Lunch (Uses real weekday vs. weekend!)
                 let kLunch = null;
                 let aLunch = null;
                 if (cfg.lunchMode === 'homeschool_dual') {
@@ -19912,7 +19905,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                     kLunch = pickFrom(kidLunches, used);
                 }
 
-                // 3. Dinner (Matched to Step 3 Weekly Dinner Rhythm for `realDayName`!)
                 const dayTheme = step3Themes[realDayName] || '';
                 let dId = null;
                 if (dayTheme.includes('repeat') && prevDinnerId) {
@@ -19923,7 +19915,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                     prevDinnerId = dId;
                 }
 
-                // 4. Snack & Drink
                 const snRec = cfg.includeSnacksAndDrinks ? pickFrom(snacks, used) : null;
                 const drRec = cfg.includeSnacksAndDrinks ? pickFrom(drinks, used) : null;
 
@@ -19948,7 +19939,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             try { localStorage.setItem('hh_step2_generated_days', JSON.stringify(plan)); } catch (e) {}
         }
 
-        // Sync Today's meals into `ab_current_plan` so the Home Command Center shows Today's real meals!
         if (typeof setLocalData === 'function' && plan.length > 0) {
             const syncedLegacyPlan = plan.map(d => ({
                 day: d.dayNumber,
@@ -19966,34 +19956,38 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         const firstDayStr = plan[0]?.shortDateLabel || plan[0]?.dayName || 'Today';
         const lastDayStr = plan[plan.length - 1]?.shortDateLabel || plan[plan.length - 1]?.dayName || '';
         const lunchSummaryLabel =
-            cfg.lunchMode === 'homeschool_dual' ? `👧 Kid Lunches (${portions.kidsOnlyMult}x) + 🥗 My Adult Lunch (${cfg.adultsAtLunch}.0x)` :
+            cfg.lunchMode === 'homeschool_dual' ? `👧 Kid Lunches (${portions.kidsOnlyMult}x) + 🥗 Adult Lunch (${cfg.adultsAtLunch}.0x)` :
             cfg.lunchMode === 'school_weekdays' ? `🥗 Adult Lunch Mon–Fri + 👧 Kid Lunches on Weekends` :
-            cfg.lunchMode === 'adults_only' ? `🥗 Filling Adult Lunches Only (${cfg.adultsAtLunch}.0x)` :
+            cfg.lunchMode === 'adults_only' ? `🥗 Adult Lunches Only (${cfg.adultsAtLunch}.0x)` :
             cfg.lunchMode === 'shared_kid' ? `👧 Shared Family Lunches (${portions.totalFamilyMult}x)` :
             `🚫 Breakfast & Dinner Only`;
 
         if (summaryBanner) {
             summaryBanner.innerHTML = `
-                Planning for <strong>${portions.totalMembers} Family Members</strong> (${portions.totalFamilyMult}x Base • ${lunchSummaryLabel}) across <strong>${daysCount} Days (${firstDayStr} – ${lastDayStr})</strong> • 💡 <em>Click any meal title to open its Step-by-Step Recipe Card!</em>
+                Planning for <strong>${portions.totalMembers} Family Members</strong> (${portions.totalFamilyMult}x Base • ${lunchSummaryLabel}) across <strong>${daysCount} Days (${firstDayStr} – ${lastDayStr})</strong>
             `;
         }
 
+        // CRITICAL FIX: Always mount `calToolbar` and `gridBox` inside the full-width Meal Plan panel (where `#ab-days-grid` lives), NEVER inside the top flex summary banner!
+        const mealPlanCardPanel = oldDaysGrid ? oldDaysGrid.parentElement : (summaryBanner?.closest('#ab-printable-area') || document.getElementById('tool-tab-weekly-planner'));
         if (oldDaysGrid) oldDaysGrid.style.display = 'none';
 
-        // Create or locate the Calendar Toolbar + Stage Container
         let calToolbar = document.getElementById('hh-meal-calendar-toolbar');
         if (!calToolbar) {
             calToolbar = document.createElement('div');
             calToolbar.id = 'hh-meal-calendar-toolbar';
             calToolbar.className = 'no-print';
-            if (oldDaysGrid) oldDaysGrid.insertAdjacentElement('beforeend', calToolbar);
-            anchorEl.insertAdjacentElement('afterend', calToolbar);
+        }
+        if (oldDaysGrid && calToolbar.parentElement !== mealPlanCardPanel) {
+            oldDaysGrid.insertAdjacentElement('beforebegin', calToolbar);
         }
 
         let gridBox = document.getElementById('hh-upgraded-dual-lunch-grid');
         if (!gridBox) {
             gridBox = document.createElement('div');
             gridBox.id = 'hh-upgraded-dual-lunch-grid';
+        }
+        if (calToolbar.nextElementSibling !== gridBox) {
             calToolbar.insertAdjacentElement('afterend', gridBox);
         }
 
@@ -20003,8 +19997,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         const adultScaleMult = cfg.adultsAtLunch;
         const adultScaleLbl = `${cfg.adultsAtLunch} Adult${cfg.adultsAtLunch > 1 ? 's' : ''} (${cfg.adultsAtLunch}.0x Adult Base)`;
 
-        // Render the Homeschool-Style Connected Kitchen Calendar Toolbar
-        calToolbar.style.cssText = 'background: linear-gradient(135deg, #FFFDF8 0%, #FEF5D8 100%); border: 2px solid var(--sage); border-radius: 16px; padding: 12px 16px; margin-top: 14px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;';
+        calToolbar.style.cssText = 'width: 100%; background: linear-gradient(135deg, #FFFDF8 0%, #FEF5D8 100%); border: 2px solid var(--sage); border-radius: 14px; padding: 12px 16px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; box-sizing: border-box;';
         calToolbar.innerHTML = `
             <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                 <span class="card-tag" style="background:var(--sage); color:#fff; margin:0;">🗓️ Kitchen Calendar OS</span>
@@ -20025,7 +20018,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             </div>
         `;
 
-        // Hidden shopping-list data nodes so BLOCK 5 always sees all planned meals regardless of view mode!
         const hiddenShoppingSyncHtml = `
             <div id="hh-hidden-shopping-sync-slots" style="display:none;">
                 ${plan.map(d => {
@@ -20042,21 +20034,21 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             </div>
         `;
 
-        // -------------------- VIEW MODE 1: MULTI-DAY CARDS (SYNCED TO REAL DATES) --------------------
+        // -------------------- VIEW MODE 1: FULL-WIDTH MULTI-DAY CARDS --------------------
         if (window.mealCalViewMode === 'cards') {
-            gridBox.style.cssText = 'display: grid; grid-template-columns: repeat(auto-fit, minmax(305px, 1fr)); gap: 16px; margin-top: 8px;';
+            gridBox.style.cssText = 'width: 100%; display: grid; grid-template-columns: repeat(auto-fill, minmax(295px, 1fr)); gap: 16px; margin-top: 4px; box-sizing: border-box;';
 
             function renderSlotCard(dayIdx, slotKey, badgeTitle, borderHex, recObj, mult, scaleLbl, isCooked) {
                 if (!recObj) return '';
                 return `
                     <div style="background:${isCooked ? '#E8F2EC' : '#ffffff'}; opacity:${isCooked ? '0.72' : '1'}; border:1px solid var(--border); border-left:4px solid ${borderHex}; border-radius:10px; padding:9px 11px; margin-bottom:8px;">
-                        <div style="display:flex; justify-content:space-between; align-items:center; gap:4px; margin-bottom:4px; flex-wrap:wrap;">
-                            <span style="font-size:0.68rem; font-weight:800; color:${borderHex}; text-transform:uppercase;">${badgeTitle}</span>
-                            <div style="display:flex; gap:4px; align-items:center;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:4px; flex-wrap:nowrap;">
+                            <span style="font-size:0.68rem; font-weight:800; color:${borderHex}; text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${badgeTitle}</span>
+                            <div style="display:flex; gap:5px; align-items:center; flex-shrink:0; white-space:nowrap;">
                                 <button type="button" onclick="swapStep2SingleMeal(${dayIdx}, '${slotKey}')" style="background:var(--bg-warm-cream); border:1px solid var(--border); border-radius:6px; padding:1px 6px; font-size:0.66rem; font-weight:700; cursor:pointer;" title="Swap this meal">🔄 Swap</button>
-                                <label style="font-size:0.68rem; font-weight:700; color:var(--sage); cursor:pointer; display:flex; align-items:center; gap:2px;">
-                                    <input type="checkbox" ${isCooked ? 'checked' : ''} onchange="toggleStep2MealMadeIt(${dayIdx}, '${slotKey}', this.checked)" style="accent-color:var(--sage);">
-                                    ${isCooked ? 'Done ✓' : 'Made'}
+                                <label style="font-size:0.68rem; font-weight:700; color:var(--sage); cursor:pointer; display:inline-flex; align-items:center; gap:3px; margin:0;">
+                                    <input type="checkbox" ${isCooked ? 'checked' : ''} onchange="toggleStep2MealMadeIt(${dayIdx}, '${slotKey}', this.checked)" style="accent-color:var(--sage); margin:0;">
+                                    <span>${isCooked ? 'Done ✓' : 'Made'}</span>
                                 </label>
                             </div>
                         </div>
@@ -20078,29 +20070,29 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                 const cMap = d.cookedSlots || {};
 
                 return `
-                    <div style="background:${isToday ? '#FFFBEB' : 'var(--bg-warm-cream)'}; border:${isToday ? '2.5px solid var(--primary)' : '2px solid var(--border)'}; border-radius:18px; padding:16px; box-shadow:0 6px 18px rgba(0,0,0,0.04);">
-                        <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:1.5px solid var(--border); padding-bottom:8px; margin-bottom:10px; gap:6px;">
-                            <div>
-                                <span style="font-size:0.7rem; font-weight:800; color:${isToday ? 'var(--sage)' : 'var(--text-muted)'}; text-transform:uppercase;">
-                                    DAY ${d.dayNumber} ${isToday ? '• 🌻 TODAY' : ''} (${escapeSafeHtml(d.dateIso)})
+                    <div style="background:${isToday ? '#FFFBEB' : 'var(--bg-warm-cream)'}; border:${isToday ? '2.5px solid var(--primary)' : '2px solid var(--border)'}; border-radius:18px; padding:16px; box-shadow:0 6px 18px rgba(0,0,0,0.04); display:flex; flex-direction:column; justify-content:space-between;">
+                        <div>
+                            <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:2px;">
+                                <span style="font-size:0.72rem; font-weight:800; color:${isToday ? 'var(--sage)' : 'var(--text-muted)'}; text-transform:uppercase; letter-spacing:0.03em;">
+                                    DAY ${d.dayNumber} ${isToday ? '• 🌻 TODAY' : ''}
                                 </span>
-                                <h4 style="font-family:var(--font-serif); font-size:1.22rem; color:var(--primary); margin:0; cursor:pointer;" onclick="jumpToMealCalDate('${d.dateIso}')">
-                                    🗓️ ${escapeSafeHtml(d.dateFormatted || d.dayName)}
-                                </h4>
+                                <span style="font-size:0.68rem; font-weight:700; background:#FEF5D8; color:#B87612; padding:2px 9px; border-radius:999px; border:1px solid #E5C378; white-space:nowrap;">
+                                    ${klRec && alRec ? '👧 Kid + 🥗 My Lunch' : (klRec ? '👧 Family Lunch' : (alRec ? '🥗 Adult Lunch' : '🍽️ Breakfast & Dinner'))}
+                                </span>
                             </div>
-                            <span style="font-size:0.68rem; font-weight:700; background:#FEF5D8; color:#B87612; padding:3px 9px; border-radius:999px; border:1px solid #E5C378; white-space:nowrap;">
-                                ${klRec && alRec ? '👧 Kid + 🥗 My Lunch' : (klRec ? '👧 Family Lunch' : (alRec ? '🥗 Adult Lunch' : '🍽️ Breakfast & Dinner'))}
-                            </span>
+                            <h4 style="font-family:var(--font-serif); font-size:1.22rem; color:var(--primary); margin:0 0 10px 0; padding-bottom:8px; border-bottom:1.5px solid var(--border); cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" onclick="jumpToMealCalDate('${d.dateIso}')">
+                                🗓️ ${escapeSafeHtml(d.dateFormatted || d.dayName)}
+                            </h4>
+
+                            ${d.prepNote ? `<div style="background:#E8F2EC; border-left:3px solid var(--sage); padding:5px 8px; border-radius:6px; font-size:0.74rem; color:var(--sage); font-weight:700; margin-bottom:8px;">📌 Note: ${escapeSafeHtml(d.prepNote)}</div>` : ''}
+
+                            ${renderSlotCard(idx, 'breakfastId', `☀️ Breakfast (${portions.totalFamilyMult}x)`, '#B87612', bRec, portions.totalFamilyMult, famScaleLbl, !!cMap.breakfastId)}
+                            ${klRec ? renderSlotCard(idx, 'kidLunchId', `👧 Kids' Lunch (${kidScaleMult}x)`, '#D97706', klRec, kidScaleMult, kidScaleLbl, !!cMap.kidLunchId) : ''}
+                            ${alRec ? renderSlotCard(idx, 'adultLunchId', `🥗 Adult Lunch (${adultScaleMult}.0x)`, '#2E5A44', alRec, adultScaleMult, adultScaleLbl, !!cMap.adultLunchId) : ''}
+                            ${renderSlotCard(idx, 'dinnerId', `🌙 Family Dinner (${portions.totalFamilyMult}x)`, '#7C2D12', dnRec, portions.totalFamilyMult, famScaleLbl, !!cMap.dinnerId)}
+                            ${cfg.includeSnacksAndDrinks && snRec ? renderSlotCard(idx, 'snackId', `🧀 Snack / Elixir`, '#6D28D9', snRec, Math.round(portions.totalFamilyMult * 0.75 * 100) / 100, famScaleLbl, !!cMap.snackId) : ''}
+                            ${cfg.includeSnacksAndDrinks && drRec ? renderSlotCard(idx, 'drinkId', `🍋 Hydrating Drink`, '#0D9488', drRec, Math.round(portions.totalFamilyMult * 0.75 * 100) / 100, famScaleLbl, !!cMap.drinkId) : ''}
                         </div>
-
-                        ${d.prepNote ? `<div style="background:#E8F2EC; border-left:3px solid var(--sage); padding:5px 8px; border-radius:6px; font-size:0.74rem; color:var(--sage); font-weight:700; margin-bottom:8px;">📌 Note: ${escapeSafeHtml(d.prepNote)}</div>` : ''}
-
-                        ${renderSlotCard(idx, 'breakfastId', `☀️ Breakfast (${portions.totalFamilyMult}x)`, '#B87612', bRec, portions.totalFamilyMult, famScaleLbl, !!cMap.breakfastId)}
-                        ${klRec ? renderSlotCard(idx, 'kidLunchId', `👧 Kids' Lunch (${kidScaleMult}x)`, '#D97706', klRec, kidScaleMult, kidScaleLbl, !!cMap.kidLunchId) : ''}
-                        ${alRec ? renderSlotCard(idx, 'adultLunchId', `🥗 My Filling Adult Lunch (${adultScaleMult}.0x)`, '#2E5A44', alRec, adultScaleMult, adultScaleLbl, !!cMap.adultLunchId) : ''}
-                        ${renderSlotCard(idx, 'dinnerId', `🌙 Family Dinner (${portions.totalFamilyMult}x)`, '#7C2D12', dnRec, portions.totalFamilyMult, famScaleLbl, !!cMap.dinnerId)}
-                        ${cfg.includeSnacksAndDrinks && snRec ? renderSlotCard(idx, 'snackId', `🧀 Batch-Prep Snack / Elixir`, '#6D28D9', snRec, Math.round(portions.totalFamilyMult * 0.75 * 100) / 100, famScaleLbl, !!cMap.snackId) : ''}
-                        ${cfg.includeSnacksAndDrinks && drRec ? renderSlotCard(idx, 'drinkId', `🍋 Hydrating Drink`, '#0D9488', drRec, Math.round(portions.totalFamilyMult * 0.75 * 100) / 100, famScaleLbl, !!cMap.drinkId) : ''}
                     </div>
                 `;
             }).join('');
@@ -20108,13 +20100,13 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
 
         // -------------------- VIEW MODE 2: TEACHER PLAN-BOOK MATRIX (SLOTS × DAYS) --------------------
         else if (window.mealCalViewMode === 'matrix') {
-            gridBox.style.cssText = 'display: block; margin-top: 8px; overflow-x: auto;';
+            gridBox.style.cssText = 'width: 100%; display: block; margin-top: 8px; overflow-x: auto;';
             const matrixRows = [
                 { key: 'breakfastId', label: `☀️ Breakfast (${portions.totalFamilyMult}x)`, mult: portions.totalFamilyMult, scaleLbl: famScaleLbl, color: '#B87612' },
                 { key: 'kidLunchId', label: `👧 Kids' Lunch (${kidScaleMult}x)`, mult: kidScaleMult, scaleLbl: kidScaleLbl, color: '#D97706' },
                 { key: 'adultLunchId', label: `🥗 Adult Lunch (${adultScaleMult}.0x)`, mult: adultScaleMult, scaleLbl: adultScaleLbl, color: '#2E5A44' },
                 { key: 'dinnerId', label: `🌙 Family Dinner (${portions.totalFamilyMult}x)`, mult: portions.totalFamilyMult, scaleLbl: famScaleLbl, color: '#7C2D12' },
-                { key: 'snackId', label: `🧀 Batch-Prep Snack`, mult: Math.round(portions.totalFamilyMult * 0.75 * 100) / 100, scaleLbl: famScaleLbl, color: '#6D28D9' },
+                { key: 'snackId', label: `🧀 Snack / Elixir`, mult: Math.round(portions.totalFamilyMult * 0.75 * 100) / 100, scaleLbl: famScaleLbl, color: '#6D28D9' },
                 { key: 'drinkId', label: `🍋 Hydrating Drink`, mult: Math.round(portions.totalFamilyMult * 0.75 * 100) / 100, scaleLbl: famScaleLbl, color: '#0D9488' }
             ];
 
@@ -20167,9 +20159,9 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             `;
         }
 
-        // -------------------- VIEW MODE 3: DAILY KITCHEN VIEW (WITH NIGHT-BEFORE THAW BELL) --------------------
+        // -------------------- VIEW MODE 3: DAILY KITCHEN VIEW --------------------
         else if (window.mealCalViewMode === 'daily') {
-            gridBox.style.cssText = 'display: block; margin-top: 8px;';
+            gridBox.style.cssText = 'width: 100%; display: block; margin-top: 8px;';
             const activeIdx = Math.max(0, Math.min(plan.length - 1, window.mealCalOffset || 0));
             const d = plan[activeIdx] || plan[0];
             const nextDay = plan[activeIdx + 1] || null;
@@ -20178,9 +20170,9 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             const dailySlots = [
                 { key: 'breakfastId', label: `☀️ Morning Breakfast (${portions.totalFamilyMult}x)`, mult: portions.totalFamilyMult, scaleLbl: famScaleLbl, color: '#B87612' },
                 { key: 'kidLunchId', label: `👧 Kids' Midday Lunch (${kidScaleMult}x)`, mult: kidScaleMult, scaleLbl: kidScaleLbl, color: '#D97706' },
-                { key: 'adultLunchId', label: `🥗 My Filling Adult Lunch (${adultScaleMult}.0x)`, mult: adultScaleMult, scaleLbl: adultScaleLbl, color: '#2E5A44' },
+                { key: 'adultLunchId', label: `🥗 Adult Lunch (${adultScaleMult}.0x)`, mult: adultScaleMult, scaleLbl: adultScaleLbl, color: '#2E5A44' },
                 { key: 'dinnerId', label: `🌙 Family Dinner (${portions.totalFamilyMult}x)`, mult: portions.totalFamilyMult, scaleLbl: famScaleLbl, color: '#7C2D12' },
-                { key: 'snackId', label: `🧀 Afternoon Batch-Prep Snack / Elixir`, mult: Math.round(portions.totalFamilyMult * 0.75 * 100) / 100, scaleLbl: famScaleLbl, color: '#6D28D9' },
+                { key: 'snackId', label: `🧀 Afternoon Snack / Elixir`, mult: Math.round(portions.totalFamilyMult * 0.75 * 100) / 100, scaleLbl: famScaleLbl, color: '#6D28D9' },
                 { key: 'drinkId', label: `🍋 Hydrating Mineral Drink`, mult: Math.round(portions.totalFamilyMult * 0.75 * 100) / 100, scaleLbl: famScaleLbl, color: '#0D9488' }
             ];
 
@@ -20189,7 +20181,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                     <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid var(--border); padding-bottom:10px; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
                         <div>
                             <span class="card-tag" style="background:var(--sage); color:#fff;">☀️ Daily Kitchen Prep & Cooking Sheet • Day ${d.dayNumber} of ${plan.length}</span>
-                            <h4 style="font-size:1.45rem; color:var(--primary); margin:4px 0 0 0;">🗓️ ${escapeSafeHtml(d.dateFormatted || d.dayName)} (${escapeSafeHtml(d.dateIso)})</h4>
+                            <h4 style="font-size:1.45rem; color:var(--primary); margin:4px 0 0 0;">🗓️ ${escapeSafeHtml(d.dateFormatted || d.dayName)}</h4>
                         </div>
                         <div style="display:flex; gap:8px;">
                             <button type="button" class="btn-secondary" style="font-size:0.78rem;" onclick="openPinMealToDateModal('${d.dateIso}')">📅 + Pin Specific Meal to ${d.dateIso}</button>
@@ -20206,7 +20198,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                         ${dailySlots.map(sl => {
                             const rec = recMap.get(d[sl.key]);
                             if (!rec) return '';
-                            const isCooked = !!(d.cookedSlots && d.cookedSlots[sl.key]);
                             return `
                                 <div style="background:#ffffff; border:1.5px solid var(--border); border-left:5px solid ${sl.color}; border-radius:12px; padding:14px;">
                                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
@@ -20232,7 +20223,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
 
         // -------------------- VIEW MODE 4: MONTHLY MEAL CALENDAR GRID --------------------
         else {
-            gridBox.style.cssText = 'display: block; margin-top: 8px;';
+            gridBox.style.cssText = 'width: 100%; display: block; margin-top: 8px;';
             const base = new Date();
             const viewMonth = new Date(base.getFullYear(), base.getMonth() + (window.mealCalOffset || 0), 1);
             const yr = viewMonth.getFullYear();
