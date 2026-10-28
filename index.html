@@ -17971,19 +17971,12 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
         return false;
     }
 
-    function getGrainNoteForLevel(storeBoughtText, freshMilledText) {
-        const lvl = (typeof window.getCurrentHubLevel === 'function') ? window.getCurrentHubLevel() : 1;
-        return lvl >= 3
-            ? `${freshMilledText} (Level 3–4 Freshly Milled Grain Choice)`
-            : `${storeBoughtText} (Level 1–2 Simple Store-Bought Choice • Lvl 3–4: ${freshMilledText})`;
-    }
-
     function mkRec(id, title, category, subTab, time, tools, temp, steps, ingredients, minLevel = 1) {
         return {
             id,
             title,
-            category, // 'breakfast', 'lunch', 'dinner', 'snack' (for meal planner compatibility)
-            vaultSubtab: subTab, // 'smoothie', 'breakfast', 'lunch_kid', 'lunch_adult', 'dinner_family', 'dinner_special', 'dinner_quick', 'snack', 'drink', 'terrain'
+            category,
+            vaultSubtab: subTab,
             cutType: 'balanced',
             visibility: 'public',
             minLevel,
@@ -18033,7 +18026,7 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
             ['Blend peeled whole orange, mango chunks, Greek yogurt, ground turmeric, pinch of black pepper, and raw honey.'],
             [{ name: 'Peeled Navel Orange', qty: 1, unit: 'whole', category: 'Fruits & Produce' }, { name: 'Mango Chunks', qty: 0.5, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Whole Milk Greek Yogurt', qty: 0.5, unit: 'cups', category: 'Eggs & Raw Dairy' }, { name: 'Raw Local Honey', qty: 1, unit: 'tbsp', category: 'Traditional Fats & Pantry Staples' }]),
 
-        // --- 10 REGULAR BREAKFASTS (5 EVERYDAY + 5 BIG FAMILY SPREADS/PANCAKES/WAFFLES/PASTRIES) (11-20) ---
+        // --- 10 REGULAR BREAKFASTS (11-20) ---
         mkRec('wf_bf_1', '🍳 Garden Veggie, Spinach & Sharp Cheddar Egg Scramble', 'breakfast', 'breakfast', '12 Mins', 'Cast-Iron Skillet', 'Medium Heat (5/10)',
             ['Sauté diced bell peppers and onions in butter for 3 minutes until tender.', 'Toss in baby spinach until wilted, pour in whisked pasture eggs, and fold in sharp cheddar.'],
             [{ name: 'Pasture-Raised Eggs', qty: 3, unit: 'eggs', category: 'Eggs & Raw Dairy' }, { name: 'Bell Peppers & Baby Spinach', qty: 0.75, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Raw Sharp Cheddar', qty: 1.5, unit: 'oz', category: 'Eggs & Raw Dairy' }, { name: 'Grass-Fed Butter', qty: 1, unit: 'tbsp', category: 'Traditional Fats & Pantry Staples' }]),
@@ -18072,7 +18065,7 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
         mkRec('wf_sn_2', '🧀 Raw Cheddar Cubes, Honeycrisp Apple Slices & Walnuts', 'snack', 'snack', '3 Mins', 'Cutting Board', 'No Cook',
             ['Cube raw sharp cheddar, slice a crisp apple, and pair with raw walnut halves.'],
             [{ name: 'Raw Sharp Cheddar Cheese', qty: 2, unit: 'oz', category: 'Eggs & Raw Dairy' }, { name: 'Honeycrisp Apple', qty: 1, unit: 'whole', category: 'Fruits & Produce' }, { name: 'Raw Walnuts', qty: 0.25, unit: 'cups', category: 'Traditional Fats & Pantry Staples' }]),
-        mkRec('wf_sn_3', ' crackers Crispy Sea-Salt & Rosemary Artisan Crackers', 'snack', 'snack', '20 Mins', 'Baking Sheet & Rolling Pin', 'Oven 400°F',
+        mkRec('wf_sn_3', '🥨 Crispy Sea-Salt & Rosemary Artisan Crackers', 'snack', 'snack', '20 Mins', 'Baking Sheet & Rolling Pin', 'Oven 400°F',
             ['Mix flour (Level 1–2: unbleached flour; Level 3–4: freshly milled soft wheat or sourdough discard), olive oil/butter, water, and minced rosemary.', 'Roll paper-thin, score into squares, sprinkle with flaky sea salt, and bake 12 minutes at 400°F until crisp.'],
             [{ name: 'Unbleached Flour (Lvl 1-2) or Freshly Milled Soft Wheat (Lvl 3-4)', qty: 0.5, unit: 'cups', category: 'Traditional Fats & Pantry Staples' }, { name: 'Extra-Virgin Olive Oil or Butter', qty: 1.5, unit: 'tbsp', category: 'Traditional Fats & Pantry Staples' }]),
         mkRec('wf_sn_4', '🍯 No-Bake Oatmeal, Peanut Butter & Honey Energy Bites', 'snack', 'snack', '10 Mins', 'Mixing Bowl', 'No Cook',
@@ -18240,7 +18233,7 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
             ['Sear ribeye steaks in cast iron and baste with garlic-parsley butter; serve with fluffy baked sweet potatoes and a crisp garden salad.'],
             [{ name: 'Grass-Fed Ribeye Steak', qty: 0.45, unit: 'lbs', category: 'Meats & Organs' }, { name: 'Sweet Potato & Mixed Salad Greens', qty: 1.5, unit: 'cups', category: 'Fruits & Produce' }]),
 
-        // --- 5 QUICK DINNERS (GRILLED MEATS, BURGERS, SCRATCH PIZZAS) (76-80) ---
+        // --- 5 QUICK DINNERS (76-80) ---
         mkRec('wf_dq_1', '🍕 [Quick Dinner] Cast-Iron Scratch Margherita & Garden Veggie Pizza', 'dinner', 'dinner_quick', '22 Mins', 'Cast-Iron Skillet', 'Oven 450°F',
             ['Press dough (Level 1–2: quick unbleached flour dough; Level 3–4: freshly milled wheat/sourdough crust) into hot oiled skillet.', 'Top with crushed tomato sauce, fresh mozzarella, bell peppers, mushrooms, and fresh basil; bake 12 minutes.'],
             [{ name: 'Pizza Dough (Lvl 1-2 Unbleached or Lvl 3-4 Freshly Milled)', qty: 0.5, unit: 'cups', category: 'Traditional Fats & Pantry Staples' }, { name: 'Fresh Mozzarella', qty: 2.5, unit: 'oz', category: 'Eggs & Raw Dairy' }, { name: 'Crushed Tomatoes, Bell Peppers & Basil', qty: 1, unit: 'cups', category: 'Fruits & Produce' }]),
@@ -18257,7 +18250,7 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
             ['Flash-sear sliced skirt or sirloin steak with sliced red, yellow, and green bell peppers, onions, lime juice, and cumin; serve with fresh guacamole.'],
             [{ name: 'Skirt or Sirloin Steak Strips', qty: 0.4, unit: 'lbs', category: 'Meats & Organs' }, { name: 'Bell Peppers, Onions, Lime & Avocado', qty: 1.5, unit: 'cups', category: 'Fruits & Produce' }]),
 
-        // --- 10 HYDRATING DRINK VARIETIES (MINERAL WATER, LEMONADES, EVENT PUNCHES) (81-90) ---
+        // --- 10 HYDRATING DRINK VARIETIES (81-90) ---
         mkRec('wf_dr_1', '🍋 Daily Citrus-Maple Adrenal Mineral Water (Redmond/Celtic Salt)', 'snack', 'drink', '2 Mins', 'Mason Jar', 'No Cook',
             ['Combine filtered water, fresh squeezed lime juice, pure maple syrup, and a generous pinch of Redmond Real Salt or Celtic sea salt; stir over ice for cellular hydration.'],
             [{ name: 'Fresh Lime', qty: 1, unit: 'whole', category: 'Fruits & Produce' }, { name: 'Pure Maple Syrup & Redmond/Celtic Salt', qty: 1, unit: 'tbsp', category: 'Traditional Fats & Pantry Staples' }]),
@@ -18289,7 +18282,7 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
             ['Stir 100% unsweetened cranberry juice, fresh squeezed orange juice, pure maple syrup, and sparkling mineral water; garnish with fresh rosemary sprigs.'],
             [{ name: '100% Unsweetened Cranberry & Fresh Orange Juice', qty: 1, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Pure Maple Syrup & Sparkling Water', qty: 1, unit: 'tbsp', category: 'Traditional Fats & Pantry Staples' }]),
 
-        // --- 12 EXCLUSIVE "RECLAIM YOUR TERRAIN" CLINICAL RECIPES (LOCKED BONUS SUBTAB) (91-102) ---
+        // --- 12 EXCLUSIVE "RECLAIM YOUR TERRAIN" CLINICAL RECIPES (91-102) ---
         mkRec('wf_rt_1', '🌿 [Terrain Step 1] Morning Cellular Hydration & Adrenal Mineral Elixir', 'snack', 'terrain', '2 Mins', 'Glass', 'No Cook',
             ['Before coffee, stir warm or room-temp filtered water with fresh squeezed lime/lemon juice, 1/4 tsp Celtic or Redmond salt, and a splash of coconut water or pure maple syrup.'],
             [{ name: 'Fresh Lemon or Lime', qty: 1, unit: 'whole', category: 'Fruits & Produce' }, { name: 'Celtic/Redmond Salt & Coconut Water Splash', qty: 0.25, unit: 'cups', category: 'Traditional Fats & Pantry Staples' }]),
@@ -18328,9 +18321,6 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
             [{ name: '100% Tart Cherry Juice', qty: 0.25, unit: 'cups', category: 'Fruits & Produce' }, { name: 'Collagen Peptides & Raw Honey', qty: 1.5, unit: 'tbsp', category: 'Traditional Fats & Pantry Staples' }])
     ];
 
-    // =========================================================================
-    // INSTALL 102 RECIPES INTO VAULT & MEAL PLANNER + SUBTAB FILTER BAR
-    // =========================================================================
     window._activeRecipeVaultSubtab = window._activeRecipeVaultSubtab || 'all';
 
     function installExpandedWholeFoodRecipes() {
@@ -18340,14 +18330,12 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
         }
         window.HONEYSUCKLE_WHOLE_FOOD_RECIPES = HONEYSUCKLE_WHOLE_FOOD_RECIPES;
 
-        // Merge any custom scanned/private recipes with the 102 master whole-food recipes
         if (typeof getLocalData === 'function' && typeof setLocalData === 'function') {
             const existingCustom = (getLocalData('custom_public_recipes', []) || []).filter(r => r && r.id && !String(r.id).startsWith('wf_') && !String(r.id).startsWith('rec_'));
             setLocalData('custom_public_recipes', [...existingCustom, ...HONEYSUCKLE_WHOLE_FOOD_RECIPES], true);
         }
     }
 
-    // Scrub "Animal-Based" / "Animal Fats & Pantry" wording everywhere in the DOM
     function scrubAnimalBasedWordingInDOM() {
         const replacements = [
             [/Animal-Based\s*&\s*Low-Toxin/gi, 'Nourishing Whole-Food & Low-Toxin'],
@@ -18383,7 +18371,6 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
         const vaultTab = document.getElementById('tool-tab-recipe-vault');
         if (!vaultTab) return;
 
-        // Inject the Subtab Bar inside Recipe Vault
         let bar = document.getElementById('hh-recipe-vault-subtabs-bar');
         const unlockedTerrain = isTerrainUnlockedForRecipes();
         const activeSub = window._activeRecipeVaultSubtab || 'all';
@@ -18421,7 +18408,6 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
         }
         bar.innerHTML = barHtml;
 
-        // Filter the rendered recipe cards in #recipe-vault-grid
         const gridEl = document.getElementById('recipe-vault-grid');
         if (!gridEl) return;
 
@@ -18437,18 +18423,11 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
                 card.style.display = (activeSub === 'all') ? '' : 'none';
                 return;
             }
-
-            // Hide Terrain bonus recipes from 'all' unless user clicks the Terrain subtab (or if locked)
             if (matchedRec.vaultSubtab === 'terrain') {
                 card.style.display = (activeSub === 'terrain' && unlockedTerrain) ? '' : 'none';
                 return;
             }
-
-            if (activeSub === 'all') {
-                card.style.display = '';
-            } else {
-                card.style.display = (matchedRec.vaultSubtab === activeSub) ? '' : 'none';
-            }
+            card.style.display = (activeSub === 'all' || matchedRec.vaultSubtab === activeSub) ? '' : 'none';
         });
     }
 
@@ -18525,22 +18504,22 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
         if (terrainView) terrainView.scrollIntoView({ behavior: 'smooth', block: 'start' });
     };
 
-    // 1. Intercept the exact alert that pops up when Question 20 is finished!
-    const _origAlert = window.alert.bind(window);
-    window.alert = function(msg) {
-        _origAlert(msg);
-        const s = String(msg || '').toLowerCase();
-        if ((s.includes('complete') || s.includes('saved') || s.includes('unlocked')) && (s.includes('step 1') || s.includes('consult') || s.includes('questionnaire') || s.includes('terrain'))) {
-            setTimeout(() => window.forceCompleteConsultAndGoToStep1(), 50);
-        }
-    };
+    if (!window._hhAlertWrappedForConsult) {
+        window._hhAlertWrappedForConsult = true;
+        const _origAlert = window.alert.bind(window);
+        window.alert = function(msg) {
+            _origAlert(msg);
+            const s = String(msg || '').toLowerCase();
+            if ((s.includes('complete') || s.includes('saved') || s.includes('unlocked')) && (s.includes('step 1') || s.includes('consult') || s.includes('questionnaire') || s.includes('terrain'))) {
+                setTimeout(() => window.forceCompleteConsultAndGoToStep1(), 50);
+            }
+        };
+    }
 
-    // 2. If the user has completed the consult (or is on Question 20), ensure the Question 1 wizard never traps them again
     function enforceStep1ViewWhenConsultDone() {
         const container = document.getElementById('view-reclaim-terrain');
         if (!container) return;
 
-        // Also add a 1-click "Go Straight to Step 1 Dashboard ->" button inside the consult card in case a test account already finished it
         container.querySelectorAll('div').forEach(box => {
             const txt = box.textContent || '';
             if ((txt.includes('PART 1 OF 6') || txt.includes('Question 1 of 20') || txt.includes('Save & Next Question')) && !box.querySelector('.hh-skip-to-step1-btn')) {
@@ -18559,7 +18538,6 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
 
         if (!isConsultMarkedDone()) return;
 
-        // Ensure state has consultCompleted = true before checking DOM
         if (typeof getTerrainState === 'function') {
             const st = getTerrainState();
             if (st && (!st.consultCompleted || !st.consultDone)) {
@@ -18569,11 +18547,9 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
                 st.intakeCompleted = true;
                 st.retakeConsult = false;
                 if (typeof saveTerrainState === 'function') saveTerrainState(st);
-                if (typeof _preWodRenderTerrain === 'function') _preWodRenderTerrain();
             }
         }
 
-        // Hide any lingering 20-Question Consult Wizard box once consult is completed
         Array.from(container.querySelectorAll('div, section')).forEach(el => {
             if (el.id === 'view-reclaim-terrain' || el.querySelector('button[onclick^="openAdminClientConsultViewer("]')) return;
             const t = el.textContent || '';
@@ -18590,7 +18566,7 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
 })();
 </script>
 
-<!-- ================= BLOCK 3: HONEYSUCKLE HUB COMPLETE LANDING PAGE UPGRADE ================= -->
+<!-- ================= BLOCK 3: HONEYSUCKLE HUB COMPLETE LANDING PAGE UPGRADE (NO "AI" WORDING) ================= -->
 <script>
 (function() {
     const FOUNDER_EMAIL = 'contacthoneysuckleandco@gmail.com';
@@ -18599,12 +18575,10 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
         const landingView = document.getElementById('landing-view');
         if (!landingView || document.getElementById('hh-upgraded-landing-master')) return;
 
-        // 1. Preserve any modals that might have been placed inside #landing-view
         landingView.querySelectorAll('.modal-overlay').forEach(modalEl => {
             document.body.appendChild(modalEl);
         });
 
-        // 2. Capture existing Login, Join/Signup, and Demo button actions from your current landing page so every button works seamlessly
         let capturedLoginOnclick = null;
         let capturedJoinOnclick = null;
         let capturedJoinHref = null;
@@ -18651,13 +18625,11 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
             if (capturedDemoOnclick) {
                 try { new Function(capturedDemoOnclick)(); return; } catch (e) {}
             }
+            if (typeof window.startInteractiveDemoMode === 'function') { window.startInteractiveDemoMode(); return; }
             if (typeof window.startInteractiveDemo === 'function') { window.startInteractiveDemo(); return; }
-            if (typeof window.enterDemoMode === 'function') { window.enterDemoMode(); return; }
-            if (typeof window.activateDemoMode === 'function') { window.activateDemoMode(); return; }
             window.triggerHubLandingJoin();
         };
 
-        // 3. Inject Custom Landing Page Styles (Warm Yellow, Cream, Deep Homestead Sage & Golden Honey)
         if (!document.getElementById('hh-landing-upgrade-styles')) {
             const st = document.createElement('style');
             st.id = 'hh-landing-upgrade-styles';
@@ -18783,15 +18755,13 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
             document.head.appendChild(st);
         }
 
-        // 4. Build the Complete Upgraded Landing Page HTML
         landingView.innerHTML = `
             <div id="hh-upgraded-landing-master">
-                <!-- STICKY TOP NAVBAR -->
                 <header class="hh-lp-nav">
                     <div class="hh-lp-nav-inner">
                         <a href="#" class="hh-lp-brand">🌻 Honeysuckle Hub</a>
                         <nav class="hh-lp-links">
-                            <a href="#lp-scanners">📷 6 AI Scanners</a>
+                            <a href="#lp-scanners">📷 6 Smart Scanners</a>
                             <a href="#lp-recipes">🍽️ 100+ Whole-Food Recipes</a>
                             <a href="#lp-levels">🌱 4 Comfort Levels</a>
                             <a href="#lp-pillars">🏡 6 Household Pillars</a>
@@ -18799,7 +18769,7 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
                             <a href="#lp-pricing">💳 Pricing</a>
                         </nav>
                         <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                            <button type="button" class="btn-secondary" style="padding:8px 14px; font-size:0.8rem;" onclick="openContactAshtonModal('Question Before Joining Honeysuckle Hub')">
+                            <button type="button" class="btn-secondary" style="padding:8px 14px; font-size:0.8rem;" onclick="if(typeof openContactAshtonModal==='function') openContactAshtonModal('Question Before Joining Honeysuckle Hub')">
                                 💌 Contact Ashton
                             </button>
                             <button type="button" class="btn-secondary" style="padding:8px 14px; font-size:0.8rem; border-color:#2E5A44; color:#2E5A44;" onclick="triggerHubLandingLogin()">
@@ -18812,7 +18782,6 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
                     </div>
                 </header>
 
-                <!-- HERO SECTION -->
                 <section class="hh-lp-hero">
                     <div class="hh-lp-pill">🌻 THE WHOLE-FOOD KITCHEN, HOMESCHOOL & HOMESTEAD OPERATING SYSTEM</div>
                     <h1>Stop Juggling 5 Apps, Paper Lists, and a <span>5:00 PM Brain.</span></h1>
@@ -18839,7 +18808,6 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
                 </section>
 
                 <div class="hh-lp-container">
-                    <!-- SECTION 1: THE 6 SMART CAMERA SCANNERS & VOICE BRAIN DUMP -->
                     <section id="lp-scanners" class="hh-lp-section">
                         <div class="hh-lp-sec-head">
                             <span class="hh-lp-pill">✨ NEW POINT-AND-SHOOT & HANDS-FREE TOOLS</span>
@@ -18903,7 +18871,6 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
                             </div>
                         </div>
 
-                        <!-- HANDS-FULL VOICE BRAIN DUMP CALLOUT BANNER -->
                         <div style="margin-top:22px; background:linear-gradient(135deg, #FEF5D8 0%, #FFFDF8 100%); border:2.5px solid #B87612; border-radius:22px; padding:24px 28px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:18px; box-shadow:0 12px 30px rgba(184,118,18,0.12);">
                             <div style="max-width:740px;">
                                 <span class="hh-lp-badge" style="background:#B87612; color:#fff;">🎙️ FAN-FAVORITE FEATURE • HANDS-FULL VOICE BRAIN DUMP</span>
@@ -18918,7 +18885,6 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
                         </div>
                     </section>
 
-                    <!-- SECTION 2: 100+ WHOLE-FOOD RECIPE VAULT & MEAL PLANNER -->
                     <section id="lp-recipes" class="hh-lp-section">
                         <div class="hh-lp-sec-head">
                             <span class="hh-lp-pill">🍓 COLORFUL, NOURISHING WHOLE FOODS • ZERO REFINED SUGAR</span>
@@ -18983,7 +18949,6 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
                         </div>
                     </section>
 
-                    <!-- SECTION 3: THE 4 COMFORT LEVELS -->
                     <section id="lp-levels" class="hh-lp-section">
                         <div class="hh-lp-sec-head">
                             <span class="hh-lp-pill">🌱 ZERO OVERWHELM • BUILT-IN PROGRESSION</span>
@@ -19030,7 +18995,6 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
                         </div>
                     </section>
 
-                    <!-- SECTION 4: THE 6 HOUSEHOLD PILLARS -->
                     <section id="lp-pillars" class="hh-lp-section">
                         <div class="hh-lp-sec-head">
                             <span class="hh-lp-pill">🏡 6 INTEGRATED HOUSEHOLD PILLARS</span>
@@ -19089,7 +19053,6 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
                         </div>
                     </section>
 
-                    <!-- SECTION 5: RECLAIM YOUR TERRAIN SPOTLIGHT -->
                     <section id="lp-terrain" class="hh-lp-section">
                         <div style="background:linear-gradient(145deg, #1E3F2E 0%, #142B1F 100%); color:#FFFDF8; border-radius:28px; padding:42px 32px; border:3px solid #D9B36C; box-shadow:0 24px 60px rgba(20,43,31,0.28);">
                             <div style="max-width:820px; margin:0 auto 30px auto; text-align:center;">
@@ -19114,7 +19077,7 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
                                     <p style="font-size:0.84rem; color:#D7E8DF; margin:0;">Master one gentle habit layer at a time—morning cellular hydration, 30g+ protein anchors, lymphatic flow, bile drainage, and hormone stewardship—before unlocking the next step.</p>
                                 </div>
                                 <div style="background:rgba(255,253,248,0.08); border:1.5px solid rgba(254,245,216,0.25); border-radius:18px; padding:20px;">
-                                    <strong style="color:#FEF5D8; font-size:1.05rem; display:block; margin-bottom:6px;">💪 3. AI Workout of the Day (WOD) Studio</strong>
+                                    <strong style="color:#FEF5D8; font-size:1.05rem; display:block; margin-bottom:6px;">💪 3. Dynamic Workout of the Day (WOD) Studio</strong>
                                     <p style="font-size:0.84rem; color:#D7E8DF; margin:0;">Generates daily workouts matched to your exact Phase (1–4) or Graduate Intermediate/Advanced tier and equipment—complete with a built-in interval & 60s cortisol-calm rest timer.</p>
                                 </div>
                                 <div style="background:rgba(255,253,248,0.08); border:1.5px solid rgba(254,245,216,0.25); border-radius:18px; padding:20px;">
@@ -19127,7 +19090,7 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
                                 <div style="background:#FFFDF8; color:#2A1E14; border-radius:18px; padding:22px; border:2px solid #EADBC0;">
                                     <span class="hh-lp-badge" style="background:#E8F2EC; color:#2E5A44;">🌱 SELF-PACED GUIDED TRACK</span>
                                     <h4 style="font-family:var(--font-serif, Georgia, serif); font-size:1.35rem; margin:6px 0 4px 0;">+$19/mo Inside the Hub</h4>
-                                    <p style="font-size:0.84rem; color:#4A3728; margin:0;">Full access to the 20-Question Functional Consult, all 16 sequential steps, the AI Workout of the Day Studio, and all 12 exclusive clinical recipes at your own pace.</p>
+                                    <p style="font-size:0.84rem; color:#4A3728; margin:0;">Full access to the 20-Question Functional Consult, all 16 sequential steps, the Dynamic Workout of the Day Studio, and all 12 exclusive clinical recipes at your own pace.</p>
                                 </div>
                                 <div style="background:#FEF5D8; color:#2A1E14; border-radius:18px; padding:22px; border:2.5px solid #B87612;">
                                     <span class="hh-lp-badge" style="background:#B87612; color:#fff;">👑 1-ON-1 CUSTOM VIP PROTOCOL</span>
@@ -19138,7 +19101,6 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
                         </div>
                     </section>
 
-                    <!-- SECTION 6: COMPARISON TABLE -->
                     <section class="hh-lp-section">
                         <div class="hh-lp-sec-head">
                             <span class="hh-lp-pill">📊 WHY MOMS SWITCH TO HONEYSUCKLE HUB</span>
@@ -19177,14 +19139,13 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
                                     <tr>
                                         <td style="padding:14px 20px; font-weight:700;">Mom's Energy, Hormones & Fitness</td>
                                         <td style="padding:14px 20px; color:#6E5D4B;">Generic HIIT apps that spike cortisol & exhaust your adrenals</td>
-                                        <td style="padding:14px 20px; color:#2E5A44; font-weight:700;">✓ Reclaim Your Terrain 16-Step Protocol + Phase-Matched AI Workout Studio</td>
+                                        <td style="padding:14px 20px; color:#2E5A44; font-weight:700;">✓ Reclaim Your Terrain 16-Step Protocol + Phase-Matched Workout Studio</td>
                                     </tr>
                                 </tbody>
                             </table>
                         </div>
                     </section>
 
-                    <!-- SECTION 7: PRICING & MEMBERSHIP CTA -->
                     <section id="lp-pricing" class="hh-lp-section">
                         <div class="hh-lp-sec-head">
                             <span class="hh-lp-pill">💳 SIMPLE, FAMILY-FRIENDLY MEMBERSHIP</span>
@@ -19193,7 +19154,6 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
                         </div>
 
                         <div class="hh-lp-grid-3" style="max-width:1040px; margin:0 auto;">
-                            <!-- Core Hub Membership -->
                             <div class="hh-lp-card hh-lp-card-gold" style="border-width:3px;">
                                 <div>
                                     <span class="hh-lp-badge" style="background:#B87612; color:#fff;">🌻 MOST POPULAR • COMPLETE HOUSEHOLD OS</span>
@@ -19212,7 +19172,6 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
                                 </button>
                             </div>
 
-                            <!-- Interactive Demo Card -->
                             <div class="hh-lp-card hh-lp-card-sage">
                                 <div>
                                     <span class="hh-lp-badge hh-lp-badge-sage">✨ TRY BEFORE YOU JOIN</span>
@@ -19230,14 +19189,13 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
                                 </button>
                             </div>
 
-                            <!-- Reclaim Your Terrain Add-On / VIP Card -->
                             <div class="hh-lp-card">
                                 <div>
                                     <span class="hh-lp-badge">🌿 CLINICAL COACHING UPGRADE</span>
-                                    <h3>Reclaim Your TerrainTracks</h3>
+                                    <h3>Reclaim Your Terrain Tracks</h3>
                                     <p>Available inside your Hub dashboard anytime! Choose between the self-paced guided track or a 1-on-1 custom protocol crafted personally by Ashton.</p>
                                     <ul style="font-size:0.84rem; color:#4A3728; padding-left:18px; margin:12px 0 18px 0; line-height:1.7;">
-                                        <li><strong>🌱 Guided Track (+$19/mo):</strong> 20-Q Consult, 16 Steps, AI Workout Studio & 12 Bonus Clinical Recipes</li>
+                                        <li><strong>🌱 Guided Track (+$19/mo):</strong> 20-Q Consult, 16 Steps, Dynamic Workout Studio & 12 Bonus Clinical Recipes</li>
                                         <li><strong>👑 1-on-1 Custom VIP ($127):</strong> Ashton personally reviews your consult & custom-tailors all 16 steps for your body</li>
                                     </ul>
                                 </div>
@@ -19248,16 +19206,15 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
                         </div>
                     </section>
 
-                    <!-- WARM FOUNDER TRUST & DIRECT CONTACT FOOTER -->
                     <footer style="max-width:980px; margin:20px auto 0 auto; text-align:center;">
                         <div style="background:#FFFDF8; border:2px solid #EADBC0; border-radius:22px; padding:28px 24px; box-shadow:0 10px 28px rgba(42,30,20,0.05);">
-                            <span class="hh-lp-badge">🌻 BUILT BY A REAL HOMESCHOOLING MOM, HOMESTEader & FUNCTIONAL HEALTH COACH</span>
+                            <span class="hh-lp-badge">🌻 BUILT BY A REAL HOMESCHOOLING MOM, HOMESTEADER & FUNCTIONAL HEALTH COACH</span>
                             <h3 style="font-family:var(--font-serif, Georgia, serif); font-size:1.65rem; color:#B87612; margin:8px 0;">Have a Question Before Joining? Message Ashton Directly!</h3>
                             <p style="max-width:660px; margin:0 auto 18px auto; font-size:0.92rem; color:#4A3728;">
                                 You’re never talking to a faceless software company here. If you have questions about how Honeysuckle Hub works for your family, or which <em>Reclaim Your Terrain</em> track is right for you, send me a note anytime!
                             </p>
                             <div style="display:flex; justify-content:center; gap:12px; flex-wrap:wrap; align-items:center;">
-                                <button type="button" class="btn-primary" onclick="openContactAshtonModal('Question Before Joining Honeysuckle Hub')">
+                                <button type="button" class="btn-primary" onclick="if(typeof openContactAshtonModal==='function') openContactAshtonModal('Question Before Joining Honeysuckle Hub')">
                                     💌 Send a Message to Ashton
                                 </button>
                                 <a href="mailto:${FOUNDER_EMAIL}" class="btn-secondary" style="text-decoration:none;">
@@ -19280,15 +19237,15 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
 })();
 </script>
 
-<!-- ================= BLOCK 4: STEP 2 FAMILY LUNCH RHYTHM, MOVE GENERATE BUTTON BELOW STEP 3 & DUAL LUNCH PLANNER ================= -->
+<!-- ================= BLOCK 4 (FIXED): STEP 2 FAMILY LUNCH RHYTHM, DUAL-LUNCH CARDS & RECIPE POP-UP ================= -->
 <script>
 (function() {
     const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
     const DEFAULT_STEP2_CONFIG = {
-        lunchMode: 'homeschool_dual',     // 'homeschool_dual' | 'school_weekdays' | 'adults_only' | 'shared_kid' | 'no_lunch'
-        adultsAtLunch: 1,                 // 1 = Just Mom, 2 = Mom & Dad
-        breakfastMode: 'quick_wkdy_big_wknd', // 'quick_wkdy_big_wknd' | 'big_daily' | 'smoothie_focus'
+        lunchMode: 'homeschool_dual',
+        adultsAtLunch: 1,
+        breakfastMode: 'quick_wkdy_big_wknd',
         includeSnacksAndDrinks: true
     };
 
@@ -19314,8 +19271,7 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
             const priv = (typeof getLocalData === 'function') ? (getLocalData('private_household_recipes', []) || []) : [];
             return [...priv, ...window.HONEYSUCKLE_WHOLE_FOOD_RECIPES];
         }
-        const def = (typeof DEFAULT_RECIPES !== 'undefined' && Array.isArray(DEFAULT_RECIPES)) ? DEFAULT_RECIPES : [];
-        return def;
+        return (typeof DEFAULT_RECIPES !== 'undefined' && Array.isArray(DEFAULT_RECIPES)) ? DEFAULT_RECIPES : [];
     }
 
     function getPool(subtabKey, fallbackCategory) {
@@ -19333,8 +19289,7 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
         return pick;
     }
 
-    // Read Step 1 ("1. Family Members & Ages") directly from the page to calculate exact Kid vs. Adult portions!
-    function readStep1PortionMultipliers() {
+    window.readStep1PortionMultipliers = function() {
         let totalMult = 0;
         let kidsMult = 0;
         let kidCount = 0;
@@ -19367,9 +19322,9 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
         }
 
         if (totalMult <= 0) {
-            totalMult = 5.0;
-            kidsMult = 3.0;
-            kidCount = 6;
+            totalMult = 5.15;
+            kidsMult = 3.15;
+            kidCount = 5;
             adultCount = 2;
         }
         return {
@@ -19378,9 +19333,8 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
             kidCount: Math.max(1, kidCount),
             totalMembers: Math.max(1, adultCount + kidCount)
         };
-    }
+    };
 
-    // Read Step 3 ("3. Assign Your Real-Life Weekly Dinner Rhythm") Mon-Sun theme dropdowns
     function readStep3DinnerThemes() {
         const themes = {};
         DAY_NAMES.forEach(day => { themes[day] = 'any'; });
@@ -19396,7 +19350,6 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
         return themes;
     }
 
-    // Match Dinner Recipe to the user's Step 3 Day Theme (e.g. Poultry, Slow-Cooker, Pizza, Steakhouse)
     function pickDinnerForTheme(themeStr, usedSet, allDinners) {
         const t = String(themeStr || '').toLowerCase();
         let filtered = allDinners;
@@ -19414,11 +19367,7 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
         return pickFrom(filtered.length ? filtered : allDinners, usedSet);
     }
 
-    // =========================================================================
-    // 1. UPGRADE STEP 2 UI & MOVE THE GENERATE BUTTON BELOW STEP 3
-    // =========================================================================
     function upgradeStep2AndMoveGenerateButton() {
-        // Find Heading 2: "2. Plan Length & Preferences"
         const allEls = Array.from(document.querySelectorAll('h2, h3, h4, h5, strong, div, p'));
         const step2Heading = allEls.find(el => el.children.length === 0 && (el.textContent || '').trim() === '2. Plan Length & Preferences');
         const step3Heading = allEls.find(el => el.children.length === 0 && (el.textContent || '').trim().startsWith('3. Assign Your Real-Life Weekly Dinner Rhythm'));
@@ -19427,7 +19376,6 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
         const step2Col = step2Heading.parentElement;
         if (!step2Col) return;
 
-        // Clean up old "Preferred Meat Cut Focus", "Strict Fruit & Honey", "Exclude Organs" inside Step 2
         step2Col.querySelectorAll('label, span, div').forEach(el => {
             if (el.children.length === 0) {
                 if ((el.textContent || '').trim() === 'Preferred Meat Cut Focus') {
@@ -19443,10 +19391,8 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
             }
         });
 
-        // Find the Gold "Generate Meal Plan & Shopping List" button
         const genBtn = Array.from(document.querySelectorAll('button')).find(b => (b.textContent || '').includes('Generate Meal Plan & Shopping List'));
 
-        // Inject the new Household Lunch & Breakfast Rhythm Controls inside Step 2
         const cfg = getStep2Config();
         if (!document.getElementById('hh-step2-lunch-rhythm-box')) {
             const box = document.createElement('div');
@@ -19502,7 +19448,6 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
             step2Col.appendChild(box);
         }
 
-        // MOVE the "Generate Meal Plan & Shopping List" button to AFTER Step 3 ("3. Assign Your Real-Life Weekly Dinner Rhythm")!
         if (genBtn && step3Heading) {
             const step3Container = step3Heading.parentElement;
             if (step3Container && genBtn.parentElement !== step3Container) {
@@ -19516,12 +19461,14 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
                 genBtn.style.cssText = 'width: 100%; max-width: 680px; padding: 15px 24px; font-size: 1rem; font-weight: 800; border-radius: 999px; box-shadow: 0 10px 24px rgba(184, 118, 18, 0.25); cursor: pointer;';
                 btnWrapper.appendChild(genBtn);
 
-                // Wire click on the Generate button so it builds our adaptive plan
                 if (!genBtn.dataset.hhStep3Wired) {
                     genBtn.dataset.hhStep3Wired = 'true';
                     genBtn.addEventListener('click', () => {
                         setTimeout(() => {
                             buildAndRenderCustomPlanCards(true);
+                            if (typeof window.rebuildAndRenderRestoredShoppingList === 'function') {
+                                window.rebuildAndRenderRestoredShoppingList();
+                            }
                         }, 80);
                     });
                 }
@@ -19548,11 +19495,11 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
 
         saveStep2Config(cfg);
         buildAndRenderCustomPlanCards(true);
+        if (typeof window.rebuildAndRenderRestoredShoppingList === 'function') {
+            window.rebuildAndRenderRestoredShoppingList();
+        }
     };
 
-    // =========================================================================
-    // 2. GENERATE & RENDER THE DUAL-LUNCH (KID + ADULT) MEAL PLAN CARDS
-    // =========================================================================
     function getDaysToPlanCount() {
         const allInputs = Array.from(document.querySelectorAll('input[type="number"]'));
         const daysInp = allInputs.find(inp => {
@@ -19562,22 +19509,77 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
         return Math.max(1, Math.min(30, parseInt(daysInp?.value) || 7));
     }
 
-    function buildAndRenderCustomPlanCards(forceRegenerate = false) {
-        // Locate the yellow summary banner ("Planning for X Family Members...")
-        const allDivs = Array.from(document.querySelectorAll('div, p'));
-        const summaryBanner = allDivs.find(el => {
-            const t = (el.textContent || '').trim();
-            return t.startsWith('Planning for ') && t.includes('Adult Portions') && el.children.length <= 5;
-        });
+    // Interactive Recipe Card Modal when clicking any meal title on the 7-day planner!
+    window.viewAdaptiveRecipeDetails = function(recId, scaleMult = 1, scaleLabel = 'Family Portions') {
+        const all = getAllVaultRecipes();
+        const rec = all.find(r => r && r.id === recId);
+        if (!rec) {
+            if (typeof window.openFullInteractiveRecipeCardModal === 'function') {
+                window.openFullInteractiveRecipeCardModal(recId);
+            }
+            return;
+        }
 
-        if (!summaryBanner) return;
+        document.getElementById('hh-dual-recipe-detail-modal')?.remove();
+        const ings = Array.isArray(rec.ingredients) ? rec.ingredients : [];
+        const steps = Array.isArray(rec.steps) && rec.steps.length ? rec.steps : [rec.desc || 'Cook ingredients until golden and tender.'];
+
+        const modal = document.createElement('div');
+        modal.id = 'hh-dual-recipe-detail-modal';
+        modal.className = 'modal-overlay';
+        modal.style.cssText = 'display:flex; z-index:2950;';
+        modal.innerHTML = `
+            <div style="background:#FFFDF8; width:100%; max-width:680px; border-radius:22px; padding:26px; max-height:92vh; overflow-y:auto; box-shadow:0 25px 60px rgba(0,0,0,0.38); border:3px solid var(--sage);">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid var(--border); padding-bottom:12px; margin-bottom:14px; gap:12px;">
+                    <div>
+                        <span class="card-tag" style="background:var(--sage); color:#fff;">🍽️ Scaled for ${escapeSafeHtml(scaleLabel)}</span>
+                        <h3 style="font-size:1.55rem; color:var(--primary); margin:4px 0 0 0;">${escapeSafeHtml(rec.title)}</h3>
+                    </div>
+                    <button type="button" onclick="document.getElementById('hh-dual-recipe-detail-modal').remove()" style="background:none; border:none; font-size:1.7rem; cursor:pointer;">&times;</button>
+                </div>
+
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:8px; background:#fff; border:1px solid var(--border); border-radius:12px; padding:10px 14px; margin-bottom:14px; font-size:0.82rem;">
+                    <div><strong>⏱️ Time:</strong> ${escapeSafeHtml(rec.prepCookTime || '15–20 Mins')}</div>
+                    <div><strong>🌡️ Heat:</strong> ${escapeSafeHtml(rec.stoveTemp || 'Medium Heat')}</div>
+                    <div style="grid-column: 1 / -1; border-top:1px dashed var(--border); padding-top:4px;"><strong>🍳 Tools Needed:</strong> ${escapeSafeHtml(rec.toolsNeeded || 'Skillet or Bowl')}</div>
+                </div>
+
+                <div style="background:#ffffff; border:1.5px solid var(--border); border-radius:14px; padding:14px; margin-bottom:14px;">
+                    <strong style="font-size:0.9rem; color:var(--primary); display:block; margin-bottom:8px;">🛒 Scaled Ingredients (${scaleMult}x Base):</strong>
+                    ${ings.map(ing => {
+                        const scaledQty = Math.round((parseFloat(ing.qty) || 0.5) * scaleMult * 100) / 100;
+                        return `<div style="padding:5px 0; border-bottom:1px dashed var(--border); font-size:0.86rem;">• <strong>${scaledQty} ${escapeSafeHtml(ing.unit || 'whole')}</strong> ${escapeSafeHtml(ing.name)} <span style="font-size:0.75rem; color:var(--text-muted);">(${escapeSafeHtml(ing.category || 'Pantry')})</span></div>`;
+                    }).join('')}
+                </div>
+
+                <div style="background:#ffffff; border:1.5px solid var(--border); border-radius:14px; padding:14px; margin-bottom:16px;">
+                    <strong style="font-size:0.9rem; color:var(--sage); display:block; margin-bottom:8px;">👩‍🍳 Step-by-Step Instructions:</strong>
+                    ${steps.map((s, i) => `<div style="padding:6px 0; border-bottom:1px dashed var(--border); font-size:0.88rem; line-height:1.55;"><strong style="color:var(--primary);">Step ${i + 1}:</strong> ${escapeSafeHtml(s)}</div>`).join('')}
+                </div>
+
+                <div style="display:flex; justify-content:flex-end; gap:8px;">
+                    <button type="button" class="btn-secondary" onclick="window.print()">🖨️ Print Recipe</button>
+                    <button type="button" class="btn-primary" onclick="document.getElementById('hh-dual-recipe-detail-modal').remove()">Done</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    };
+
+    // FIXED: Never overwrite parent containers or hide the sibling Shopping List panel!
+    function buildAndRenderCustomPlanCards(forceRegenerate = false) {
+        const summaryBanner = document.getElementById('ab-plan-summary-text') ||
+            Array.from(document.querySelectorAll('span, p')).find(el => (el.textContent || '').trim().startsWith('Planning for ') && (el.textContent || '').includes('Adult Portions'));
+
+        const oldDaysGrid = document.getElementById('ab-days-grid');
+        const anchorEl = summaryBanner || oldDaysGrid;
+        if (!anchorEl) return;
 
         const cfg = getStep2Config();
-        const portions = readStep1PortionMultipliers();
+        const portions = window.readStep1PortionMultipliers();
         const daysCount = getDaysToPlanCount();
         const step3Themes = readStep3DinnerThemes();
 
-        // Update the yellow banner text so it reflects the exact days & lunch mode
         const lunchSummaryLabel =
             cfg.lunchMode === 'homeschool_dual' ? `👧 Kid Lunches (${portions.kidsOnlyMult}x) + 🥗 My Adult Lunch (${cfg.adultsAtLunch}.0x)` :
             cfg.lunchMode === 'school_weekdays' ? `🥗 Adult Lunch Mon–Fri + 👧 Kid Lunches on Weekends` :
@@ -19585,11 +19587,12 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
             cfg.lunchMode === 'shared_kid' ? `👧 Shared Family Lunches (${portions.totalFamilyMult}x)` :
             `🚫 Breakfast & Dinner Only`;
 
-        summaryBanner.innerHTML = `
-            Planning for <strong>${portions.totalMembers} Family Members</strong> (${portions.totalFamilyMult}x Adult Portions for Breakfast & Dinner • ${lunchSummaryLabel}) across <strong>${daysCount} Days</strong> • 💡 <em>Tip: Click any meal title below to open its full Step-by-Step Recipe Card!</em>
-        `;
+        if (summaryBanner) {
+            summaryBanner.innerHTML = `
+                Planning for <strong>${portions.totalMembers} Family Members</strong> (${portions.totalFamilyMult}x Adult Portions for Breakfast & Dinner • ${lunchSummaryLabel}) across <strong>${daysCount} Days</strong> • 💡 <em>Tip: Click any meal title below to open its full Step-by-Step Recipe Card!</em>
+            `;
+        }
 
-        // Build or retrieve the plan array
         let plan = null;
         if (!forceRegenerate) {
             try { plan = JSON.parse(localStorage.getItem('hh_step2_generated_days') || 'null'); } catch (e) {}
@@ -19621,14 +19624,12 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
                 const dayName = DAY_NAMES[i % 7];
                 const isWeekend = (i % 7) >= 5;
 
-                // 1. Breakfast
                 let bPool = quickBreakfasts;
                 if (cfg.breakfastMode === 'big_daily') bPool = bigBreakfasts.length ? bigBreakfasts : breakfasts;
                 else if (cfg.breakfastMode === 'smoothie_focus') bPool = isWeekend ? bigBreakfasts : smoothies;
                 else bPool = isWeekend ? (bigBreakfasts.length ? bigBreakfasts : breakfasts) : [...quickBreakfasts, ...smoothies.slice(0, 4)];
                 const bRec = pickFrom(bPool, used);
 
-                // 2. Kid Lunch & Adult Lunch
                 let kLunch = null;
                 let aLunch = null;
                 if (cfg.lunchMode === 'homeschool_dual') {
@@ -19643,7 +19644,6 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
                     kLunch = pickFrom(kidLunches, used);
                 }
 
-                // 3. Dinner (Matched to Step 3 Weekly Dinner Rhythm!)
                 const dayTheme = step3Themes[dayName] || '';
                 let dId = null;
                 if (dayTheme.includes('repeat') && prevDinnerId) {
@@ -19654,7 +19654,6 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
                     prevDinnerId = dId;
                 }
 
-                // 4. Snack & Drink
                 const snRec = cfg.includeSnacksAndDrinks ? pickFrom(snacks, used) : null;
                 const drRec = cfg.includeSnacksAndDrinks ? pickFrom(drinks, used) : null;
 
@@ -19674,16 +19673,9 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
             try { localStorage.setItem('hh_step2_generated_days', JSON.stringify(plan)); } catch (e) {}
         }
 
-        // Hide the old native day grid right below the summary banner and render our upgraded Dual-Lunch Grid
-        const parentPanel = summaryBanner.parentElement;
-        if (parentPanel) {
-            Array.from(parentPanel.children).forEach(child => {
-                if (child === summaryBanner || child.id === 'hh-upgraded-dual-lunch-grid') return;
-                const txt = child.textContent || '';
-                if ((txt.includes('Day 1') || txt.includes('Monday') || txt.includes('Breakfast')) && !txt.includes('1. Family Members')) {
-                    child.style.display = 'none';
-                }
-            });
+        // Hide ONLY the old #ab-days-grid element (never hide sibling panels like the Shopping List!)
+        if (oldDaysGrid) {
+            oldDaysGrid.style.display = 'none';
         }
 
         let gridBox = document.getElementById('hh-upgraded-dual-lunch-grid');
@@ -19691,7 +19683,11 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
             gridBox = document.createElement('div');
             gridBox.id = 'hh-upgraded-dual-lunch-grid';
             gridBox.style.cssText = 'display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-top: 16px;';
-            summaryBanner.insertAdjacentElement('afterend', gridBox);
+            if (oldDaysGrid) {
+                oldDaysGrid.insertAdjacentElement('afterend', gridBox);
+            } else {
+                anchorEl.insertAdjacentElement('afterend', gridBox);
+            }
         }
 
         const famScaleLbl = `${portions.totalMembers} Family Members (${portions.totalFamilyMult}x Adult Base)`;
@@ -19703,7 +19699,7 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
         function renderSlotCard(dayIdx, slotKey, badgeTitle, borderHex, recObj, mult, scaleLbl) {
             if (!recObj) return '';
             return `
-                <div style="background:#ffffff; border:1px solid var(--border); border-left:4px solid ${borderHex}; border-radius:10px; padding:9px 11px; margin-bottom:8px;">
+                <div class="meal-slot" data-rec-id="${recObj.id}" data-mult="${mult}" style="background:#ffffff; border:1px solid var(--border); border-left:4px solid ${borderHex}; border-radius:10px; padding:9px 11px; margin-bottom:8px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:4px;">
                         <span style="font-size:0.7rem; font-weight:800; color:${borderHex}; text-transform:uppercase;">${badgeTitle}</span>
                         <button type="button" onclick="swapStep2SingleMeal(${dayIdx}, '${slotKey}')" style="background:var(--bg-warm-cream); border:1px solid var(--border); border-radius:6px; padding:2px 8px; font-size:0.68rem; font-weight:700; cursor:pointer;">
@@ -19741,8 +19737,8 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
                     ${klRec ? renderSlotCard(idx, 'kidLunchId', `👧 Kids' Lunch (${kidScaleMult}x)`, '#D97706', klRec, kidScaleMult, kidScaleLbl) : ''}
                     ${alRec ? renderSlotCard(idx, 'adultLunchId', `🥗 My Filling Adult Lunch (${adultScaleMult}.0x)`, '#2E5A44', alRec, adultScaleMult, adultScaleLbl) : ''}
                     ${renderSlotCard(idx, 'dinnerId', `🌙 Family Dinner (${portions.totalFamilyMult}x)`, '#7C2D12', dnRec, portions.totalFamilyMult, famScaleLbl)}
-                    ${cfg.includeSnacksAndDrinks && snRec ? renderSlotCard(idx, 'snackId', `🧀 Batch-Prep Snack / Elixir`, '#6D28D9', snRec, portions.totalFamilyMult * 0.75, famScaleLbl) : ''}
-                    ${cfg.includeSnacksAndDrinks && drRec ? renderSlotCard(idx, 'drinkId', `🍋 Hydrating Drink`, '#0D9488', drRec, portions.totalFamilyMult * 0.75, famScaleLbl) : ''}
+                    ${cfg.includeSnacksAndDrinks && snRec ? renderSlotCard(idx, 'snackId', `🧀 Batch-Prep Snack / Elixir`, '#6D28D9', snRec, Math.round(portions.totalFamilyMult * 0.75 * 100) / 100, famScaleLbl) : ''}
+                    ${cfg.includeSnacksAndDrinks && drRec ? renderSlotCard(idx, 'drinkId', `🍋 Hydrating Drink`, '#0D9488', drRec, Math.round(portions.totalFamilyMult * 0.75 * 100) / 100, famScaleLbl) : ''}
                 </div>
             `;
         }).join('');
@@ -19768,6 +19764,9 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
         plan[dayIdx][slotKey] = all[Math.floor(Math.random() * all.length)].id;
         try { localStorage.setItem('hh_step2_generated_days', JSON.stringify(plan)); } catch (e) {}
         buildAndRenderCustomPlanCards(false);
+        if (typeof window.rebuildAndRenderRestoredShoppingList === 'function') {
+            window.rebuildAndRenderRestoredShoppingList();
+        }
     };
 
     function runStep2AndStep3Enhancements() {
@@ -19775,13 +19774,12 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
         buildAndRenderCustomPlanCards(false);
     }
 
-    // Run on load and whenever the user clicks into the Kitchen / Meal Planner tab
     [300, 800, 1600, 2800].forEach(ms => setTimeout(runStep2AndStep3Enhancements, ms));
     document.addEventListener('click', () => setTimeout(runStep2AndStep3Enhancements, 120));
 })();
 </script>
 
-<!-- ================= BLOCK 5: 1-CLICK GROCERY STORE CART LOADER (WALMART, SPROUTS, H-E-B, KROGER, ALDI, AZURE & INSTACART API) ================= -->
+<!-- ================= BLOCK 5 (FIXED): SELF-HEALING MASTER SHOPPING LIST + 1-CLICK GROCERY STORE CART LOADER ================= -->
 <script>
 (function() {
     const GROCERY_STORES = {
@@ -19851,6 +19849,12 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
         }
     };
 
+    function safeEsc(str) {
+        return String(str === undefined || str === null ? '' : str)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
     function getPreferredStoreKey() {
         return localStorage.getItem('hh_preferred_grocery_store') || 'walmart';
     }
@@ -19861,73 +19865,258 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
         }
     }
 
-    // Clean up recipe ingredient text so store search engines match the exact product immediately
     function cleanIngredientForStoreSearch(rawName) {
         let s = String(rawName || '')
-            .replace(/\(.*?\)/g, '') // remove parenthetical notes like "(Lvl 1-2...)"
+            .replace(/\(.*?\)/g, '')
             .replace(/\[.*?\]/g, '')
             .replace(/•.*$/g, '')
-            .replace(/\b(or|and\/or)\b.*$/i, '') // e.g. "Whole Milk or Coconut Milk" -> "Whole Milk"
-            .replace(/\b(rinsed|dried|diced|sliced|cubed|halved|minced|grated|melted|softened|room-temp|warm|chilled|splash|generous|pinch)\b/gi, '')
+            .replace(/\b(or|and\/or)\b.*$/i, '')
+            .replace(/\b(rinsed|dried|diced|sliced|cubed|halved|minced|grated|melted|softened|room-temp|warm|chilled|splash|generous|pinch|fresh-squeezed|stovetop|baked|crispy|creamy)\b/gi, '')
             .replace(/\s+/g, ' ')
             .trim();
         return s || String(rawName || '').trim();
     }
 
-    // Read all current items displayed on the Shopping List
+    // =========================================================================
+    // 1. SELF-HEALING SHOPPING LIST PANEL (WORKS WITH #hh-upgraded-dual-lunch-grid!)
+    // =========================================================================
+    function ensureMasterShoppingListPanelExists() {
+        const dualGrid = document.getElementById('hh-upgraded-dual-lunch-grid');
+        const oldDaysGrid = document.getElementById('ab-days-grid');
+        const anchorGrid = dualGrid || oldDaysGrid;
+        if (!anchorGrid) return;
+
+        // Unhide any parent panel that may have been hidden earlier!
+        document.querySelectorAll('#ab-printable-area .clinical-panel, #tool-tab-weekly-planner .clinical-panel').forEach(p => {
+            if (p.style.display === 'none') p.style.display = 'block';
+        });
+
+        let groceryGrid = document.getElementById('ab-grocery-grid') || document.getElementById('ab-grocery-list');
+
+        if (!groceryGrid) {
+            const daysPanel = anchorGrid.closest('.clinical-panel') || anchorGrid.parentElement;
+            const outerArea = document.getElementById('ab-printable-area') || daysPanel?.parentElement;
+            if (!outerArea) return;
+
+            const shopPanel = document.createElement('div');
+            shopPanel.id = 'hh-restored-shopping-list-panel';
+            shopPanel.className = 'clinical-panel';
+            shopPanel.style.marginTop = '22px';
+            shopPanel.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+                    <div>
+                        <span class="card-tag">Includes All 6 Daily Meal Slots + Low-Stock Restocks + Custom Extras</span>
+                        <h3 style="font-size: 1.4rem;">Master Family Shopping List</h3>
+                    </div>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;" class="no-print">
+                        <button type="button" class="btn-primary" style="background: linear-gradient(135deg, #2E5A44 0%, #1E4230 100%); border-color: #173325;" onclick="if(typeof restockCheckedGroceriesToInventory==='function') restockCheckedGroceriesToInventory()">📦 Done Shopping (Move Checked to Storage)</button>
+                        <button type="button" class="btn-primary" onclick="if(typeof openCustomGroceryModal==='function') openCustomGroceryModal()">+ Add Custom Item</button>
+                        <button type="button" class="btn-secondary" onclick="if(typeof addLowStockItemsToShoppingList==='function') addLowStockItemsToShoppingList()">⚠️ + Pull Low-Stock Items</button>
+                        <button type="button" class="btn-secondary" onclick="window.resetAllRestoredGroceryChecks()">↺ Reset Checks</button>
+                        <button type="button" class="btn-secondary" onclick="if(typeof copyWeeklyGroceryList==='function') copyWeeklyGroceryList()">📋 Copy List</button>
+                    </div>
+                </div>
+                <div style="background: var(--bg-warm-cream); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                    <span id="ab-grocery-progress-text" style="font-size: 0.85rem; font-weight: 700; color: var(--primary);"></span>
+                    <label style="font-size: 0.8rem; font-weight: 600; cursor: pointer;" class="no-print">
+                        <input type="checkbox" id="ab-hide-covered-toggle" onchange="window.rebuildAndRenderRestoredShoppingList()" style="accent-color: var(--sage);"> Hide checked items
+                    </label>
+                </div>
+                <div id="ab-grocery-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 14px;"></div>
+            `;
+            if (daysPanel && daysPanel !== outerArea) {
+                daysPanel.insertAdjacentElement('afterend', shopPanel);
+            } else {
+                outerArea.appendChild(shopPanel);
+            }
+            groceryGrid = document.getElementById('ab-grocery-grid');
+        }
+
+        const shopPanelWrap = groceryGrid.closest('.clinical-panel');
+        if (shopPanelWrap) shopPanelWrap.style.display = 'block';
+
+        window.rebuildAndRenderRestoredShoppingList();
+    }
+
+    window.resetAllRestoredGroceryChecks = function() {
+        if (typeof setLocalData === 'function') setLocalData('ab_checked_groceries', {});
+        window.rebuildAndRenderRestoredShoppingList();
+    };
+
+    // Calculates exact shopping list items directly from the 6-slot Dual-Lunch Plan (`hh_step2_generated_days`)!
+    window.rebuildAndRenderRestoredShoppingList = function() {
+        const grid = document.getElementById('ab-grocery-grid') || document.getElementById('ab-grocery-list');
+        if (!grid) return;
+
+        const checkedMap = (typeof getLocalData === 'function' ? getLocalData('ab_checked_groceries', {}) : {}) || {};
+        const deletedSet = new Set((typeof getLocalData === 'function' ? getLocalData('ab_deleted_groceries', []) : []) || []);
+        const hideChecked = document.getElementById('ab-hide-covered-toggle')?.checked;
+        const inv = (typeof getLocalData === 'function' ? getLocalData('homestead_inventory_list', []) : []) || [];
+        const stockMap = {};
+        inv.forEach(i => {
+            if (i && i.name) stockMap[i.name.trim().toLowerCase()] = (stockMap[i.name.trim().toLowerCase()] || 0) + (parseFloat(i.qty) || 0);
+        });
+
+        const allRecipes = [
+            ...((typeof getLocalData === 'function' ? getLocalData('private_household_recipes', []) : []) || []),
+            ...(window.HONEYSUCKLE_WHOLE_FOOD_RECIPES || []),
+            ...((typeof DEFAULT_RECIPES !== 'undefined' && Array.isArray(DEFAULT_RECIPES)) ? DEFAULT_RECIPES : [])
+        ];
+        const recMap = new Map();
+        allRecipes.forEach(r => { if (r && r.id && !recMap.has(r.id)) recMap.set(r.id, r); });
+
+        const totals = {};
+        const addIng = (name, qty, unit, cat) => {
+            const key = String(name || '').trim();
+            if (!key || deletedSet.has(key)) return;
+            const normCat = cat === 'Animal Fats & Pantry' ? 'Traditional Fats & Pantry Staples' : (cat || 'Traditional Fats & Pantry Staples');
+            if (!totals[key]) {
+                totals[key] = { key, name: key, qty: 0, unit: unit || 'whole', category: normCat };
+            }
+            totals[key].qty += (parseFloat(qty) || 0.25);
+        };
+
+        // Read all rendered `.meal-slot[data-rec-id]` cards inside #hh-upgraded-dual-lunch-grid
+        const slotEls = document.querySelectorAll('#hh-upgraded-dual-lunch-grid .meal-slot[data-rec-id]');
+        if (slotEls.length > 0) {
+            slotEls.forEach(el => {
+                const rId = el.getAttribute('data-rec-id');
+                const mult = parseFloat(el.getAttribute('data-mult')) || 1;
+                const rec = recMap.get(rId);
+                if (rec && Array.isArray(rec.ingredients)) {
+                    rec.ingredients.forEach(ing => {
+                        addIng(ing.name, (parseFloat(ing.qty) || 0.25) * mult, ing.unit, ing.category);
+                    });
+                }
+            });
+        } else {
+            // Fallback to saved `hh_step2_generated_days` in localStorage
+            let savedDays = [];
+            try { savedDays = JSON.parse(localStorage.getItem('hh_step2_generated_days') || '[]'); } catch (e) {}
+            const portions = typeof window.readStep1PortionMultipliers === 'function'
+                ? window.readStep1PortionMultipliers()
+                : { totalFamilyMult: 5.15, kidsOnlyMult: 3.15 };
+            savedDays.forEach(d => {
+                const pairs = [
+                    [d.breakfastId, portions.totalFamilyMult],
+                    [d.kidLunchId, portions.kidsOnlyMult],
+                    [d.adultLunchId, 1.0],
+                    [d.dinnerId, portions.totalFamilyMult],
+                    [d.snackId, portions.totalFamilyMult * 0.75],
+                    [d.drinkId, portions.totalFamilyMult * 0.75]
+                ];
+                pairs.forEach(([id, m]) => {
+                    const rec = recMap.get(id);
+                    if (rec && Array.isArray(rec.ingredients)) {
+                        rec.ingredients.forEach(ing => addIng(ing.name, (parseFloat(ing.qty) || 0.25) * m, ing.unit, ing.category));
+                    }
+                });
+            });
+        }
+
+        // Also include extra_shopping_items
+        const extras = (typeof getLocalData === 'function' ? getLocalData('extra_shopping_items', []) : []) || [];
+        extras.forEach(ex => {
+            if (ex && ex.name) addIng(ex.name, ex.qty || 1, ex.unit || 'whole', ex.category || 'Household & Cleaning Supplies');
+        });
+
+        const categories = {
+            'Meats & Organs': [],
+            'Eggs & Raw Dairy': [],
+            'Fruits & Produce': [],
+            'Traditional Fats & Pantry Staples': [],
+            'Household & Cleaning Supplies': []
+        };
+
+        let totalCount = 0;
+        let checkedCount = 0;
+
+        Object.values(totals).forEach(item => {
+            totalCount++;
+            const onHand = stockMap[item.key.toLowerCase()] || 0;
+            const netToBuy = Math.max(0.25, Math.round((item.qty - onHand) * 4) / 4);
+            const isChecked = !!checkedMap[item.key];
+            if (isChecked) checkedCount++;
+            if (hideChecked && isChecked) return;
+
+            const cat = categories[item.category] ? item.category : 'Traditional Fats & Pantry Staples';
+            categories[cat].push({ ...item, netToBuy, onHand, isChecked });
+        });
+
+        const progEl = document.getElementById('ab-grocery-progress-text');
+        if (progEl) progEl.textContent = `🛒 Shopping Progress: ${checkedCount} of ${totalCount} items checked off`;
+
+        grid.innerHTML = Object.entries(categories).map(([catName, items]) => {
+            if (!items.length) return '';
+            return `
+                <div class="grocery-category">
+                    <h4 style="font-size:1.1rem; margin-bottom:8px; border-bottom:2px solid var(--border); padding-bottom:4px;">${safeEsc(catName)}</h4>
+                    ${items.map(i => {
+                        const encKey = encodeURIComponent(i.key);
+                        const qtyStr = (i.unit === 'eggs' || i.unit === 'whole' || i.unit === 'slices' || i.unit === 'tbsp')
+                            ? `${Math.ceil(i.netToBuy)} ${i.unit}`
+                            : `${i.netToBuy.toFixed(2).replace(/\.00$/, '')} ${i.unit}`;
+                        return `
+                            <div class="grocery-item ${i.isChecked ? 'checked' : ''}" style="justify-content:space-between; align-items:center;">
+                                <label style="display:flex; align-items:flex-start; gap:10px; cursor:pointer; flex:1;">
+                                    <input type="checkbox" ${i.isChecked ? 'checked' : ''} onchange="window.toggleRestoredGroceryCheck('${encKey}', this.checked)" style="accent-color:var(--sage); margin-top:3px;">
+                                    <div style="flex:1;">
+                                        <div class="g-name" style="font-weight:600; font-size:0.9rem;">${safeEsc(i.name)}</div>
+                                        <div style="font-size:0.76rem; color:var(--text-muted);">
+                                            Need: <strong>${safeEsc(qtyStr)}</strong> ${i.onHand > 0 ? `(Have ${i.onHand} ${i.unit})` : ''}
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }).filter(Boolean).join('');
+    };
+
+    window.toggleRestoredGroceryCheck = function(encKey, isChecked) {
+        const key = decodeURIComponent(encKey);
+        if (typeof getLocalData === 'function' && typeof setLocalData === 'function') {
+            const map = getLocalData('ab_checked_groceries', {}) || {};
+            map[key] = !!isChecked;
+            setLocalData('ab_checked_groceries', map);
+        }
+        window.rebuildAndRenderRestoredShoppingList();
+    };
+
     function scrapeCurrentShoppingListItems() {
+        ensureMasterShoppingListPanelExists();
         const items = [];
         const seen = new Set();
 
-        // Check DOM shopping list labels inside #ab-grocery-list or any grocery list container
-        const listRoot = document.getElementById('ab-grocery-list') ||
-                         document.querySelector('[id*="grocery-list"]') ||
-                         document.getElementById('view-food') ||
-                         document.body;
+        const listRoot = document.getElementById('ab-grocery-grid') ||
+                         document.getElementById('ab-grocery-list') ||
+                         document.querySelector('[id*="grocery"]');
 
-        listRoot.querySelectorAll('label').forEach(lbl => {
-            const chk = lbl.querySelector('input[type="checkbox"]');
-            if (!chk) return;
-            const oc = (chk.getAttribute('onchange') || '');
-            // Match shopping list checkboxes
-            if (!oc.toLowerCase().includes('grocery') && !lbl.closest('#ab-grocery-list') && !lbl.closest('[id*="grocery"]')) return;
+        if (listRoot) {
+            listRoot.querySelectorAll('.grocery-item').forEach(row => {
+                const chk = row.querySelector('input[type="checkbox"]');
+                if (!chk) return;
 
-            const rawText = (lbl.textContent || '').trim().replace(/\s+/g, ' ');
-            if (!rawText || rawText.length < 2) return;
+                const nameEl = row.querySelector('.g-name');
+                const strongEl = row.querySelector('strong');
 
-            // Extract quantity/unit if bolded, plus item name
-            const strongEl = lbl.querySelector('strong');
-            const qtyUnit = strongEl ? strongEl.textContent.trim() : '';
-            let itemName = rawText;
-            if (qtyUnit && rawText.startsWith(qtyUnit)) {
-                itemName = rawText.slice(qtyUnit.length).trim();
-            }
-            const cleanSearch = cleanIngredientForStoreSearch(itemName);
-            const dedupeKey = cleanSearch.toLowerCase();
-            if (seen.has(dedupeKey)) return;
-            seen.add(dedupeKey);
+                const itemName = nameEl ? nameEl.textContent.trim() : '';
+                const qtyUnit = strongEl ? strongEl.textContent.trim() : '1 whole';
 
-            items.push({
-                rawLabel: rawText,
-                qtyUnit: qtyUnit || '1 whole',
-                name: itemName || rawText,
-                searchQuery: cleanSearch,
-                alreadyCheckedOff: chk.checked
-            });
-        });
+                if (!itemName || itemName.length < 2) return;
+                const cleanSearch = cleanIngredientForStoreSearch(itemName);
+                const dedupeKey = cleanSearch.toLowerCase();
+                if (seen.has(dedupeKey)) return;
+                seen.add(dedupeKey);
 
-        // Fallback: if DOM list hasn't rendered yet, pull from generated days + extra_shopping_items
-        if (items.length === 0 && typeof getLocalData === 'function') {
-            const extras = getLocalData('extra_shopping_items', []) || [];
-            extras.forEach(ex => {
-                if (!ex || !ex.name) return;
-                const clean = cleanIngredientForStoreSearch(ex.name);
                 items.push({
-                    rawLabel: `${ex.qty || 1} ${ex.unit || ''} ${ex.name}`.trim(),
-                    qtyUnit: `${ex.qty || 1} ${ex.unit || 'whole'}`,
-                    name: ex.name,
-                    searchQuery: clean,
-                    alreadyCheckedOff: false
+                    rawLabel: `${qtyUnit} ${itemName}`,
+                    qtyUnit,
+                    name: itemName,
+                    searchQuery: cleanSearch,
+                    alreadyCheckedOff: chk.checked
                 });
             });
         }
@@ -19935,15 +20124,12 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
         return items;
     }
 
-    // Mark an item as checked off in the main Honeysuckle Hub Shopping List once added to cart
     window.markItemAddedToStoreCart = function(itemName, btnEl, rowIdx) {
-        if (typeof window.toggleAdaptiveGroceryItem === 'function') {
-            window.toggleAdaptiveGroceryItem(itemName, true);
-        } else if (typeof getLocalData === 'function' && typeof setLocalData === 'function') {
+        if (typeof getLocalData === 'function' && typeof setLocalData === 'function') {
             const checkedMap = getLocalData('ab_checked_groceries', {}) || {};
             checkedMap[itemName] = true;
             setLocalData('ab_checked_groceries', checkedMap, true);
-            if (typeof renderAbGroceryList === 'function') renderAbGroceryList();
+            window.rebuildAndRenderRestoredShoppingList();
         }
         if (btnEl) {
             btnEl.innerHTML = '✓ Added to Cart';
@@ -19958,18 +20144,15 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
         }
     };
 
-    // Open a single item directly in the selected store's Add-to-Cart search & mark it done
     window.addSingleItemToSelectedStoreCart = function(idx, searchQuery, originalName, btnEl) {
         const storeKey = document.getElementById('hh-cart-modal-store-sel')?.value || getPreferredStoreKey();
         setPreferredStoreKey(storeKey);
         const store = GROCERY_STORES[storeKey] || GROCERY_STORES.walmart;
 
-        // Open in a reusable named store tab so all clicks reuse the same store window!
         window.open(store.searchUrl(searchQuery), 'HoneysuckleGroceryStoreTab');
         window.markItemAddedToStoreCart(originalName, btnEl, idx);
     };
 
-    // Copy all selected items formatted cleanly for Store "Paste-a-List" / Multi-Item Cart Builder & open store
     window.copyAndLaunchStoreMultiList = function() {
         const storeKey = document.getElementById('hh-cart-modal-store-sel')?.value || getPreferredStoreKey();
         setPreferredStoreKey(storeKey);
@@ -19991,54 +20174,8 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
             navigator.clipboard.writeText(cleanListText).catch(() => {});
         }
 
-        // Open the first item or store search in the store tab
         window.open(store.searchUrl(selectedQueries[0]), 'HoneysuckleGroceryStoreTab');
-        alert(`🛒 Copied ${selectedQueries.length} clean items to your clipboard & opened ${store.shortName}!\n\nTip: You can paste your list into ${store.shortName}'s search/list bar, or tap the green "+ Add to ${store.shortName}" buttons below to load each item in 1 tap!`);
-    };
-
-    // Optional Official Instacart API 1-Click Full Cart Builder (Works if INSTACART_API_KEY is added to Netlify, otherwise falls back smoothly)
-    window.tryLaunchOfficialInstacartFullCart = async function() {
-        const selectedItems = [];
-        document.querySelectorAll('.hh-cart-item-chk:checked').forEach(chk => {
-            selectedItems.push({
-                name: chk.getAttribute('data-query') || 'Item',
-                qtyUnit: chk.getAttribute('data-qtyunit') || '1 whole'
-            });
-        });
-
-        if (selectedItems.length === 0) {
-            alert('Please select at least one item first!');
-            return;
-        }
-
-        const btn = document.getElementById('hh-instacart-api-btn');
-        if (btn) btn.textContent = '⏳ Building Your Pre-Loaded Cart...';
-
-        try {
-            const res = await fetch('/.netlify/functions/instacart-cart', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ items: selectedItems })
-            });
-            if (res.ok) {
-                const data = await res.json();
-                if (data && data.cartUrl) {
-                    window.open(data.cartUrl, '_blank');
-                    if (btn) btn.textContent = '🥕 Open Pre-Loaded Instacart / Sprouts Cart ↗';
-                    return;
-                }
-            }
-        } catch (e) {}
-
-        // Smooth Fallback if no Instacart Developer API key is in Netlify yet:
-        if (btn) btn.textContent = '🥕 Send Selected List to Sprouts / Instacart ↗';
-        const storeKey = document.getElementById('hh-cart-modal-store-sel')?.value || 'sprouts';
-        const store = GROCERY_STORES[storeKey] || GROCERY_STORES.sprouts;
-        const cleanListText = selectedItems.map(i => i.name).join('\n');
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(cleanListText).catch(() => {});
-        }
-        window.open(store.searchUrl(selectedItems[0].name), 'HoneysuckleGroceryStoreTab');
+        alert(`🛒 Copied ${selectedQueries.length} clean items to your clipboard & opened ${store.shortName}!`);
     };
 
     window.toggleAllGroceryCartCheckboxes = function(checkAll) {
@@ -20059,9 +20196,6 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
         });
     };
 
-    // =========================================================================
-    // OPEN THE 1-CLICK GROCERY STORE CART BUILDER MODAL
-    // =========================================================================
     window.openSendToGroceryCartModal = function(initialStoreKey = null) {
         document.getElementById('hh-grocery-cart-bridge-modal')?.remove();
 
@@ -20070,7 +20204,6 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
         const activeStore = GROCERY_STORES[storeKey] || GROCERY_STORES.walmart;
 
         const allItems = scrapeCurrentShoppingListItems();
-        // Default to checking all items that aren't already crossed off the shopping list
         const neededItems = allItems.filter(i => !i.alreadyCheckedOff);
         const displayItems = neededItems.length > 0 ? neededItems : allItems;
 
@@ -20083,15 +20216,15 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
             : displayItems.map((it, idx) => `
                 <div id="hh-cart-row-${idx}" style="background:#FFFDF8; border:1.5px solid var(--border); border-radius:12px; padding:10px 14px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
                     <label style="display:flex; align-items:center; gap:10px; flex:1; min-width:210px; cursor:pointer;">
-                        <input type="checkbox" class="hh-cart-item-chk" data-idx="${idx}" data-query="${escapeSafeHtml(it.searchQuery)}" data-qtyunit="${escapeSafeHtml(it.qtyUnit)}" checked style="width:18px; height:18px; accent-color:var(--sage);">
+                        <input type="checkbox" class="hh-cart-item-chk" data-idx="${idx}" data-query="${safeEsc(it.searchQuery)}" data-qtyunit="${safeEsc(it.qtyUnit)}" checked style="width:18px; height:18px; accent-color:var(--sage);">
                         <div>
-                            <strong style="font-size:0.9rem; color:var(--text-main); display:block;">${escapeSafeHtml(it.searchQuery)}</strong>
-                            <span style="font-size:0.76rem; color:var(--text-muted);">Needed for Plan: <strong>${escapeSafeHtml(it.qtyUnit)}</strong> (${escapeSafeHtml(it.name)})</span>
+                            <strong style="font-size:0.9rem; color:var(--text-main); display:block;">${safeEsc(it.searchQuery)}</strong>
+                            <span style="font-size:0.76rem; color:var(--text-muted);">Needed for Plan: <strong>${safeEsc(it.qtyUnit)}</strong> (${safeEsc(it.name)})</span>
                         </div>
                     </label>
                     <button type="button" class="btn-primary hh-single-store-add-btn"
                         style="background:${activeStore.color}; border-color:${activeStore.color}; color:#fff; padding:8px 14px; font-size:0.78rem; border-radius:999px; cursor:pointer; font-weight:700;"
-                        onclick="addSingleItemToSelectedStoreCart(${idx}, '${escapeSafeHtml(it.searchQuery.replace(/'/g, "\\'"))}', '${escapeSafeHtml(it.name.replace(/'/g, "\\'"))}', this)">
+                        onclick="addSingleItemToSelectedStoreCart(${idx}, '${safeEsc(it.searchQuery.replace(/'/g, "\\'"))}', '${safeEsc(it.name.replace(/'/g, "\\'"))}', this)">
                         🛒 + Add on ${activeStore.shortName} &rarr;
                     </button>
                 </div>
@@ -20108,13 +20241,12 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
                         <span class="card-tag" style="background:var(--sage); color:#fff;">🛒 Direct Grocery Store Cart Loader</span>
                         <h3 style="font-size:1.55rem; color:var(--primary); margin:3px 0 2px 0;">Send Selected Items to Your Store Cart</h3>
                         <p style="font-size:0.82rem; color:var(--text-main); margin:0;">
-                            Choose your store below, uncheck anything you already have, and tap <strong>+ Add</strong> to load items directly into your logged-in store cart (auto-checks them off your Hub list as you go!).
+                            Choose your store below, uncheck anything you already have, and tap <strong>+ Add</strong> to load items directly into your logged-in store cart!
                         </p>
                     </div>
                     <button type="button" onclick="document.getElementById('hh-grocery-cart-bridge-modal').remove()" style="background:none; border:none; font-size:1.7rem; cursor:pointer;">&times;</button>
                 </div>
 
-                <!-- Store Selector & Bulk Action Row -->
                 <div style="background:var(--bg-warm-cream); border:1.5px solid var(--border); border-radius:14px; padding:12px 14px; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
                     <div style="flex:1; min-width:230px;">
                         <label style="font-size:0.75rem; font-weight:800; color:var(--primary); display:block; margin-bottom:4px;">🏪 1. Select Your Grocery Store:</label>
@@ -20131,7 +20263,6 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
                     </div>
                 </div>
 
-                <!-- Item Queue -->
                 <div style="max-height:390px; overflow-y:auto; padding-right:4px;">
                     ${rowsHtml}
                 </div>
@@ -20147,11 +20278,13 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
         document.body.appendChild(modal);
     };
 
-    // =========================================================================
-    // INJECT THE "SEND TO MY GROCERY STORE CART" BAR ABOVE THE SHOPPING LIST
-    // =========================================================================
     function injectGroceryCartBridgeBar() {
-        const groceryEl = document.getElementById('ab-grocery-list') || document.querySelector('[id*="grocery-list"]');
+        ensureMasterShoppingListPanelExists();
+
+        const groceryEl = document.getElementById('ab-grocery-grid') ||
+                          document.getElementById('ab-grocery-list') ||
+                          document.querySelector('[id*="grocery-grid"]') ||
+                          document.querySelector('[id*="grocery-list"]');
         if (!groceryEl || document.getElementById('hh-grocery-cart-bridge-bar')) return;
 
         const prefKey = getPreferredStoreKey();
@@ -20161,6 +20294,7 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
 
         const bar = document.createElement('div');
         bar.id = 'hh-grocery-cart-bridge-bar';
+        bar.className = 'no-print';
         bar.style.cssText = 'background: linear-gradient(135deg, #E8F2EC 0%, #FFFDF8 100%); border: 2.5px solid var(--sage); border-radius: 16px; padding: 14px 18px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; box-shadow: 0 6px 18px rgba(46,90,68,0.1);';
         bar.innerHTML = `
             <div style="max-width:520px;">
@@ -20182,10 +20316,10 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
         groceryEl.insertAdjacentElement('beforebegin', bar);
     }
 
-    [500, 1200, 2500].forEach(ms => setTimeout(injectGroceryCartBridgeBar, ms));
-    document.addEventListener('click', () => setTimeout(injectGroceryCartBridgeBar, 200));
+    [400, 1000, 1900, 3100].forEach(ms => setTimeout(injectGroceryCartBridgeBar, ms));
+    window.addEventListener('hashchange', () => setTimeout(injectGroceryCartBridgeBar, 250));
+    document.addEventListener('click', () => setTimeout(injectGroceryCartBridgeBar, 250));
 })();
 </script>
-
 </body>
 </html>
