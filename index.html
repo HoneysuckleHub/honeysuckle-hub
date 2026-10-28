@@ -18590,5 +18590,1334 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
 })();
 </script>
 
+<!-- ================= BLOCK 3: HONEYSUCKLE HUB COMPLETE LANDING PAGE UPGRADE ================= -->
+<script>
+(function() {
+    const FOUNDER_EMAIL = 'contacthoneysuckleandco@gmail.com';
+
+    function upgradeHoneysuckleLandingPage() {
+        const landingView = document.getElementById('landing-view');
+        if (!landingView || document.getElementById('hh-upgraded-landing-master')) return;
+
+        // 1. Preserve any modals that might have been placed inside #landing-view
+        landingView.querySelectorAll('.modal-overlay').forEach(modalEl => {
+            document.body.appendChild(modalEl);
+        });
+
+        // 2. Capture existing Login, Join/Signup, and Demo button actions from your current landing page so every button works seamlessly
+        let capturedLoginOnclick = null;
+        let capturedJoinOnclick = null;
+        let capturedJoinHref = null;
+        let capturedDemoOnclick = null;
+
+        landingView.querySelectorAll('button, a').forEach(el => {
+            const txt = (el.textContent || '').toLowerCase();
+            const oc = el.getAttribute('onclick') || '';
+            const hr = el.getAttribute('href') || '';
+            if (!capturedLoginOnclick && (txt.includes('log in') || txt.includes('login') || txt.includes('sign in') || oc.toLowerCase().includes('login'))) {
+                capturedLoginOnclick = oc;
+            }
+            if (!capturedDemoOnclick && (txt.includes('demo') || txt.includes('peek') || txt.includes('try') || oc.toLowerCase().includes('demo'))) {
+                capturedDemoOnclick = oc;
+            }
+            if (!capturedJoinOnclick && !capturedJoinHref && (txt.includes('join') || txt.includes('start') || txt.includes('subscribe') || txt.includes('member') || hr.includes('stripe.com'))) {
+                if (oc && !oc.toLowerCase().includes('demo') && !oc.toLowerCase().includes('contact')) capturedJoinOnclick = oc;
+                if (hr && hr !== '#' && !hr.startsWith('javascript')) capturedJoinHref = hr;
+            }
+        });
+
+        window.triggerHubLandingLogin = function() {
+            if (capturedLoginOnclick) {
+                try { new Function(capturedLoginOnclick)(); return; } catch (e) {}
+            }
+            if (typeof window.openAuthModal === 'function') { window.openAuthModal('login'); return; }
+            const authModal = document.getElementById('auth-modal') || document.querySelector('.modal-overlay[id*="auth"]');
+            if (authModal) authModal.style.display = 'flex';
+        };
+
+        window.triggerHubLandingJoin = function() {
+            if (capturedJoinOnclick) {
+                try { new Function(capturedJoinOnclick)(); return; } catch (e) {}
+            }
+            if (capturedJoinHref) {
+                window.location.href = capturedJoinHref;
+                return;
+            }
+            if (typeof window.openAuthModal === 'function') { window.openAuthModal('signup'); return; }
+            window.triggerHubLandingLogin();
+        };
+
+        window.triggerHubLandingDemo = function() {
+            if (capturedDemoOnclick) {
+                try { new Function(capturedDemoOnclick)(); return; } catch (e) {}
+            }
+            if (typeof window.startInteractiveDemo === 'function') { window.startInteractiveDemo(); return; }
+            if (typeof window.enterDemoMode === 'function') { window.enterDemoMode(); return; }
+            if (typeof window.activateDemoMode === 'function') { window.activateDemoMode(); return; }
+            window.triggerHubLandingJoin();
+        };
+
+        // 3. Inject Custom Landing Page Styles (Warm Yellow, Cream, Deep Homestead Sage & Golden Honey)
+        if (!document.getElementById('hh-landing-upgrade-styles')) {
+            const st = document.createElement('style');
+            st.id = 'hh-landing-upgrade-styles';
+            st.innerHTML = `
+                #hh-upgraded-landing-master {
+                    background: linear-gradient(180deg, #FFFDF8 0%, #FAF5E8 45%, #FFFDF8 100%);
+                    color: #2A1E14;
+                    font-family: var(--font-sans, system-ui, -apple-system, sans-serif);
+                    line-height: 1.6;
+                    padding-bottom: 60px;
+                }
+                .hh-lp-nav {
+                    position: sticky; top: 0; z-index: 1200;
+                    background: rgba(255, 253, 248, 0.96);
+                    backdrop-filter: blur(10px);
+                    border-bottom: 2px solid #EADBC0;
+                    padding: 14px 24px;
+                }
+                .hh-lp-nav-inner {
+                    max-width: 1220px; margin: 0 auto;
+                    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;
+                }
+                .hh-lp-brand {
+                    display: flex; align-items: center; gap: 10px;
+                    font-family: var(--font-serif, Georgia, serif);
+                    font-size: 1.65rem; font-weight: 700; color: #B87612; text-decoration: none;
+                }
+                .hh-lp-links {
+                    display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+                }
+                .hh-lp-links a {
+                    color: #4A3728; font-size: 0.88rem; font-weight: 700; text-decoration: none; transition: color 0.2s;
+                }
+                .hh-lp-links a:hover { color: #B87612; }
+                .hh-lp-container { max-width: 1180px; margin: 0 auto; padding: 0 22px; }
+                .hh-lp-hero {
+                    padding: 58px 22px 46px 22px; text-align: center; max-width: 980px; margin: 0 auto;
+                }
+                .hh-lp-pill {
+                    display: inline-flex; align-items: center; gap: 6px;
+                    background: #FEF5D8; color: #9A5B0A; border: 1.5px solid #E5C378;
+                    padding: 6px 16px; border-radius: 999px; font-size: 0.78rem; font-weight: 800;
+                    letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 18px;
+                }
+                .hh-lp-hero h1 {
+                    font-family: var(--font-serif, Georgia, serif);
+                    font-size: clamp(2.2rem, 4.6vw, 3.65rem);
+                    line-height: 1.14; color: #2A1E14; margin: 0 0 18px 0;
+                }
+                .hh-lp-hero h1 span { color: #B87612; }
+                .hh-lp-hero p.hh-lp-lead {
+                    font-size: clamp(1.02rem, 1.8vw, 1.22rem);
+                    color: #5A4634; max-width: 820px; margin: 0 auto 28px auto;
+                }
+                .hh-lp-cta-row {
+                    display: flex; justify-content: center; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 26px;
+                }
+                .hh-lp-btn-gold {
+                    background: linear-gradient(135deg, #C8841A 0%, #9E6208 100%);
+                    color: #ffffff; border: 2px solid #855004; border-radius: 999px;
+                    padding: 15px 30px; font-size: 1rem; font-weight: 800; cursor: pointer;
+                    box-shadow: 0 10px 24px rgba(184, 118, 18, 0.28); transition: transform 0.18s;
+                }
+                .hh-lp-btn-gold:hover { transform: translateY(-2px); }
+                .hh-lp-btn-sage {
+                    background: linear-gradient(135deg, #2E5A44 0%, #1F4230 100%);
+                    color: #ffffff; border: 2px solid #173325; border-radius: 999px;
+                    padding: 15px 28px; font-size: 0.98rem; font-weight: 800; cursor: pointer;
+                    box-shadow: 0 10px 24px rgba(46, 90, 68, 0.24); transition: transform 0.18s;
+                }
+                .hh-lp-btn-sage:hover { transform: translateY(-2px); }
+                .hh-lp-btn-outline {
+                    background: #FFFDF8; color: #2A1E14; border: 2px solid #D9C39E;
+                    border-radius: 999px; padding: 14px 24px; font-size: 0.94rem; font-weight: 700; cursor: pointer;
+                }
+                .hh-lp-trust-strip {
+                    display: flex; justify-content: center; gap: 12px 24px; flex-wrap: wrap;
+                    font-size: 0.83rem; font-weight: 700; color: #2E5A44;
+                    background: #E8F2EC; border: 1.5px solid #B7D5C4; border-radius: 16px;
+                    padding: 12px 20px; max-width: 920px; margin: 0 auto;
+                }
+                .hh-lp-section { padding: 48px 0; }
+                .hh-lp-sec-head { text-align: center; max-width: 780px; margin: 0 auto 34px auto; }
+                .hh-lp-sec-head h2 {
+                    font-family: var(--font-serif, Georgia, serif);
+                    font-size: clamp(1.75rem, 3.2vw, 2.5rem); color: #2A1E14; margin: 6px 0 10px 0; line-height: 1.2;
+                }
+                .hh-lp-sec-head p { font-size: 0.98rem; color: #5A4634; margin: 0; }
+                .hh-lp-grid-3 {
+                    display: grid; grid-template-columns: repeat(auto-fit, minmax(310px, 1fr)); gap: 20px;
+                }
+                .hh-lp-grid-4 {
+                    display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 18px;
+                }
+                .hh-lp-card {
+                    background: #ffffff; border: 2px solid #EADBC0; border-radius: 20px;
+                    padding: 24px; box-shadow: 0 10px 28px rgba(42, 30, 20, 0.05);
+                    display: flex; flex-direction: column; justify-content: space-between;
+                }
+                .hh-lp-card-sage {
+                    background: linear-gradient(145deg, #FFFDF8 0%, #E8F2EC 100%);
+                    border: 2.5px solid #2E5A44;
+                }
+                .hh-lp-card-gold {
+                    background: linear-gradient(145deg, #FFFDF8 0%, #FEF5D8 100%);
+                    border: 2.5px solid #B87612;
+                }
+                .hh-lp-card h3 {
+                    font-family: var(--font-serif, Georgia, serif);
+                    font-size: 1.32rem; color: #2A1E14; margin: 8px 0 8px 0;
+                }
+                .hh-lp-card p { font-size: 0.89rem; color: #4A3728; margin: 0 0 12px 0; }
+                .hh-lp-badge {
+                    display: inline-block; font-size: 0.72rem; font-weight: 800; text-transform: uppercase;
+                    padding: 4px 10px; border-radius: 999px; background: #FEF5D8; color: #B87612; width: fit-content;
+                }
+                .hh-lp-badge-sage { background: #2E5A44; color: #ffffff; }
+                @media (max-width: 720px) {
+                    .hh-lp-links { display: none; }
+                    .hh-lp-hero { padding: 36px 14px 28px 14px; }
+                }
+            `;
+            document.head.appendChild(st);
+        }
+
+        // 4. Build the Complete Upgraded Landing Page HTML
+        landingView.innerHTML = `
+            <div id="hh-upgraded-landing-master">
+                <!-- STICKY TOP NAVBAR -->
+                <header class="hh-lp-nav">
+                    <div class="hh-lp-nav-inner">
+                        <a href="#" class="hh-lp-brand">🌻 Honeysuckle Hub</a>
+                        <nav class="hh-lp-links">
+                            <a href="#lp-scanners">📷 6 AI Scanners</a>
+                            <a href="#lp-recipes">🍽️ 100+ Whole-Food Recipes</a>
+                            <a href="#lp-levels">🌱 4 Comfort Levels</a>
+                            <a href="#lp-pillars">🏡 6 Household Pillars</a>
+                            <a href="#lp-terrain">🌿 Reclaim Your Terrain</a>
+                            <a href="#lp-pricing">💳 Pricing</a>
+                        </nav>
+                        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                            <button type="button" class="btn-secondary" style="padding:8px 14px; font-size:0.8rem;" onclick="openContactAshtonModal('Question Before Joining Honeysuckle Hub')">
+                                💌 Contact Ashton
+                            </button>
+                            <button type="button" class="btn-secondary" style="padding:8px 14px; font-size:0.8rem; border-color:#2E5A44; color:#2E5A44;" onclick="triggerHubLandingLogin()">
+                                Member Login
+                            </button>
+                            <button type="button" class="btn-primary" style="padding:8px 16px; font-size:0.8rem;" onclick="triggerHubLandingJoin()">
+                                Join the Hub &rarr;
+                            </button>
+                        </div>
+                    </div>
+                </header>
+
+                <!-- HERO SECTION -->
+                <section class="hh-lp-hero">
+                    <div class="hh-lp-pill">🌻 THE WHOLE-FOOD KITCHEN, HOMESCHOOL & HOMESTEAD OPERATING SYSTEM</div>
+                    <h1>Stop Juggling 5 Apps, Paper Lists, and a <span>5:00 PM Brain.</span></h1>
+                    <p class="hh-lp-lead">
+                        Run your kitchen, meal planning, homeschool, home rhythms, natural apothecary, and personal health from one peaceful place. Packed with <strong>100+ refined-sugar-free whole-food recipes</strong>, <strong>6 point-and-shoot camera scanners</strong>, <strong>hands-free voice brain dump</strong>, and <strong>4 gentle comfort levels</strong> that meet your family right where you are.
+                    </p>
+                    <div class="hh-lp-cta-row">
+                        <button type="button" class="hh-lp-btn-gold" onclick="triggerHubLandingJoin()">
+                            🌻 Join Honeysuckle Hub Today &rarr;
+                        </button>
+                        <button type="button" class="hh-lp-btn-sage" onclick="triggerHubLandingDemo()">
+                            ✨ Try the Live Interactive Demo
+                        </button>
+                        <a href="#lp-scanners" class="hh-lp-btn-outline" style="text-decoration:none;">
+                            See Everything Inside &darr;
+                        </a>
+                    </div>
+                    <div class="hh-lp-trust-strip">
+                        <span>✓ 100% Real Whole Foods & Zero Refined Sugar</span>
+                        <span>✓ Scales Automatically to Your Family Size</span>
+                        <span>✓ Levels 1–2 Simple Store-Bought to Levels 3–4 Freshly Milled Grains</span>
+                        <span>✓ Zero Guilt ("Grace Day" Mode Built In!)</span>
+                    </div>
+                </section>
+
+                <div class="hh-lp-container">
+                    <!-- SECTION 1: THE 6 SMART CAMERA SCANNERS & VOICE BRAIN DUMP -->
+                    <section id="lp-scanners" class="hh-lp-section">
+                        <div class="hh-lp-sec-head">
+                            <span class="hh-lp-pill">✨ NEW POINT-AND-SHOOT & HANDS-FREE TOOLS</span>
+                            <h2>6 Smart Camera Scanners + Hands-Full Voice Brain Dump</h2>
+                            <p>Built for real moms with hands covered in sourdough or holding a baby. Point your phone camera or tap the microphone and let the Hub do the heavy lifting.</p>
+                        </div>
+
+                        <div class="hh-lp-grid-3">
+                            <div class="hh-lp-card hh-lp-card-sage">
+                                <div>
+                                    <span class="hh-lp-badge hh-lp-badge-sage">📷 Scanner 1 • Kitchen & Larder</span>
+                                    <h3>Fridge, Freezer, Pantry & Receipt Scanner</h3>
+                                    <p>Point your camera at your open fridge, deep freezer, pantry shelf, or paper grocery receipt. The Hub identifies every item, estimates quantities, calculates shelf life, and updates your meal planner automatically.</p>
+                                </div>
+                                <div style="font-size:0.78rem; font-weight:700; color:#2E5A44;">✓ Auto-syncs with Low-Stock Alerts & Shopping List</div>
+                            </div>
+
+                            <div class="hh-lp-card">
+                                <div>
+                                    <span class="hh-lp-badge">🔍 Scanner 2 • Ditch & Switch</span>
+                                    <h3>Instant Ingredient Label "Toxin Decoder"</h3>
+                                    <p>Standing in the grocery aisle? Snap the tiny ingredient list on the back of any food box, lotion, or cleaner for a zero-guilt Level 1–4 rating—plus an exact store-bought switch or Honeysuckle Hub DIY formula.</p>
+                                </div>
+                                <div style="font-size:0.78rem; font-weight:700; color:#B87612;">✓ Flags seed oils, synthetic fragrances, dyes & parabens</div>
+                            </div>
+
+                            <div class="hh-lp-card">
+                                <div>
+                                    <span class="hh-lp-badge">📖 Scanner 3 • Family Recipe Vault</span>
+                                    <h3>Handwritten Recipe Card & Cookbook Scanner</h3>
+                                    <p>Snap a photo of Grandma's handwritten index card or any cookbook page. The Hub reads the handwriting, scales the ingredients to your exact family size, and formats foolproof step-by-step instructions.</p>
+                                </div>
+                                <div style="font-size:0.78rem; font-weight:700; color:#B87612;">✓ Saves straight to your private household vault</div>
+                            </div>
+
+                            <div class="hh-lp-card">
+                                <div>
+                                    <span class="hh-lp-badge">📚 Scanner 4 • Homeschool OS</span>
+                                    <h3>"Snap the Table of Contents" Auto-Scheduler</h3>
+                                    <p>Point your camera at the Table of Contents page of any homeschool workbook (Abeka, The Good and the Beautiful, Saxon, etc.) and map all 120+ lessons across your child's school days in one click.</p>
+                                </div>
+                                <div style="font-size:0.78rem; font-weight:700; color:#B87612;">✓ Builds your Master Teacher Plan-Book in 10 seconds</div>
+                            </div>
+
+                            <div class="hh-lp-card">
+                                <div>
+                                    <span class="hh-lp-badge">🌿 Scanner 5 • Folk Apothecary</span>
+                                    <h3>Herb, Essential Oil & Remedy Matcher</h3>
+                                    <p>Snap a photo of a garden herb, an essential oil bottle, or a minor household first-aid need to pull up matching traditional preparations, tinctures, salves, and child-safe dilution guides.</p>
+                                </div>
+                                <div style="font-size:0.78rem; font-weight:700; color:#B87612;">✓ Includes pregnancy, nursing & kid safety notes</div>
+                            </div>
+
+                            <div class="hh-lp-card">
+                                <div>
+                                    <span class="hh-lp-badge">🌱 Scanner 6 • Homestead & Barn</span>
+                                    <h3>Garden Leaf, Pest & Barnyard Identifier</h3>
+                                    <p>Point your camera at yellow tomato leaves, garden pests, or a chick/hen symptom for organic homestead remedies matched to supplies you already own in your pantry and barn.</p>
+                                </div>
+                                <div style="font-size:0.78rem; font-weight:700; color:#B87612;">✓ Adds treatment steps straight to your daily chores</div>
+                            </div>
+                        </div>
+
+                        <!-- HANDS-FULL VOICE BRAIN DUMP CALLOUT BANNER -->
+                        <div style="margin-top:22px; background:linear-gradient(135deg, #FEF5D8 0%, #FFFDF8 100%); border:2.5px solid #B87612; border-radius:22px; padding:24px 28px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:18px; box-shadow:0 12px 30px rgba(184,118,18,0.12);">
+                            <div style="max-width:740px;">
+                                <span class="hh-lp-badge" style="background:#B87612; color:#fff;">🎙️ FAN-FAVORITE FEATURE • HANDS-FULL VOICE BRAIN DUMP</span>
+                                <h3 style="font-family:var(--font-serif, Georgia, serif); font-size:1.5rem; color:#2A1E14; margin:6px 0;">Speak 5 Things at Once—Watch the Hub Sort & File Them Automatically</h3>
+                                <p style="font-size:0.92rem; color:#4A3728; margin:0;">
+                                    Tap the green microphone and say: <em>"Add two bags of layer feed and organic strawberries to the shopping list, mark 4th-grade math Lesson 15 done, and remind me to pull a chuck roast out at 8 PM."</em> The Hub parses every sentence and files each action into your Shopping List, Homeschool Log, and 8:00 PM Kitchen Bell automatically!
+                                </p>
+                            </div>
+                            <button type="button" class="hh-lp-btn-sage" onclick="triggerHubLandingDemo()">
+                                🎙️ Test It in the Live Demo &rarr;
+                            </button>
+                        </div>
+                    </section>
+
+                    <!-- SECTION 2: 100+ WHOLE-FOOD RECIPE VAULT & MEAL PLANNER -->
+                    <section id="lp-recipes" class="hh-lp-section">
+                        <div class="hh-lp-sec-head">
+                            <span class="hh-lp-pill">🍓 COLORFUL, NOURISHING WHOLE FOODS • ZERO REFINED SUGAR</span>
+                            <h2>100+ Scratch Whole-Food Recipes Scaled to Your Family</h2>
+                            <p>No extreme diet dogma and zero processed junk—just vibrant fruits, colorful vegetables, pasture-raised meats & eggs, raw/whole dairy, raw honey, and pure maple syrup.</p>
+                        </div>
+
+                        <div class="hh-lp-grid-3">
+                            <div class="hh-lp-card">
+                                <div>
+                                    <span class="hh-lp-badge">🥤 10 Smoothies & Shakes</span>
+                                    <h3>5-Minute Protein & Glow Blends</h3>
+                                    <p>Berry Collagen Glow, Banana Almond Butter Cinnamon, Tropical Mango-Coconut, Dark Chocolate Cherry Recovery, Green Orchard Apple-Ginger, Spiced Pumpkin Pecan, and more.</p>
+                                </div>
+                                <div style="font-size:0.78rem; color:#2E5A44; font-weight:700;">✓ Fast breakfast, lunch, or afternoon fuel</div>
+                            </div>
+
+                            <div class="hh-lp-card hh-lp-card-gold">
+                                <div>
+                                    <span class="hh-lp-badge">🥞 10 Everyday & Big-Family Breakfasts</span>
+                                    <h3>Flapjacks, Waffles, Pastries & Skillets</h3>
+                                    <p>5 quick weekday scrambles, hashes, and parfaits—plus 5 Big-Family Breakfasts including Buttermilk Flapjacks, Crispy Golden Waffles, Cinnamon-Maple Swirl Morning Rolls, and Baked Blueberry French Toast.</p>
+                                </div>
+                                <div style="font-size:0.78rem; color:#B87612; font-weight:700;">✓ Lvl 1–2 Unbleached Flour • Lvl 3–4 Freshly Milled Grains</div>
+                            </div>
+
+                            <div class="hh-lp-card">
+                                <div>
+                                    <span class="hh-lp-badge">🥗 20 Kid & High-Protein Adult Lunches</span>
+                                    <h3>10 Kid Favorites + 10 Fast 35g+ Protein Bowls</h3>
+                                    <p>From Kid Bistro Boards, Stovetop Cheddar Mac & Sweet Peas, and Crispy Chicken Tenders to 10-Minute Mediterranean Chicken Feta Bowls, Steakhouse Cobb Salads, and Wild Salmon Caesar Wraps.</p>
+                                </div>
+                                <div style="font-size:0.78rem; color:#2E5A44; font-weight:700;">✓ Keeps moms energized & kids happy</div>
+                            </div>
+
+                            <div class="hh-lp-card">
+                                <div>
+                                    <span class="hh-lp-badge">🥘 20 Whole-Food Family Dinners</span>
+                                    <h3>10 Large-Family + 5 Special Occasion + 5 Quick</h3>
+                                    <p>Sunday Pot Roast, Shepherd's Pie, Farmhouse Chicken & Dumplings, Prime Rib, Braised Short Ribs, plus 20-minute Cast-Iron Scratch Pizzas, Backyard Cheddar Burgers, and Sizzling Steak Fajitas.</p>
+                                </div>
+                                <div style="font-size:0.78rem; color:#2E5A44; font-weight:700;">✓ Includes the 🆘 5:00 PM Dinner Panic Button</div>
+                            </div>
+
+                            <div class="hh-lp-card">
+                                <div>
+                                    <span class="hh-lp-badge">🧀 20 Snacks, Crackers & Elixirs</span>
+                                    <h3>Batch-Prep Bites, Jerky & Artisan Crackers</h3>
+                                    <p>Hickory-Maple Beef Jerky, Sea-Salt & Rosemary Artisan Crackers, Strawberry Gelatin Gummies, Bacon-Gruyère Egg Bites, Peanut Butter Honey Energy Balls, and Veggie Sticks with Greek Yogurt Ranch.</p>
+                                </div>
+                                <div style="font-size:0.78rem; color:#2E5A44; font-weight:700;">✓ Zero seed oils, zero artificial dyes</div>
+                            </div>
+
+                            <div class="hh-lp-card">
+                                <div>
+                                    <span class="hh-lp-badge">🍋 10 Hydrating Drinks & Event Punches</span>
+                                    <h3>Mineral Waters, Lemonades & Party Pitchers</h3>
+                                    <p>Daily Lime-Maple Adrenal Mineral Water (with Redmond/Celtic salt), Front-Porch Raw Honey Lemonade, Watermelon-Mint Agua Fresca, Sparkling Hibiscus-Pomegranate Punch, and Warm Mulled Cider.</p>
+                                </div>
+                                <div style="font-size:0.78rem; color:#2E5A44; font-weight:700;">✓ Cellular hydration without refined sugar</div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- SECTION 3: THE 4 COMFORT LEVELS -->
+                    <section id="lp-levels" class="hh-lp-section">
+                        <div class="hh-lp-sec-head">
+                            <span class="hh-lp-pill">🌱 ZERO OVERWHELM • BUILT-IN PROGRESSION</span>
+                            <h2>One App That Adapts to Your Comfort Level (Levels 1 to 4)</h2>
+                            <p>An overwhelmed mind always says "No." Honeysuckle Hub filters your recipes, flour choices, and low-toxin swaps based on your current season—and rewards you with ⭐ Stars as you grow.</p>
+                        </div>
+
+                        <div class="hh-lp-grid-4">
+                            <div class="hh-lp-card">
+                                <div>
+                                    <span class="hh-lp-badge" style="background:#E8F2EC; color:#2E5A44;">🌱 Comfort Level 1</span>
+                                    <h3>Fresh Start</h3>
+                                    <p>Uses familiar grocery-store ingredients, organic store-bought unbleached flour & pasta, and highlights only the <strong>Top 5 Foundational Household Swaps</strong> so you never feel behind.</p>
+                                </div>
+                                <div style="font-size:0.76rem; font-weight:700; color:#2E5A44;">Perfect for busy moms starting fresh</div>
+                            </div>
+
+                            <div class="hh-lp-card">
+                                <div>
+                                    <span class="hh-lp-badge" style="background:#E8F2EC; color:#2E5A44;">🌿 Comfort Level 2</span>
+                                    <h3>Steady Rhythm</h3>
+                                    <p>Introduces homemade bone broths, batch-prep snacks, simple castile & essential oil surface sprays, and steady daily room resets with the 8:00 PM Night-Before Kitchen Bell.</p>
+                                </div>
+                                <div style="font-size:0.76rem; font-weight:700; color:#2E5A44;">Unlocks at 100 ⭐ Hub Stars</div>
+                            </div>
+
+                            <div class="hh-lp-card">
+                                <div>
+                                    <span class="hh-lp-badge" style="background:#FEF5D8; color:#B87612;">🌾 Comfort Level 3</span>
+                                    <h3>Modern Homesteader</h3>
+                                    <p>Upgrades baked goods and pastas to <strong>ancient einkorn & sourdough</strong>, unlocks herbal apothecary tinctures & salves, and connects your seasonal garden seed planner.</p>
+                                </div>
+                                <div style="font-size:0.76rem; font-weight:700; color:#B87612;">Unlocks at 250 ⭐ Hub Stars</div>
+                            </div>
+
+                            <div class="hh-lp-card hh-lp-card-gold">
+                                <div>
+                                    <span class="hh-lp-badge" style="background:#B87612; color:#fff;">👑 Comfort Level 4</span>
+                                    <h3>Master Steward</h3>
+                                    <p>Full from-scratch mastery with <strong>freshly milled soft white & hard red wheat berries</strong>, deep larder & root-cellar preservation, barnyard flock logs, and complete folk materia medica.</p>
+                                </div>
+                                <div style="font-size:0.76rem; font-weight:700; color:#B87612;">Unlocks at 500 ⭐ Hub Stars (or switch anytime!)</div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- SECTION 4: THE 6 HOUSEHOLD PILLARS -->
+                    <section id="lp-pillars" class="hh-lp-section">
+                        <div class="hh-lp-sec-head">
+                            <span class="hh-lp-pill">🏡 6 INTEGRATED HOUSEHOLD PILLARS</span>
+                            <h2>Everything Your Home Needs Under One Roof</h2>
+                            <p>Every pillar talks to the others automatically—when a recipe, apothecary remedy, or low-stock alert needs an ingredient, it lands on your categorized shopping list in one tap.</p>
+                        </div>
+
+                        <div class="hh-lp-grid-3">
+                            <div class="hh-lp-card">
+                                <div>
+                                    <span class="hh-lp-badge">🏠 Pillar 1 • Home Command Center</span>
+                                    <h3>Daily Rhythms, Room Resets & Grace Day</h3>
+                                    <p>See tonight's dinner, your top 3 room reset tasks, homeschool progress, and the 8:00 PM Kitchen Bell at a glance. Kids sick or sleep broken? Tap <strong>🌿 Activate Grace Day</strong> to pause deep cleaning and switch to survival mode.</p>
+                                </div>
+                            </div>
+
+                            <div class="hh-lp-card">
+                                <div>
+                                    <span class="hh-lp-badge">🥩 Pillar 2 • Kitchen, Larder & Swaps</span>
+                                    <h3>Dynamic Meal Planner & Toxin Decoder</h3>
+                                    <p>Auto-scales recipes to your family's exact ages, tracks your Fridge, Freezer, Pantry & Barn inventory with expiration alerts, and decodes household toxins with 1-click DIY formulas.</p>
+                                </div>
+                            </div>
+
+                            <div class="hh-lp-card">
+                                <div>
+                                    <span class="hh-lp-badge">📚 Pillar 3 • Homeschool Command</span>
+                                    <h3>Multi-Child Pacing & Printable Teacher Guides</h3>
+                                    <p>Manage multiple children across grade levels without the binder chaos. Snap your workbook Table of Contents, track 180-day attendance, and print clean weekly student checklists.</p>
+                                </div>
+                            </div>
+
+                            <div class="hh-lp-card">
+                                <div>
+                                    <span class="hh-lp-badge">🫙 Pillar 4 • Folk Apothecary & Oils</span>
+                                    <h3>Natural Medicine Cabinet & Pure Essential Oils</h3>
+                                    <p>Search traditional herbal remedies, elderberry syrups, poultices, and non-toxic cleaners—plus explore Ashton's step-by-step pure essential oil education and family dilution guides.</p>
+                                </div>
+                            </div>
+
+                            <div class="hh-lp-card">
+                                <div>
+                                    <span class="hh-lp-badge">🌾 Pillar 5 • Homestead & Barnyard OS</span>
+                                    <h3>Heirloom Seed Vault, Flock Logs & Harvests</h3>
+                                    <p>Track your garden planting calendar by frost zone, log daily egg & milk production, manage barnyard feed par levels, and diagnose leaf pests or flock symptoms with your camera.</p>
+                                </div>
+                            </div>
+
+                            <div class="hh-lp-card">
+                                <div>
+                                    <span class="hh-lp-badge">🕯️ Pillar 6 • The Table Community</span>
+                                    <h3>Encouragement, Shared Recipes & Support</h3>
+                                    <p>Pull up a chair with fellow moms to share scratch recipes, homestead wins, and prayer requests—plus message Ashton directly anytime from your in-app Founder's Mailbox.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- SECTION 5: RECLAIM YOUR TERRAIN SPOTLIGHT -->
+                    <section id="lp-terrain" class="hh-lp-section">
+                        <div style="background:linear-gradient(145deg, #1E3F2E 0%, #142B1F 100%); color:#FFFDF8; border-radius:28px; padding:42px 32px; border:3px solid #D9B36C; box-shadow:0 24px 60px rgba(20,43,31,0.28);">
+                            <div style="max-width:820px; margin:0 auto 30px auto; text-align:center;">
+                                <span style="background:#FEF5D8; color:#9A5B0A; padding:6px 16px; border-radius:999px; font-size:0.76rem; font-weight:800; text-transform:uppercase; letter-spacing:0.05em;">
+                                    🌿 CLINICAL WHOLE-PERSON COACHING INSIDE THE HUB
+                                </span>
+                                <h2 style="font-family:var(--font-serif, Georgia, serif); font-size:clamp(1.9rem, 3.5vw, 2.75rem); color:#FEF5D8; margin:12px 0 10px 0;">
+                                    Reclaim Your Terrain: Spirit, Soul & Body
+                                </h2>
+                                <p style="font-size:1rem; color:#E2EFE8; margin:0;">
+                                    Ready to heal afternoon energy crashes, sluggish digestion, 2:00 AM cortisol wake-ups, and hormone burnout? Built from 10+ years of functional nutrition and clinical coaching, <em>Reclaim Your Terrain</em> walks you through <strong>16 sequential steps</strong> at a pace your nervous system can actually sustain.
+                                </p>
+                            </div>
+
+                            <div class="hh-lp-grid-4" style="margin-bottom:28px;">
+                                <div style="background:rgba(255,253,248,0.08); border:1.5px solid rgba(254,245,216,0.25); border-radius:18px; padding:20px;">
+                                    <strong style="color:#FEF5D8; font-size:1.05rem; display:block; margin-bottom:6px;">📋 1. Instant 20-Question Functional Consult</strong>
+                                    <p style="font-size:0.84rem; color:#D7E8DF; margin:0;">The moment you enroll, your 20-Question Functional Intake Consult opens automatically to map your nervous system capacity, circadian rhythm, gut drainage, and hormone season.</p>
+                                </div>
+                                <div style="background:rgba(255,253,248,0.08); border:1.5px solid rgba(254,245,216,0.25); border-radius:18px; padding:20px;">
+                                    <strong style="color:#FEF5D8; font-size:1.05rem; display:block; margin-bottom:6px;">🎯 2. 16 Steps with an 85% Compliance Gate</strong>
+                                    <p style="font-size:0.84rem; color:#D7E8DF; margin:0;">Master one gentle habit layer at a time—morning cellular hydration, 30g+ protein anchors, lymphatic flow, bile drainage, and hormone stewardship—before unlocking the next step.</p>
+                                </div>
+                                <div style="background:rgba(255,253,248,0.08); border:1.5px solid rgba(254,245,216,0.25); border-radius:18px; padding:20px;">
+                                    <strong style="color:#FEF5D8; font-size:1.05rem; display:block; margin-bottom:6px;">💪 3. AI Workout of the Day (WOD) Studio</strong>
+                                    <p style="font-size:0.84rem; color:#D7E8DF; margin:0;">Generates daily workouts matched to your exact Phase (1–4) or Graduate Intermediate/Advanced tier and equipment—complete with a built-in interval & 60s cortisol-calm rest timer.</p>
+                                </div>
+                                <div style="background:rgba(255,253,248,0.08); border:1.5px solid rgba(254,245,216,0.25); border-radius:18px; padding:20px;">
+                                    <strong style="color:#FEF5D8; font-size:1.05rem; display:block; margin-bottom:6px;">🔒 4. 12 Exclusive Clinical Bonus Recipes</strong>
+                                    <p style="font-size:0.84rem; color:#D7E8DF; margin:0;">Unlocks the private <em>Reclaim Your Terrain</em> recipe subtab inside your Kitchen Vault—featuring adrenal mineral elixirs, bile-flow bowls, thyroid-warming curries, and 9 PM tart cherry nightcaps.</p>
+                                </div>
+                            </div>
+
+                            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(290px, 1fr)); gap:18px; max-width:860px; margin:0 auto;">
+                                <div style="background:#FFFDF8; color:#2A1E14; border-radius:18px; padding:22px; border:2px solid #EADBC0;">
+                                    <span class="hh-lp-badge" style="background:#E8F2EC; color:#2E5A44;">🌱 SELF-PACED GUIDED TRACK</span>
+                                    <h4 style="font-family:var(--font-serif, Georgia, serif); font-size:1.35rem; margin:6px 0 4px 0;">+$19/mo Inside the Hub</h4>
+                                    <p style="font-size:0.84rem; color:#4A3728; margin:0;">Full access to the 20-Question Functional Consult, all 16 sequential steps, the AI Workout of the Day Studio, and all 12 exclusive clinical recipes at your own pace.</p>
+                                </div>
+                                <div style="background:#FEF5D8; color:#2A1E14; border-radius:18px; padding:22px; border:2.5px solid #B87612;">
+                                    <span class="hh-lp-badge" style="background:#B87612; color:#fff;">👑 1-ON-1 CUSTOM VIP PROTOCOL</span>
+                                    <h4 style="font-family:var(--font-serif, Georgia, serif); font-size:1.35rem; margin:6px 0 4px 0;">$127 Custom Crafted by Ashton</h4>
+                                    <p style="font-size:0.84rem; color:#4A3728; margin:0;">Ashton personally reviews your 20-Question Functional Consult, writes your root-cause clinical summary, and custom-tailors all 16 steps specifically for your body and schedule.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- SECTION 6: COMPARISON TABLE -->
+                    <section class="hh-lp-section">
+                        <div class="hh-lp-sec-head">
+                            <span class="hh-lp-pill">📊 WHY MOMS SWITCH TO HONEYSUCKLE HUB</span>
+                            <h2>Replace 5 Disconnected Apps & Paper Binders</h2>
+                        </div>
+                        <div style="overflow-x:auto; background:#ffffff; border:2px solid #EADBC0; border-radius:20px; box-shadow:0 10px 28px rgba(42,30,20,0.05);">
+                            <table style="width:100%; border-collapse:collapse; text-align:left; font-size:0.9rem;">
+                                <thead>
+                                    <tr style="background:#FEF5D8; border-bottom:2px solid #EADBC0;">
+                                        <th style="padding:16px 20px; color:#2A1E14;">Household Need</th>
+                                        <th style="padding:16px 20px; color:#7A6855;">The Old Way (5 Apps + Binders)</th>
+                                        <th style="padding:16px 20px; color:#2E5A44; font-weight:800;">🌻 Honeysuckle Hub</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr style="border-bottom:1px solid #F0E6D2;">
+                                        <td style="padding:14px 20px; font-weight:700;">Meal Planning & Recipes</td>
+                                        <td style="padding:14px 20px; color:#6E5D4B;">Scattered Pinterest boards full of refined sugar & manual math</td>
+                                        <td style="padding:14px 20px; color:#2E5A44; font-weight:700;">✓ 100+ Refined-Sugar-Free Whole-Food Recipes auto-scaled to your family</td>
+                                    </tr>
+                                    <tr style="border-bottom:1px solid #F0E6D2;">
+                                        <td style="padding:14px 20px; font-weight:700;">Fridge & Pantry Tracking</td>
+                                        <td style="padding:14px 20px; color:#6E5D4B;">Forgotten food spoiling in the back of the fridge</td>
+                                        <td style="padding:14px 20px; color:#2E5A44; font-weight:700;">✓ Point-and-Shoot Camera Scanner logs stock & expiration dates in seconds</td>
+                                    </tr>
+                                    <tr style="border-bottom:1px solid #F0E6D2;">
+                                        <td style="padding:14px 20px; font-weight:700;">Homeschool Lesson Pacing</td>
+                                        <td style="padding:14px 20px; color:#6E5D4B;">Erasing and rewriting paper plan-books every time life happens</td>
+                                        <td style="padding:14px 20px; color:#2E5A44; font-weight:700;">✓ Snap the Table of Contents to auto-schedule + 1-click Grace Day shifting</td>
+                                    </tr>
+                                    <tr style="border-bottom:1px solid #F0E6D2;">
+                                        <td style="padding:14px 20px; font-weight:700;">Low-Toxin Living & Swaps</td>
+                                        <td style="padding:14px 20px; color:#6E5D4B;">Fear-based blogs that make you feel guilty about your pantry</td>
+                                        <td style="padding:14px 20px; color:#2E5A44; font-weight:700;">✓ Instant Label Scanner + Comfort Levels 1–4 (Store-bought simple to Freshly Milled)</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:14px 20px; font-weight:700;">Mom's Energy, Hormones & Fitness</td>
+                                        <td style="padding:14px 20px; color:#6E5D4B;">Generic HIIT apps that spike cortisol & exhaust your adrenals</td>
+                                        <td style="padding:14px 20px; color:#2E5A44; font-weight:700;">✓ Reclaim Your Terrain 16-Step Protocol + Phase-Matched AI Workout Studio</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                    <!-- SECTION 7: PRICING & MEMBERSHIP CTA -->
+                    <section id="lp-pricing" class="hh-lp-section">
+                        <div class="hh-lp-sec-head">
+                            <span class="hh-lp-pill">💳 SIMPLE, FAMILY-FRIENDLY MEMBERSHIP</span>
+                            <h2>Ready to Bring Peace & Order to Your Home?</h2>
+                            <p>Every Honeysuckle Hub membership includes all 6 Household Pillars, all 6 Point-and-Shoot Camera Scanners, Voice Brain Dump, and all 90+ Core Whole-Food Recipes.</p>
+                        </div>
+
+                        <div class="hh-lp-grid-3" style="max-width:1040px; margin:0 auto;">
+                            <!-- Core Hub Membership -->
+                            <div class="hh-lp-card hh-lp-card-gold" style="border-width:3px;">
+                                <div>
+                                    <span class="hh-lp-badge" style="background:#B87612; color:#fff;">🌻 MOST POPULAR • COMPLETE HOUSEHOLD OS</span>
+                                    <h3>Honeysuckle Hub Membership</h3>
+                                    <p>Complete access to all 6 Household Pillars, 6 Smart Camera Scanners, Voice Brain Dump, 90+ Whole-Food Recipes, Homeschool Scheduler, Apothecary & Homestead OS.</p>
+                                    <ul style="font-size:0.84rem; color:#4A3728; padding-left:18px; margin:12px 0 18px 0; line-height:1.7;">
+                                        <li><strong>6 Point-and-Shoot Camera Scanners</strong></li>
+                                        <li><strong>Hands-Full Voice Brain Dump</strong></li>
+                                        <li><strong>90+ Whole-Food Recipes</strong> (Smoothies, Big Breakfasts, Kid/Adult Lunches, Dinners, Snacks & Drinks)</li>
+                                        <li><strong>Comfort Levels 1–4</strong> (Store-bought simple to Freshly Milled Grains)</li>
+                                        <li><strong>Homeschool TOC Auto-Scheduler</strong> & Printable Checklists</li>
+                                    </ul>
+                                </div>
+                                <button type="button" class="hh-lp-btn-gold" style="width:100%;" onclick="triggerHubLandingJoin()">
+                                    🌻 Join Honeysuckle Hub &rarr;
+                                </button>
+                            </div>
+
+                            <!-- Interactive Demo Card -->
+                            <div class="hh-lp-card hh-lp-card-sage">
+                                <div>
+                                    <span class="hh-lp-badge hh-lp-badge-sage">✨ TRY BEFORE YOU JOIN</span>
+                                    <h3>Explore the Live Interactive Demo</h3>
+                                    <p>Want to click around the Kitchen Vault, test the 5:00 PM Dinner Panic Button, switch between Comfort Levels 1–4, and preview the Homeschool Planner right now?</p>
+                                    <ul style="font-size:0.84rem; color:#4A3728; padding-left:18px; margin:12px 0 18px 0; line-height:1.7;">
+                                        <li>Browse all <strong>100+ Whole-Food Recipes</strong></li>
+                                        <li>Test the <strong>Comfort Level 1–4 Switcher</strong></li>
+                                        <li>Preview the <strong>Homeschool & Homestead Planners</strong></li>
+                                        <li>Peek inside <strong>Reclaim Your Terrain</strong></li>
+                                    </ul>
+                                </div>
+                                <button type="button" class="hh-lp-btn-sage" style="width:100%;" onclick="triggerHubLandingDemo()">
+                                    ✨ Launch Interactive Demo &rarr;
+                                </button>
+                            </div>
+
+                            <!-- Reclaim Your Terrain Add-On / VIP Card -->
+                            <div class="hh-lp-card">
+                                <div>
+                                    <span class="hh-lp-badge">🌿 CLINICAL COACHING UPGRADE</span>
+                                    <h3>Reclaim Your TerrainTracks</h3>
+                                    <p>Available inside your Hub dashboard anytime! Choose between the self-paced guided track or a 1-on-1 custom protocol crafted personally by Ashton.</p>
+                                    <ul style="font-size:0.84rem; color:#4A3728; padding-left:18px; margin:12px 0 18px 0; line-height:1.7;">
+                                        <li><strong>🌱 Guided Track (+$19/mo):</strong> 20-Q Consult, 16 Steps, AI Workout Studio & 12 Bonus Clinical Recipes</li>
+                                        <li><strong>👑 1-on-1 Custom VIP ($127):</strong> Ashton personally reviews your consult & custom-tailors all 16 steps for your body</li>
+                                    </ul>
+                                </div>
+                                <button type="button" class="hh-lp-btn-outline" style="width:100%; border-color:#2E5A44; color:#2E5A44;" onclick="triggerHubLandingJoin()">
+                                    🌿 Get Started Inside the Hub &rarr;
+                                </button>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- WARM FOUNDER TRUST & DIRECT CONTACT FOOTER -->
+                    <footer style="max-width:980px; margin:20px auto 0 auto; text-align:center;">
+                        <div style="background:#FFFDF8; border:2px solid #EADBC0; border-radius:22px; padding:28px 24px; box-shadow:0 10px 28px rgba(42,30,20,0.05);">
+                            <span class="hh-lp-badge">🌻 BUILT BY A REAL HOMESCHOOLING MOM, HOMESTEader & FUNCTIONAL HEALTH COACH</span>
+                            <h3 style="font-family:var(--font-serif, Georgia, serif); font-size:1.65rem; color:#B87612; margin:8px 0;">Have a Question Before Joining? Message Ashton Directly!</h3>
+                            <p style="max-width:660px; margin:0 auto 18px auto; font-size:0.92rem; color:#4A3728;">
+                                You’re never talking to a faceless software company here. If you have questions about how Honeysuckle Hub works for your family, or which <em>Reclaim Your Terrain</em> track is right for you, send me a note anytime!
+                            </p>
+                            <div style="display:flex; justify-content:center; gap:12px; flex-wrap:wrap; align-items:center;">
+                                <button type="button" class="btn-primary" onclick="openContactAshtonModal('Question Before Joining Honeysuckle Hub')">
+                                    💌 Send a Message to Ashton
+                                </button>
+                                <a href="mailto:${FOUNDER_EMAIL}" class="btn-secondary" style="text-decoration:none;">
+                                    ✉️ Email ${FOUNDER_EMAIL}
+                                </a>
+                            </div>
+                        </div>
+                    </footer>
+                </div>
+            </div>
+        `;
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', upgradeHoneysuckleLandingPage);
+    } else {
+        upgradeHoneysuckleLandingPage();
+    }
+    setTimeout(upgradeHoneysuckleLandingPage, 250);
+})();
+</script>
+
+<!-- ================= BLOCK 4: ADAPTIVE FAMILY MEAL RHYTHM & DUAL KID + ADULT LUNCH PLANNER ================= -->
+<script>
+(function() {
+    const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+    const DEFAULT_MEAL_RHYTHM_CONFIG = {
+        lunchMode: 'homeschool_dual',     // 'homeschool_dual' | 'school_weekdays' | 'adults_only' | 'shared_kid'
+        breakfastMode: 'quick_wkdy_big_wknd', // 'quick_wkdy_big_wknd' | 'big_daily' | 'smoothie_focus'
+        dinnerMode: 'balanced_family',    // 'balanced_family' | 'large_family_focus' | 'quick_20min'
+        includeDailySnackAndDrink: true,
+        adultsAtLunch: 1,                 // e.g. 1 (Just Mom) or 2 (Mom & Dad)
+        kidsAtLunch: 4,                   // Number of kids eating the Kid-Friendly Lunch
+        familyDinnerAdults: 2,
+        familyDinnerKids: 4
+    };
+
+    function getMealRhythmConfig() {
+        if (typeof getLocalData === 'function') {
+            const saved = getLocalData('hh_family_meal_rhythm_config', null);
+            if (saved && typeof saved === 'object') {
+                return { ...DEFAULT_MEAL_RHYTHM_CONFIG, ...saved };
+            }
+        }
+        try {
+            const raw = localStorage.getItem('hh_family_meal_rhythm_config');
+            if (raw) return { ...DEFAULT_MEAL_RHYTHM_CONFIG, ...JSON.parse(raw) };
+        } catch (e) {}
+        return { ...DEFAULT_MEAL_RHYTHM_CONFIG };
+    }
+
+    function saveMealRhythmConfig(cfg) {
+        if (typeof setLocalData === 'function') {
+            setLocalData('hh_family_meal_rhythm_config', cfg);
+        }
+        try {
+            localStorage.setItem('hh_family_meal_rhythm_config', JSON.stringify(cfg));
+        } catch (e) {}
+    }
+
+    function getAllAvailableWholeFoodRecipes() {
+        if (Array.isArray(window.HONEYSUCKLE_WHOLE_FOOD_RECIPES) && window.HONEYSUCKLE_WHOLE_FOOD_RECIPES.length > 0) {
+            const priv = (typeof getLocalData === 'function') ? (getLocalData('private_household_recipes', []) || []) : [];
+            return [...priv, ...window.HONEYSUCKLE_WHOLE_FOOD_RECIPES];
+        }
+        const pub = (typeof getLocalData === 'function') ? (getLocalData('custom_public_recipes', []) || []) : [];
+        const priv = (typeof getLocalData === 'function') ? (getLocalData('private_household_recipes', []) || []) : [];
+        const def = (typeof DEFAULT_RECIPES !== 'undefined' && Array.isArray(DEFAULT_RECIPES)) ? DEFAULT_RECIPES : [];
+        const map = new Map();
+        [...priv, ...pub, ...def].forEach(r => { if (r && r.id) map.set(r.id, r); });
+        return Array.from(map.values());
+    }
+
+    function getRecipesBySubtab(subtabKey, fallbackCategory = 'lunch') {
+        const all = getAllAvailableWholeFoodRecipes();
+        const exact = all.filter(r => r && r.vaultSubtab === subtabKey);
+        if (exact.length > 0) return exact;
+        return all.filter(r => r && r.category === fallbackCategory);
+    }
+
+    function pickRandomRecipe(list, excludeIds = new Set()) {
+        if (!Array.isArray(list) || list.length === 0) return null;
+        const available = list.filter(r => r && !excludeIds.has(r.id));
+        const pool = available.length > 0 ? available : list;
+        const chosen = pool[Math.floor(Math.random() * pool.length)];
+        if (chosen && chosen.id) excludeIds.add(chosen.id);
+        return chosen;
+    }
+
+    // =========================================================================
+    // 1. BUILD ADAPTIVE 7-DAY MEAL PLAN BASED ON FAMILY RHYTHM
+    // =========================================================================
+    window.buildAdaptiveSevenDayMealPlan = function(forceNew = false) {
+        if (!forceNew && typeof getLocalData === 'function') {
+            const existing = getLocalData('hh_adaptive_weekly_plan', null);
+            if (Array.isArray(existing) && existing.length === 7) return existing;
+        }
+
+        const cfg = getMealRhythmConfig();
+        const usedIds = new Set();
+
+        const smoothies = getRecipesBySubtab('smoothie', 'breakfast');
+        const allBreakfasts = getRecipesBySubtab('breakfast', 'breakfast');
+        const bigFamilyBreakfasts = allBreakfasts.filter(r => (r.title || '').includes('[Big Family'));
+        const everydayBreakfasts = allBreakfasts.filter(r => !(r.title || '').includes('[Big Family'));
+
+        const kidLunches = getRecipesBySubtab('lunch_kid', 'lunch');
+        const adultLunches = getRecipesBySubtab('lunch_adult', 'lunch');
+
+        const familyDinners = getRecipesBySubtab('dinner_family', 'dinner');
+        const specialDinners = getRecipesBySubtab('dinner_special', 'dinner');
+        const quickDinners = getRecipesBySubtab('dinner_quick', 'dinner');
+
+        const snacks = getRecipesBySubtab('snack', 'snack');
+        const drinks = getRecipesBySubtab('drink', 'snack');
+
+        const weekPlan = DAYS_OF_WEEK.map((dayName, dayIdx) => {
+            const isWeekend = dayIdx >= 5; // Saturday (5) or Sunday (6)
+
+            // 1. BREAKFAST SELECTION
+            let bPool = everydayBreakfasts;
+            if (cfg.breakfastMode === 'big_daily') {
+                bPool = bigFamilyBreakfasts.length ? bigFamilyBreakfasts : allBreakfasts;
+            } else if (cfg.breakfastMode === 'smoothie_focus') {
+                bPool = isWeekend ? (bigFamilyBreakfasts.length ? bigFamilyBreakfasts : allBreakfasts) : [...smoothies, ...everydayBreakfasts.slice(0, 2)];
+            } else {
+                // quick_wkdy_big_wknd (Default)
+                bPool = isWeekend
+                    ? (bigFamilyBreakfasts.length ? bigFamilyBreakfasts : allBreakfasts)
+                    : [...everydayBreakfasts, ...smoothies.slice(0, 4)];
+            }
+            const breakfastRec = pickRandomRecipe(bPool, usedIds);
+
+            // 2. LUNCH SELECTION (KID LUNCH + MOM/ADULT FILLING LUNCH)
+            let kidLunchRec = null;
+            let adultLunchRec = null;
+
+            if (cfg.lunchMode === 'homeschool_dual') {
+                kidLunchRec = pickRandomRecipe(kidLunches, usedIds);
+                adultLunchRec = pickRandomRecipe(adultLunches, usedIds);
+            } else if (cfg.lunchMode === 'school_weekdays') {
+                adultLunchRec = pickRandomRecipe(adultLunches, usedIds);
+                if (isWeekend) {
+                    kidLunchRec = pickRandomRecipe(kidLunches, usedIds);
+                }
+            } else if (cfg.lunchMode === 'adults_only') {
+                adultLunchRec = pickRandomRecipe(adultLunches, usedIds);
+            } else if (cfg.lunchMode === 'shared_kid') {
+                kidLunchRec = pickRandomRecipe(kidLunches, usedIds);
+            }
+
+            // 3. DINNER SELECTION
+            let dPool = familyDinners;
+            if (cfg.dinnerMode === 'quick_20min') {
+                dPool = dayIdx === 6 ? [...specialDinners, ...familyDinners] : [...quickDinners, ...familyDinners.slice(0, 3)];
+            } else if (cfg.dinnerMode === 'large_family_focus') {
+                dPool = dayIdx === 6 ? [...specialDinners, ...familyDinners] : familyDinners;
+            } else {
+                // balanced_family: Quick on Tue/Thu/Fri, Special on Sun, Large Family on Mon/Wed/Sat
+                if (dayIdx === 6 && specialDinners.length) dPool = specialDinners;
+                else if ([1, 3, 4].includes(dayIdx) && quickDinners.length) dPool = quickDinners;
+                else dPool = familyDinners;
+            }
+            const dinnerRec = pickRandomRecipe(dPool, usedIds);
+
+            // 4. OPTIONAL DAILY SNACK & HYDRATING DRINK
+            const snackRec = cfg.includeDailySnackAndDrink ? pickRandomRecipe(snacks, usedIds) : null;
+            const drinkRec = cfg.includeDailySnackAndDrink ? pickRandomRecipe(drinks, usedIds) : null;
+
+            return {
+                dayName,
+                breakfastId: breakfastRec?.id || null,
+                kidLunchId: kidLunchRec?.id || null,
+                adultLunchId: adultLunchRec?.id || null,
+                dinnerId: dinnerRec?.id || null,
+                snackId: snackRec?.id || null,
+                drinkId: drinkRec?.id || null
+            };
+        });
+
+        if (typeof setLocalData === 'function') {
+            setLocalData('hh_adaptive_weekly_plan', weekPlan);
+        }
+        return weekPlan;
+    };
+
+    // Swap a single slot on a specific day (0..6) without resetting the rest of the week
+    window.swapSingleAdaptiveMealSlot = function(dayIdx, slotKey) {
+        const plan = window.buildAdaptiveSevenDayMealPlan(false);
+        const dayObj = plan[dayIdx];
+        if (!dayObj) return;
+
+        const subtabMap = {
+            breakfastId: ['breakfast', 'smoothie'],
+            kidLunchId: ['lunch_kid'],
+            adultLunchId: ['lunch_adult'],
+            dinnerId: ['dinner_family', 'dinner_quick', 'dinner_special'],
+            snackId: ['snack'],
+            drinkId: ['drink']
+        };
+        const allowedSubtabs = subtabMap[slotKey] || ['lunch_adult'];
+        const all = getAllAvailableWholeFoodRecipes();
+        const pool = all.filter(r => r && allowedSubtabs.includes(r.vaultSubtab) && r.id !== dayObj[slotKey]);
+        if (pool.length === 0) return;
+
+        const nextRec = pool[Math.floor(Math.random() * pool.length)];
+        dayObj[slotKey] = nextRec.id;
+
+        if (typeof setLocalData === 'function') {
+            setLocalData('hh_adaptive_weekly_plan', plan);
+        }
+        renderAdaptiveMealPlannerUI();
+        syncAdaptiveGroceryList();
+    };
+
+    // Allow user to pick an exact recipe from a dropdown modal for any slot
+    window.openChooseExactMealSlotModal = function(dayIdx, slotKey, slotLabel) {
+        const plan = window.buildAdaptiveSevenDayMealPlan(false);
+        const dayObj = plan[dayIdx];
+        if (!dayObj || typeof openUniversalModal !== 'function') return;
+
+        const subtabMap = {
+            breakfastId: ['breakfast', 'smoothie'],
+            kidLunchId: ['lunch_kid'],
+            adultLunchId: ['lunch_adult'],
+            dinnerId: ['dinner_family', 'dinner_quick', 'dinner_special'],
+            snackId: ['snack'],
+            drinkId: ['drink']
+        };
+        const allowedSubtabs = subtabMap[slotKey] || ['lunch_adult'];
+        const all = getAllAvailableWholeFoodRecipes();
+        const options = all
+            .filter(r => r && allowedSubtabs.includes(r.vaultSubtab))
+            .map(r => ({ value: r.id, label: r.title }));
+
+        openUniversalModal(`🍽️ Choose ${dayObj.dayName} — ${slotLabel}`, [
+            {
+                name: 'recipeId',
+                label: `Select Recipe for ${dayObj.dayName} (${slotLabel})`,
+                type: 'select',
+                value: dayObj[slotKey] || (options[0]?.value || ''),
+                options
+            }
+        ], (vals) => {
+            if (vals.recipeId) {
+                dayObj[slotKey] = vals.recipeId;
+                if (typeof setLocalData === 'function') setLocalData('hh_adaptive_weekly_plan', plan);
+                renderAdaptiveMealPlannerUI();
+                syncAdaptiveGroceryList();
+            }
+        });
+    };
+
+    // Safe Recipe Viewer Modal so clicking any meal title opens its scaled ingredients & steps
+    window.viewAdaptiveRecipeDetails = function(recipeId, scaleMultiplier = 1, scaleLabel = '1 Adult Base') {
+        const all = getAllAvailableWholeFoodRecipes();
+        const rec = all.find(r => r && r.id === recipeId);
+        if (!rec) {
+            if (typeof window.openRecipeModal === 'function') window.openRecipeModal(recipeId);
+            return;
+        }
+
+        document.getElementById('hh-adaptive-recipe-view-modal')?.remove();
+        const mult = Math.max(0.5, parseFloat(scaleMultiplier) || 1);
+
+        const ingHtml = (rec.ingredients || []).map(ing => {
+            const scaledQty = Math.round((parseFloat(ing.qty) || 1) * mult * 100) / 100;
+            return `<li style="padding:5px 0; border-bottom:1px dashed var(--border); display:flex; justify-content:space-between; font-size:0.88rem;">
+                <span><strong>${escapeSafeHtml(ing.name)}</strong></span>
+                <span style="color:var(--sage); font-weight:700;">${scaledQty} ${escapeSafeHtml(ing.unit || '')}</span>
+            </li>`;
+        }).join('');
+
+        const stepsHtml = (rec.steps || [rec.desc || '']).map((s, i) => `
+            <div style="background:var(--bg-warm-cream); border:1px solid var(--border); border-radius:10px; padding:10px 12px; margin-bottom:8px; font-size:0.88rem;">
+                <strong style="color:var(--primary);">Step ${i + 1}:</strong> ${escapeSafeHtml(s)}
+            </div>
+        `).join('');
+
+        const modal = document.createElement('div');
+        modal.id = 'hh-adaptive-recipe-view-modal';
+        modal.className = 'modal-overlay';
+        modal.style.cssText = 'display:flex; z-index:2960;';
+        modal.innerHTML = `
+            <div style="background:#ffffff; width:100%; max-width:640px; border-radius:22px; padding:26px; max-height:92vh; overflow-y:auto; box-shadow:0 25px 60px rgba(0,0,0,0.38); border:3px solid var(--sage);">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid var(--border); padding-bottom:12px; margin-bottom:14px; gap:10px;">
+                    <div>
+                        <span class="card-tag" style="background:var(--sage); color:#fff;">⏱️ ${escapeSafeHtml(rec.prepCookTime || '20 Mins')} • 🔥 ${escapeSafeHtml(rec.stoveTemp || 'Medium')}</span>
+                        <h3 style="font-size:1.45rem; color:var(--primary); margin:4px 0 0 0;">${escapeSafeHtml(rec.title)}</h3>
+                        <p style="font-size:0.78rem; color:var(--text-muted); margin:2px 0 0 0;">🛠️ Tools: ${escapeSafeHtml(rec.toolsNeeded || 'Skillet & Bowl')} • ⚖️ Scaled for: <strong>${escapeSafeHtml(scaleLabel)}</strong></p>
+                    </div>
+                    <button type="button" onclick="document.getElementById('hh-adaptive-recipe-view-modal').remove()" style="background:none; border:none; font-size:1.7rem; cursor:pointer;">&times;</button>
+                </div>
+
+                <h4 style="font-size:0.95rem; color:var(--sage); text-transform:uppercase; margin:0 0 6px 0;">🛒 Scaled Ingredients (${escapeSafeHtml(scaleLabel)}):</h4>
+                <ul style="list-style:none; padding:0; margin:0 0 16px 0;">${ingHtml}</ul>
+
+                <h4 style="font-size:0.95rem; color:var(--primary); text-transform:uppercase; margin:0 0 8px 0;">👩‍🍳 Step-by-Step Instructions:</h4>
+                <div>${stepsHtml}</div>
+
+                <div style="display:flex; justify-content:flex-end; margin-top:14px;">
+                    <button type="button" class="btn-primary" onclick="document.getElementById('hh-adaptive-recipe-view-modal').remove()">Done</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    };
+
+    // =========================================================================
+    // 2. SMART PROPORTIONAL GROCERY LIST CALCULATOR
+    //    (Scales Kid Lunches to Kids, Adult Lunches to Mom/Adults, Dinners to Whole Family!)
+    // =========================================================================
+    function syncAdaptiveGroceryList() {
+        const cfg = getMealRhythmConfig();
+        const plan = window.buildAdaptiveSevenDayMealPlan(false);
+        const all = getAllAvailableWholeFoodRecipes();
+        const recMap = new Map();
+        all.forEach(r => { if (r && r.id) recMap.set(r.id, r); });
+
+        // Portion Multipliers (Each kid counts as ~0.65 of an adult base serving)
+        const fullFamilyMultiplier = Math.max(1, (parseFloat(cfg.familyDinnerAdults) || 2) + ((parseFloat(cfg.familyDinnerKids) || 0) * 0.65));
+        const kidLunchMultiplier = Math.max(0.65, (parseFloat(cfg.kidsAtLunch) || 1) * 0.65);
+        const adultLunchMultiplier = Math.max(1, parseFloat(cfg.adultsAtLunch) || 1);
+
+        const aggregated = {};
+
+        function addRecipeIngredients(recId, multiplier) {
+            if (!recId) return;
+            const rec = recMap.get(recId);
+            if (!rec || !Array.isArray(rec.ingredients)) return;
+            rec.ingredients.forEach(ing => {
+                if (!ing || !ing.name) return;
+                const key = `${ing.name.trim().toLowerCase()}__${(ing.unit || 'whole').toLowerCase()}`;
+                const rawCategory = (ing.category || 'Traditional Fats & Pantry Staples').replace(/Animal Fats & Pantry/g, 'Traditional Fats & Pantry Staples');
+                if (!aggregated[key]) {
+                    aggregated[key] = {
+                        name: ing.name.trim(),
+                        qty: 0,
+                        unit: ing.unit || 'whole',
+                        category: rawCategory
+                    };
+                }
+                aggregated[key].qty += (parseFloat(ing.qty) || 0.5) * multiplier;
+            });
+        }
+
+        plan.forEach(day => {
+            addRecipeIngredients(day.breakfastId, fullFamilyMultiplier);
+            if (day.kidLunchId) addRecipeIngredients(day.kidLunchId, kidLunchMultiplier);
+            if (day.adultLunchId) addRecipeIngredients(day.adultLunchId, adultLunchMultiplier);
+            addRecipeIngredients(day.dinnerId, fullFamilyMultiplier);
+            if (cfg.includeDailySnackAndDrink) {
+                addRecipeIngredients(day.snackId, fullFamilyMultiplier * 0.75);
+                addRecipeIngredients(day.drinkId, fullFamilyMultiplier * 0.75);
+            }
+        });
+
+        // Merge any manual extra_shopping_items added via Voice Brain Dump or Low-Stock Alerts
+        const extras = (typeof getLocalData === 'function') ? (getLocalData('extra_shopping_items', []) || []) : [];
+        extras.forEach(ex => {
+            if (!ex || !ex.name) return;
+            const key = `${ex.name.trim().toLowerCase()}__${(ex.unit || 'whole').toLowerCase()}`;
+            const rawCategory = (ex.category || 'Household & Cleaning Supplies').replace(/Animal Fats & Pantry/g, 'Traditional Fats & Pantry Staples');
+            if (!aggregated[key]) {
+                aggregated[key] = { name: ex.name.trim(), qty: 0, unit: ex.unit || 'whole', category: rawCategory };
+            }
+            aggregated[key].qty += (parseFloat(ex.qty) || 1);
+        });
+
+        // Render into the existing Grocery List container if present
+        const groceryContainer = document.getElementById('ab-grocery-list') || document.querySelector('[id*="grocery-list"]');
+        if (!groceryContainer) return;
+
+        const checkedMap = (typeof getLocalData === 'function') ? (getLocalData('ab_checked_groceries', {}) || {}) : {};
+        const byCat = {};
+        Object.values(aggregated).forEach(item => {
+            const cat = item.category || 'Traditional Fats & Pantry Staples';
+            if (!byCat[cat]) byCat[cat] = [];
+            byCat[cat].push(item);
+        });
+
+        const catOrder = [
+            'Meats & Organs',
+            'Eggs & Raw Dairy',
+            'Fruits & Produce',
+            'Traditional Fats & Pantry Staples',
+            'Household & Cleaning Supplies',
+            'Homestead & Barn Supplies'
+        ];
+        const sortedCats = Object.keys(byCat).sort((a, b) => {
+            const ia = catOrder.indexOf(a), ib = catOrder.indexOf(b);
+            return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+        });
+
+        groceryContainer.innerHTML = sortedCats.map(cat => `
+            <div style="background:#FFFDF8; border:1.5px solid var(--border); border-radius:14px; padding:14px; margin-bottom:12px;">
+                <strong style="font-size:0.88rem; color:var(--primary); display:block; margin-bottom:8px; border-bottom:1px solid var(--border); padding-bottom:4px;">
+                    🛒 ${escapeSafeHtml(cat)}
+                </strong>
+                <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(230px, 1fr)); gap:6px;">
+                    ${byCat[cat].map(it => {
+                        const cleanQty = Math.round(it.qty * 10) / 10;
+                        const isChk = Boolean(checkedMap[it.name]);
+                        return `
+                            <label style="display:flex; align-items:center; gap:8px; font-size:0.83rem; cursor:pointer; padding:4px 6px; border-radius:8px; background:${isChk ? '#E8F2EC' : 'transparent'}; opacity:${isChk ? '0.65' : '1'};">
+                                <input type="checkbox" ${isChk ? 'checked' : ''} onchange="toggleAdaptiveGroceryItem('${escapeSafeHtml(it.name.replace(/'/g, "\\'"))}', this.checked)" style="accent-color:var(--sage); width:16px; height:16px;">
+                                <span style="${isChk ? 'text-decoration:line-through;' : ''}"><strong>${cleanQty} ${escapeSafeHtml(it.unit)}</strong> ${escapeSafeHtml(it.name)}</span>
+                            </label>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    window.toggleAdaptiveGroceryItem = function(itemName, isChecked) {
+        if (typeof getLocalData !== 'function' || typeof setLocalData !== 'function') return;
+        const checkedMap = getLocalData('ab_checked_groceries', {}) || {};
+        checkedMap[itemName] = !!isChecked;
+        setLocalData('ab_checked_groceries', checkedMap, true);
+        syncAdaptiveGroceryList();
+    };
+
+    // =========================================================================
+    // 3. SAVE CONFIG FROM UI & REGENERATE
+    // =========================================================================
+    window.saveMealRhythmFromUIAndRegenerate = function(forceNewRecipes = true) {
+        const cfg = getMealRhythmConfig();
+        const lMode = document.getElementById('hh-mr-lunch-mode')?.value;
+        const bMode = document.getElementById('hh-mr-breakfast-mode')?.value;
+        const dMode = document.getElementById('hh-mr-dinner-mode')?.value;
+        const snkChk = document.getElementById('hh-mr-snack-chk');
+        const adLunch = document.getElementById('hh-mr-adults-lunch')?.value;
+        const kdLunch = document.getElementById('hh-mr-kids-lunch')?.value;
+        const famAd = document.getElementById('hh-mr-fam-adults')?.value;
+        const famKd = document.getElementById('hh-mr-fam-kids')?.value;
+
+        if (lMode) cfg.lunchMode = lMode;
+        if (bMode) cfg.breakfastMode = bMode;
+        if (dMode) cfg.dinnerMode = dMode;
+        if (snkChk) cfg.includeDailySnackAndDrink = snkChk.checked;
+        if (adLunch !== undefined) cfg.adultsAtLunch = Math.max(1, parseInt(adLunch) || 1);
+        if (kdLunch !== undefined) cfg.kidsAtLunch = Math.max(0, parseInt(kdLunch) || 0);
+        if (famAd !== undefined) cfg.familyDinnerAdults = Math.max(1, parseInt(famAd) || 2);
+        if (famKd !== undefined) cfg.familyDinnerKids = Math.max(0, parseInt(famKd) || 0);
+
+        saveMealRhythmConfig(cfg);
+        window.buildAdaptiveSevenDayMealPlan(forceNewRecipes);
+        renderAdaptiveMealPlannerUI();
+        syncAdaptiveGroceryList();
+    };
+
+    // =========================================================================
+    // 4. RENDER THE FAMILY MEAL RHYTHM CUSTOMIZER & DUAL-LUNCH 7-DAY CALENDAR
+    // =========================================================================
+    function findMealPlannerGridContainer() {
+        return document.getElementById('ab-meal-plan-grid') ||
+               document.getElementById('meal-plan-grid') ||
+               document.querySelector('#food-tab-meal-planner .grid-3, #tool-tab-meal-planner .grid-3, [id*="meal-planner"] [id*="grid"]');
+    }
+
+    function renderSlotRowHtml(dayIdx, slotKey, badgeText, badgeColor, recObj, scaleMult, scaleLabel) {
+        if (!recObj) return '';
+        return `
+            <div style="background:#ffffff; border:1px solid var(--border); border-left:4px solid ${badgeColor}; border-radius:10px; padding:8px 10px; margin-bottom:7px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:3px;">
+                    <span style="font-size:0.68rem; font-weight:800; text-transform:uppercase; color:${badgeColor}; letter-spacing:0.03em;">
+                        ${badgeText}
+                    </span>
+                    <div style="display:flex; gap:4px;">
+                        <button type="button" title="Swap this meal" onclick="swapSingleAdaptiveMealSlot(${dayIdx}, '${slotKey}')" style="background:var(--bg-warm-cream); border:1px solid var(--border); border-radius:6px; padding:2px 6px; font-size:0.68rem; cursor:pointer; font-weight:700;">
+                            🔄 Swap
+                        </button>
+                        <button type="button" title="Pick from list" onclick="openChooseExactMealSlotModal(${dayIdx}, '${slotKey}', '${escapeSafeHtml(badgeText)}')" style="background:var(--bg-warm-cream); border:1px solid var(--border); border-radius:6px; padding:2px 6px; font-size:0.68rem; cursor:pointer;">
+                            📋 Pick
+                        </button>
+                    </div>
+                </div>
+                <div onclick="viewAdaptiveRecipeDetails('${recObj.id}', ${scaleMult}, '${escapeSafeHtml(scaleLabel)}')" style="font-size:0.84rem; font-weight:700; color:var(--text-main); cursor:pointer; line-height:1.3; text-decoration:underline; text-decoration-color:rgba(184,118,18,0.35);">
+                    ${escapeSafeHtml(recObj.title)}
+                </div>
+            </div>
+        `;
+    }
+
+    function renderAdaptiveMealPlannerUI() {
+        const gridEl = findMealPlannerGridContainer();
+        if (!gridEl) return;
+
+        const cfg = getMealRhythmConfig();
+        const plan = window.buildAdaptiveSevenDayMealPlan(false);
+        const all = getAllAvailableWholeFoodRecipes();
+        const recMap = new Map();
+        all.forEach(r => { if (r && r.id) recMap.set(r.id, r); });
+
+        // 1. Inject or Update the "Step 2: Family Meal & Lunch Rhythm Customizer" Box right above the 7-day grid
+        let customizerBox = document.getElementById('hh-family-meal-rhythm-customizer');
+        if (!customizerBox) {
+            customizerBox = document.createElement('div');
+            customizerBox.id = 'hh-family-meal-rhythm-customizer';
+            customizerBox.style.cssText = 'background: linear-gradient(145deg, #FFFDF8 0%, #FEF5D8 100%); border: 2.5px solid var(--primary); border-radius: 18px; padding: 18px 20px; margin-bottom: 18px; box-shadow: var(--shadow-soft);';
+            gridEl.insertAdjacentElement('beforebegin', customizerBox);
+        }
+
+        const showKidsCountInput = cfg.lunchMode !== 'adults_only';
+
+        customizerBox.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px; border-bottom:1.5px solid var(--border); padding-bottom:10px; margin-bottom:14px;">
+                <div>
+                    <span class="card-tag" style="background:var(--sage); color:#fff;">👨‍👩‍👧‍👦 Step 2 • Tailored to Your Household's Real Schedule</span>
+                    <h4 style="font-size:1.3rem; color:var(--primary); margin:4px 0 2px 0;">Customize Your Family's Weekly Meal & Lunch Rhythm</h4>
+                    <p style="font-size:0.82rem; color:var(--text-main); margin:0;">
+                        Tell the Hub who is home for lunch and dinner! If your kids are home with you, you can build <strong>Kid-Friendly Lunches</strong> for them <em>plus</em> a <strong>Filling, High-Protein Grown-Up Lunch</strong> just for you.
+                    </p>
+                </div>
+                <button type="button" class="btn-primary" style="background:linear-gradient(135deg, #2E5A44 0%, #1F4230 100%); border-color:#173325; font-size:0.82rem; padding:10px 16px;" onclick="saveMealRhythmFromUIAndRegenerate(true)">
+                    ✨ Generate Fresh 7-Day Plan for My Family
+                </button>
+            </div>
+
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:12px; margin-bottom:12px;">
+                <!-- 1. Midday Lunch Mode -->
+                <div style="background:#ffffff; padding:10px 12px; border-radius:12px; border:1.5px solid var(--sage);">
+                    <label style="font-size:0.75rem; font-weight:800; color:var(--sage); display:block; margin-bottom:4px;">🥪 1. Midday Lunch Rhythm (Who Needs Lunch?):</label>
+                    <select id="hh-mr-lunch-mode" onchange="saveMealRhythmFromUIAndRegenerate(true)" style="width:100%; padding:7px 8px; border:1px solid var(--border); border-radius:8px; font-size:0.82rem; font-weight:700; background:var(--bg-warm-cream);">
+                        <option value="homeschool_dual" ${cfg.lunchMode === 'homeschool_dual' ? 'selected' : ''}>🏡 Homeschool / Kids Home All Day (Kid Lunch + My Filling Adult Lunch!)</option>
+                        <option value="school_weekdays" ${cfg.lunchMode === 'school_weekdays' ? 'selected' : ''}>🚌 Kids at School Mon–Fri (My Adult Lunch M–F • Kid + Adult on Weekends)</option>
+                        <option value="adults_only" ${cfg.lunchMode === 'adults_only' ? 'selected' : ''}>💑 Adults Only / Empty Nesters (Grown-Up High-Protein Lunches Only)</option>
+                        <option value="shared_kid" ${cfg.lunchMode === 'shared_kid' ? 'selected' : ''}>👧 One Shared Family Lunch (Everyone Eats Kid-Friendly Lunch)</option>
+                    </select>
+                </div>
+
+                <!-- 2. Morning Breakfast Mode -->
+                <div style="background:#ffffff; padding:10px 12px; border-radius:12px; border:1px solid var(--border);">
+                    <label style="font-size:0.75rem; font-weight:800; color:var(--primary); display:block; margin-bottom:4px;">🥞 2. Morning Breakfast Rhythm:</label>
+                    <select id="hh-mr-breakfast-mode" onchange="saveMealRhythmFromUIAndRegenerate(true)" style="width:100%; padding:7px 8px; border:1px solid var(--border); border-radius:8px; font-size:0.82rem; font-weight:600; background:var(--bg-warm-cream);">
+                        <option value="quick_wkdy_big_wknd" ${cfg.breakfastMode === 'quick_wkdy_big_wknd' ? 'selected' : ''}>🥞 Quick Weekday Breakfasts/Smoothies + Big Family Spreads on Weekends</option>
+                        <option value="big_daily" ${cfg.breakfastMode === 'big_daily' ? 'selected' : ''}>🍳 Big Family Scratch Breakfasts Every Morning (Flapjacks, Waffles, Rolls)</option>
+                        <option value="smoothie_focus" ${cfg.breakfastMode === 'smoothie_focus' ? 'selected' : ''}>🥤 Fast 5-Min Smoothies & Parfaits Mon–Fri + Big Weekend Breakfast</option>
+                    </select>
+                </div>
+
+                <!-- 3. Evening Dinner Mode -->
+                <div style="background:#ffffff; padding:10px 12px; border-radius:12px; border:1px solid var(--border);">
+                    <label style="font-size:0.75rem; font-weight:800; color:var(--primary); display:block; margin-bottom:4px;">🥘 3. Evening Dinner Style:</label>
+                    <select id="hh-mr-dinner-mode" onchange="saveMealRhythmFromUIAndRegenerate(true)" style="width:100%; padding:7px 8px; border:1px solid var(--border); border-radius:8px; font-size:0.82rem; font-weight:600; background:var(--bg-warm-cream);">
+                        <option value="balanced_family" ${cfg.dinnerMode === 'balanced_family' ? 'selected' : ''}>🥘 Balanced Week (Large-Family Roasts + 20-Min Nights + Sunday Special)</option>
+                        <option value="large_family_focus" ${cfg.dinnerMode === 'large_family_focus' ? 'selected' : ''}>🍲 Large-Family Batch & Slow-Cooker Dinners All Week</option>
+                        <option value="quick_20min" ${cfg.dinnerMode === 'quick_20min' ? 'selected' : ''}>🍕 Fast 20-Minute Skillet, Burgers, Fajitas & Scratch Pizza Nights</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Portion Scaling & Snack Toggle Bar -->
+            <div style="background:#ffffff; border:1px solid var(--border); border-radius:12px; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+                <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap; font-size:0.8rem;">
+                    <span style="font-weight:800; color:var(--sage);">⚖️ Smart Grocery Scaling:</span>
+                    <label style="display:inline-flex; align-items:center; gap:5px;">
+                        <span>🥗 Adults Eating Adult Lunch:</span>
+                        <input type="number" id="hh-mr-adults-lunch" min="1" max="10" value="${cfg.adultsAtLunch}" onchange="saveMealRhythmFromUIAndRegenerate(false)" style="width:52px; padding:4px 6px; border:1px solid var(--border); border-radius:6px; font-weight:700; text-align:center;">
+                    </label>
+                    ${showKidsCountInput ? `
+                        <label style="display:inline-flex; align-items:center; gap:5px;">
+                            <span>👧 Kids Eating Kid Lunch:</span>
+                            <input type="number" id="hh-mr-kids-lunch" min="0" max="16" value="${cfg.kidsAtLunch}" onchange="saveMealRhythmFromUIAndRegenerate(false)" style="width:52px; padding:4px 6px; border:1px solid var(--border); border-radius:6px; font-weight:700; text-align:center;">
+                        </label>
+                    ` : ''}
+                    <label style="display:inline-flex; align-items:center; gap:5px;">
+                        <span>🍽️ Dinner Adults:</span>
+                        <input type="number" id="hh-mr-fam-adults" min="1" max="12" value="${cfg.familyDinnerAdults}" onchange="saveMealRhythmFromUIAndRegenerate(false)" style="width:52px; padding:4px 6px; border:1px solid var(--border); border-radius:6px; font-weight:700; text-align:center;">
+                    </label>
+                    <label style="display:inline-flex; align-items:center; gap:5px;">
+                        <span>🍽️ Dinner Kids:</span>
+                        <input type="number" id="hh-mr-fam-kids" min="0" max="16" value="${cfg.familyDinnerKids}" onchange="saveMealRhythmFromUIAndRegenerate(false)" style="width:52px; padding:4px 6px; border:1px solid var(--border); border-radius:6px; font-weight:700; text-align:center;">
+                    </label>
+                </div>
+
+                <label style="display:inline-flex; align-items:center; gap:6px; font-size:0.8rem; font-weight:700; color:var(--primary); cursor:pointer;">
+                    <input type="checkbox" id="hh-mr-snack-chk" ${cfg.includeDailySnackAndDrink ? 'checked' : ''} onchange="saveMealRhythmFromUIAndRegenerate(true)" style="accent-color:var(--sage); width:16px; height:16px;">
+                    🧀 Include Daily Batch-Prep Snack & Hydrating Drink
+                </label>
+            </div>
+        `;
+
+        // 2. Render the 7-Day Cards into gridEl
+        const fullFamMult = Math.max(1, (parseFloat(cfg.familyDinnerAdults) || 2) + ((parseFloat(cfg.familyDinnerKids) || 0) * 0.65));
+        const kidLunchMult = Math.max(0.65, (parseFloat(cfg.kidsAtLunch) || 1) * 0.65);
+        const adultLunchMult = Math.max(1, parseFloat(cfg.adultsAtLunch) || 1);
+
+        const famLabel = `${cfg.familyDinnerAdults} Adult(s) + ${cfg.familyDinnerKids} Kid(s)`;
+        const kidLabel = `${cfg.kidsAtLunch} Kid(s)`;
+        const adultLabel = `${cfg.adultsAtLunch} Adult(s) (Mom/Dad)`;
+
+        gridEl.innerHTML = plan.map((day, idx) => {
+            const bRec = recMap.get(day.breakfastId);
+            const klRec = recMap.get(day.kidLunchId);
+            const alRec = recMap.get(day.adultLunchId);
+            const dRec = recMap.get(day.dinnerId);
+            const snRec = recMap.get(day.snackId);
+            const drRec = recMap.get(day.drinkId);
+
+            return `
+                <div class="clinical-panel" style="padding:14px; background:var(--bg-warm-cream); border:1.5px solid var(--border); border-radius:16px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1.5px solid var(--border); padding-bottom:8px; margin-bottom:10px;">
+                        <strong style="font-family:var(--font-serif); font-size:1.15rem; color:var(--primary);">🗓️ ${escapeSafeHtml(day.dayName)}</strong>
+                        <span style="font-size:0.7rem; font-weight:700; color:var(--sage); background:#E8F2EC; padding:2px 8px; border-radius:999px;">
+                            ${klRec && alRec ? '👧 Kid + 🥗 Adult Lunch' : (klRec ? '👧 Family Lunch' : '🥗 Adult Lunch')}
+                        </span>
+                    </div>
+
+                    ${renderSlotRowHtml(idx, 'breakfastId', '☀️ Breakfast', '#B87612', bRec, fullFamMult, famLabel)}
+                    ${klRec ? renderSlotRowHtml(idx, 'kidLunchId', `👧 Kids' Lunch (${cfg.kidsAtLunch} Kids)`, '#D97706', klRec, kidLunchMult, kidLabel) : ''}
+                    ${alRec ? renderSlotRowHtml(idx, 'adultLunchId', `🥗 My Filling Adult Lunch (${cfg.adultsAtLunch} Adult${cfg.adultsAtLunch > 1 ? 's' : ''})`, '#2E5A44', alRec, adultLunchMult, adultLabel) : ''}
+                    ${renderSlotRowHtml(idx, 'dinnerId', '🌙 Family Dinner', '#7C2D12', dRec, fullFamMult, famLabel)}
+                    ${cfg.includeDailySnackAndDrink && snRec ? renderSlotRowHtml(idx, 'snackId', '🧀 Afternoon Snack', '#6D28D9', snRec, fullFamMult * 0.75, famLabel) : ''}
+                    ${cfg.includeDailySnackAndDrink && drRec ? renderSlotRowHtml(idx, 'drinkId', '🍋 Hydrating Drink', '#0D9488', drRec, fullFamMult * 0.75, famLabel) : ''}
+                </div>
+            `;
+        }).join('');
+    }
+
+    // Override generateAnimalBasedPlan & renderAbGroceryList so any button in the app triggers the upgraded planner
+    const _origGenPlan = window.generateAnimalBasedPlan;
+    window.generateAnimalBasedPlan = function(forceNew = false) {
+        if (typeof _origGenPlan === 'function') {
+            try { _origGenPlan(); } catch (e) {}
+        }
+        window.buildAdaptiveSevenDayMealPlan(Boolean(forceNew));
+        renderAdaptiveMealPlannerUI();
+        syncAdaptiveGroceryList();
+    };
+
+    const _origRenderGroc = window.renderAbGroceryList;
+    window.renderAbGroceryList = function() {
+        if (typeof _origRenderGroc === 'function') {
+            try { _origRenderGroc(); } catch (e) {}
+        }
+        syncAdaptiveGroceryList();
+    };
+
+    setTimeout(() => {
+        renderAdaptiveMealPlannerUI();
+        syncAdaptiveGroceryList();
+    }, 800);
+
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest('button');
+        if (!btn) return;
+        const txt = (btn.textContent || '').toLowerCase();
+        const oc = (btn.getAttribute('onclick') || '').toLowerCase();
+        if (oc.includes('generateanimalbasedplan') || txt.includes('regenerate') || txt.includes('meal planner')) {
+            setTimeout(() => {
+                renderAdaptiveMealPlannerUI();
+                syncAdaptiveGroceryList();
+            }, 150);
+        }
+    });
+})();
+</script>
+
 </body>
 </html>
