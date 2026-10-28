@@ -14400,20 +14400,25 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
             const targetDayName = getShortDayName(target);
 
             if (!schedDays.includes(targetDayName)) return null;
-            if (target < today) return null;
 
-            let schoolDaysElapsed = 0;
-            const cursor = new Date(today);
-            while (cursor < target) {
-                const cIso = formatDateToIso(cursor);
-                if (!offDates.has(cIso) && schedDays.includes(getShortDayName(cursor))) {
-                    schoolDaysElapsed++;
-                }
-                cursor.setDate(cursor.getDate() + 1);
-            }
+let schoolDaysDiff = 0;
+const cursor = new Date(today);
+if (target >= today) {
+    while (cursor < target) {
+        const cIso = formatDateToIso(cursor);
+        if (!offDates.has(cIso) && schedDays.includes(getShortDayName(cursor))) schoolDaysDiff++;
+        cursor.setDate(cursor.getDate() + 1);
+    }
+} else {
+    while (cursor > target) {
+        cursor.setDate(cursor.getDate() - 1);
+        const cIso = formatDateToIso(cursor);
+        if (!offDates.has(cIso) && schedDays.includes(getShortDayName(cursor))) schoolDaysDiff--;
+    }
+}
 
-            const pacePerDay = Math.max(1, parseInt(currItem.lessonsPerDay) || 1);
-            const projectedLesson = (parseInt(currItem.currentLesson) || 1) + (schoolDaysElapsed * pacePerDay);
+const pacePerDay = Math.max(1, parseInt(currItem.lessonsPerDay) || 1);
+const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (schoolDaysDiff * pacePerDay));
             const maxLessons = parseInt(currItem.totalLessons) || 180;
             if (projectedLesson > maxLessons) return null;
 
@@ -19237,17 +19242,40 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
 })();
 </script>
 
-<!-- ================= BLOCK 4 (FIXED): STEP 2 FAMILY LUNCH RHYTHM, DUAL-LUNCH CARDS & RECIPE POP-UP ================= -->
+<!-- ================= BLOCK 4 (UPGRADED): REAL-DATE SYNCED MEAL PLANNER & 4-VIEW KITCHEN CALENDAR OS ================= -->
 <script>
 (function() {
-    const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const DAY_NAMES_SUN_FIRST = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const SHORT_DAYS_SUN_FIRST = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const MON_TO_SUN_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+    window.mealCalViewMode = window.mealCalViewMode || 'cards'; // 'cards' | 'matrix' | 'daily' | 'monthly'
+    window.mealCalOffset = window.mealCalOffset || 0;
 
     const DEFAULT_STEP2_CONFIG = {
         lunchMode: 'homeschool_dual',
         adultsAtLunch: 1,
         breakfastMode: 'quick_wkdy_big_wknd',
-        includeSnacksAndDrinks: true
+        includeSnacksAndDrinks: true,
+        startDateIso: '' // Empty string = automatically starts on Today's real date!
     };
+
+    function getTodayIsoLocal() {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+
+    function formatDateToIsoLocal(dObj) {
+        return `${dObj.getFullYear()}-${String(dObj.getMonth() + 1).padStart(2, '0')}-${String(dObj.getDate()).padStart(2, '0')}`;
+    }
+
+    function parseIsoToDateLocal(isoStr) {
+        const parts = String(isoStr || getTodayIsoLocal()).split('-');
+        if (parts.length !== 3) return new Date();
+        const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        d.setHours(0, 0, 0, 0);
+        return d;
+    }
 
     function getStep2Config() {
         try {
@@ -19264,6 +19292,15 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
         if (typeof setLocalData === 'function') {
             setLocalData('hh_step2_meal_rhythm_cfg', cfg, true);
         }
+    }
+
+    function getEffectivePlanStartDateObj() {
+        const cfg = getStep2Config();
+        const todayIso = getTodayIsoLocal();
+        if (cfg.startDateIso && cfg.startDateIso >= todayIso) {
+            return parseIsoToDateLocal(cfg.startDateIso);
+        }
+        return parseIsoToDateLocal(todayIso);
     }
 
     function getAllVaultRecipes() {
@@ -19337,11 +19374,11 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
 
     function readStep3DinnerThemes() {
         const themes = {};
-        DAY_NAMES.forEach(day => { themes[day] = 'any'; });
+        MON_TO_SUN_NAMES.forEach(day => { themes[day] = 'any'; });
         const allSelects = Array.from(document.querySelectorAll('select'));
         allSelects.forEach(sel => {
             const boxTxt = (sel.parentElement?.textContent || '').trim();
-            DAY_NAMES.forEach(day => {
+            MON_TO_SUN_NAMES.forEach(day => {
                 if (boxTxt.includes(day)) {
                     themes[day] = (sel.options[sel.selectedIndex]?.text || sel.value || '').toLowerCase();
                 }
@@ -19367,6 +19404,9 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
         return pickFrom(filtered.length ? filtered : allDinners, usedSet);
     }
 
+    // =========================================================================
+    // 1. UPGRADE STEP 2 UI (WITH REAL START DATE PICKER) & MOVE GENERATE BUTTON
+    // =========================================================================
     function upgradeStep2AndMoveGenerateButton() {
         const allEls = Array.from(document.querySelectorAll('h2, h3, h4, h5, strong, div, p'));
         const step2Heading = allEls.find(el => el.children.length === 0 && (el.textContent || '').trim() === '2. Plan Length & Preferences');
@@ -19391,19 +19431,51 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
             }
         });
 
+        // Bind the "Days to Plan" number input so changing 7 -> 4 immediately updates the calendar!
+        const allNumInputs = Array.from(document.querySelectorAll('input[type="number"]'));
+        const daysInp = allNumInputs.find(inp => {
+            const lbl = (inp.previousElementSibling?.textContent || inp.parentElement?.textContent || '').toLowerCase();
+            return lbl.includes('days to plan');
+        });
+        if (daysInp && !daysInp.dataset.hhDaysBound) {
+            daysInp.dataset.hhDaysBound = 'true';
+            daysInp.addEventListener('change', () => {
+                buildAndRenderCustomPlanCards(true);
+                if (typeof window.rebuildAndRenderRestoredShoppingList === 'function') {
+                    window.rebuildAndRenderRestoredShoppingList();
+                }
+            });
+        }
+
         const genBtn = Array.from(document.querySelectorAll('button')).find(b => (b.textContent || '').includes('Generate Meal Plan & Shopping List'));
 
         const cfg = getStep2Config();
+        const startObj = getEffectivePlanStartDateObj();
+        const startIsoVal = formatDateToIsoLocal(startObj);
+        const startDayName = DAY_NAMES_SUN_FIRST[startObj.getDay()];
+
         if (!document.getElementById('hh-step2-lunch-rhythm-box')) {
             const box = document.createElement('div');
             box.id = 'hh-step2-lunch-rhythm-box';
             box.style.cssText = 'background: #FFFDF8; border: 2px solid var(--sage); border-radius: 14px; padding: 12px 14px; margin: 12px 0; box-shadow: 0 4px 12px rgba(46,90,68,0.08);';
             box.innerHTML = `
+                <!-- Real Calendar Start Date Sync Row -->
+                <div style="background:#E8F2EC; border:1.5px solid var(--sage); border-radius:10px; padding:9px 12px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                    <div>
+                        <strong style="font-size:0.78rem; color:var(--sage); display:block;">📅 Sync Plan to Real Calendar Day (Day 1 Start Date):</strong>
+                        <span id="hh-s2-start-day-label" style="font-size:0.74rem; color:var(--text-main);">Starts on <strong>${startDayName} (${startIsoVal})</strong></span>
+                    </div>
+                    <div style="display:flex; gap:6px; align-items:center;">
+                        <input type="date" id="hh-s2-start-date" value="${startIsoVal}" onchange="updateStep2RhythmSettings()" style="padding:5px 8px; border:1.5px solid var(--sage); border-radius:8px; font-size:0.78rem; font-weight:700; background:#fff;">
+                        <button type="button" class="icon-btn" onclick="resetMealPlanStartToToday()" style="background:#fff; color:var(--sage); border-color:var(--sage); font-size:0.74rem;">↺ Today</button>
+                    </div>
+                </div>
+
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:6px;">
                     <strong style="font-size:0.82rem; color:var(--sage); text-transform:uppercase; letter-spacing:0.03em;">
                         🥪 Family Lunch & Midday Rhythm (Who Is Eating Lunch?)
                     </strong>
-                    <span style="font-size:0.72rem; background:#E8F2EC; color:var(--sage); padding:2px 8px; border-radius:999px; font-weight:700;">
+                    <span style="font-size:0.72rem; background:#FEF5D8; color:var(--primary); padding:2px 8px; border-radius:999px; font-weight:700;">
                         Scales Kid & Adult Portions Separately!
                     </span>
                 </div>
@@ -19476,21 +19548,37 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
         }
     }
 
+    window.resetMealPlanStartToToday = function() {
+        const todayIso = getTodayIsoLocal();
+        const dateInp = document.getElementById('hh-s2-start-date');
+        if (dateInp) dateInp.value = todayIso;
+        window.mealCalOffset = 0;
+        window.updateStep2RhythmSettings();
+    };
+
     window.updateStep2RhythmSettings = function() {
         const cfg = getStep2Config();
         const lMode = document.getElementById('hh-s2-lunch-mode')?.value;
         const adCnt = document.getElementById('hh-s2-adults-lunch')?.value;
         const bMode = document.getElementById('hh-s2-breakfast-mode')?.value;
         const snkChk = document.getElementById('hh-s2-snacks-chk');
+        const startInp = document.getElementById('hh-s2-start-date')?.value;
 
         if (lMode) cfg.lunchMode = lMode;
         if (adCnt) cfg.adultsAtLunch = parseInt(adCnt) || 1;
         if (bMode) cfg.breakfastMode = bMode;
         if (snkChk) cfg.includeSnacksAndDrinks = snkChk.checked;
+        if (startInp) cfg.startDateIso = startInp;
 
         const adWrap = document.getElementById('hh-s2-adult-count-wrap');
         if (adWrap) {
             adWrap.style.display = (cfg.lunchMode === 'shared_kid' || cfg.lunchMode === 'no_lunch') ? 'none' : 'block';
+        }
+
+        const startObj = parseIsoToDateLocal(cfg.startDateIso || getTodayIsoLocal());
+        const lblEl = document.getElementById('hh-s2-start-day-label');
+        if (lblEl) {
+            lblEl.innerHTML = `Starts on <strong>${DAY_NAMES_SUN_FIRST[startObj.getDay()]} (${formatDateToIsoLocal(startObj)})</strong>`;
         }
 
         saveStep2Config(cfg);
@@ -19509,8 +19597,10 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
         return Math.max(1, Math.min(30, parseInt(daysInp?.value) || 7));
     }
 
-    // Interactive Recipe Card Modal when clicking any meal title on the 7-day planner!
-    window.viewAdaptiveRecipeDetails = function(recId, scaleMult = 1, scaleLabel = 'Family Portions') {
+    // =========================================================================
+    // 2. RECIPE DETAILS, "MADE IT" CHECKBOXES & PIN MEAL TO DATE MODAL
+    // =========================================================================
+    window.viewAdaptiveRecipeDetails = function(recId, scaleMult = 1, scaleLabel = 'Family Portions', dayIdx = null, slotKey = null) {
         const all = getAllVaultRecipes();
         const rec = all.find(r => r && r.id === recId);
         if (!rec) {
@@ -19553,20 +19643,192 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
                 </div>
 
                 <div style="background:#ffffff; border:1.5px solid var(--border); border-radius:14px; padding:14px; margin-bottom:16px;">
-                    <strong style="font-size:0.9rem; color:var(--sage); display:block; margin-bottom:8px;">👩‍🍳 Step-by-Step Instructions:</strong>
-                    ${steps.map((s, i) => `<div style="padding:6px 0; border-bottom:1px dashed var(--border); font-size:0.88rem; line-height:1.55;"><strong style="color:var(--primary);">Step ${i + 1}:</strong> ${escapeSafeHtml(s)}</div>`).join('')}
+                    <strong style="font-size:0.9rem; color:var(--sage); display:block; margin-bottom:8px;">👩‍🍳 Step-by-Step Instructions (Tap to check off as you cook!):</strong>
+                    ${steps.map((s, i) => `
+                        <label style="display:flex; align-items:flex-start; gap:8px; padding:6px 0; border-bottom:1px dashed var(--border); font-size:0.88rem; line-height:1.55; cursor:pointer;">
+                            <input type="checkbox" onchange="this.parentElement.style.opacity=this.checked?'0.5':'1'; this.parentElement.style.textDecoration=this.checked?'line-through':'none';" style="accent-color:var(--sage); margin-top:4px; width:17px; height:17px;">
+                            <span><strong style="color:var(--primary);">Step ${i + 1}:</strong> ${escapeSafeHtml(s)}</span>
+                        </label>
+                    `).join('')}
                 </div>
 
-                <div style="display:flex; justify-content:flex-end; gap:8px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
                     <button type="button" class="btn-secondary" onclick="window.print()">🖨️ Print Recipe</button>
-                    <button type="button" class="btn-primary" onclick="document.getElementById('hh-dual-recipe-detail-modal').remove()">Done</button>
+                    <div style="display:flex; gap:8px;">
+                        ${dayIdx !== null && slotKey ? `
+                            <button type="button" class="btn-primary" style="background:var(--sage); border-color:var(--sage);" onclick="toggleStep2MealMadeIt(${dayIdx}, '${slotKey}'); document.getElementById('hh-dual-recipe-detail-modal').remove();">
+                                ✓ Mark "Made It"
+                            </button>
+                        ` : ''}
+                        <button type="button" class="btn-primary" onclick="document.getElementById('hh-dual-recipe-detail-modal').remove()">Done</button>
+                    </div>
                 </div>
             </div>
         `;
         document.body.appendChild(modal);
     };
 
-    // FIXED: Never overwrite parent containers or hide the sibling Shopping List panel!
+    window.toggleStep2MealMadeIt = function(dayIdx, slotKey, isCheckedOverride = null) {
+        let plan = [];
+        try { plan = JSON.parse(localStorage.getItem('hh_step2_generated_days') || '[]'); } catch (e) {}
+        if (!plan[dayIdx]) return;
+        if (!plan[dayIdx].cookedSlots) plan[dayIdx].cookedSlots = {};
+
+        const curState = !!plan[dayIdx].cookedSlots[slotKey];
+        const nextState = isCheckedOverride !== null ? !!isCheckedOverride : !curState;
+        plan[dayIdx].cookedSlots[slotKey] = nextState;
+
+        // Deduct or restore ingredients in household inventory + award Hub Stars!
+        const recId = plan[dayIdx][slotKey];
+        const rec = getAllVaultRecipes().find(r => r && r.id === recId);
+        const portions = window.readStep1PortionMultipliers();
+        const cfg = getStep2Config();
+        const mult = slotKey === 'kidLunchId' ? portions.kidsOnlyMult : slotKey === 'adultLunchId' ? cfg.adultsAtLunch : portions.totalFamilyMult;
+
+        if (rec && Array.isArray(rec.ingredients) && typeof getLocalData === 'function' && typeof setLocalData === 'function') {
+            const inv = getLocalData('homestead_inventory_list', []) || [];
+            rec.ingredients.forEach(ing => {
+                const match = inv.find(i => i && i.name && i.name.toLowerCase().includes(ing.name.toLowerCase().split(' ')[0]));
+                if (match) {
+                    const delta = Math.round((parseFloat(ing.qty) || 0.25) * mult * 100) / 100;
+                    match.qty = Math.max(0, Math.round(((parseFloat(match.qty) || 0) + (nextState ? -delta : delta)) * 100) / 100);
+                }
+            });
+            setLocalData('homestead_inventory_list', inv);
+            if (typeof renderInventoryGrid === 'function') renderInventoryGrid();
+        }
+
+        if (nextState && typeof window.awardHubStars === 'function') {
+            window.awardHubStars(10, `Cooked "${rec ? rec.title : 'Family Meal'}" from your Meal Plan!`);
+        }
+
+        try { localStorage.setItem('hh_step2_generated_days', JSON.stringify(plan)); } catch (e) {}
+        buildAndRenderCustomPlanCards(false);
+    };
+
+    // Pin or swap a specific recipe onto any calendar date!
+    window.openPinMealToDateModal = function(defaultDateIso = '', defaultSlotKey = 'dinnerId') {
+        const all = getAllVaultRecipes();
+        let plan = [];
+        try { plan = JSON.parse(localStorage.getItem('hh_step2_generated_days') || '[]'); } catch (e) {}
+        const dIso = defaultDateIso || (plan[0]?.dateIso) || getTodayIsoLocal();
+
+        openUniversalModal('📅 Schedule or Pin a Specific Recipe to Calendar Date', [
+            { name: 'dateIso', label: '1. Select Date', type: 'date', value: dIso },
+            { name: 'slotKey', label: '2. Which Meal Slot?', type: 'select', value: defaultSlotKey, options: [
+                { value: 'breakfastId', label: '☀️ Breakfast' },
+                { value: 'kidLunchId', label: '👧 Kids\' Lunch' },
+                { value: 'adultLunchId', label: '🥗 My Filling Adult Lunch' },
+                { value: 'dinnerId', label: '🌙 Family Dinner' },
+                { value: 'snackId', label: '🧀 Batch-Prep Snack / Elixir' },
+                { value: 'drinkId', label: '🍋 Hydrating Drink' }
+            ]},
+            { name: 'recipeId', label: '3. Choose Recipe from Your 102+ Whole-Food Vault', type: 'select', value: all[0]?.id || '', options: all.map(r => ({ value: r.id, label: r.title })) },
+            { name: 'prepNote', label: '4. Optional Prep / Hosting / Thaw Note for This Day', required: false, placeholder: 'e.g. Pull chuck roast from freezer night before / Dinner guests at 6 PM' }
+        ], vals => {
+            let savedPlan = [];
+            try { savedPlan = JSON.parse(localStorage.getItem('hh_step2_generated_days') || '[]'); } catch (e) {}
+            const targetDay = savedPlan.find(d => d.dateIso === vals.dateIso);
+            if (targetDay) {
+                targetDay[vals.slotKey] = vals.recipeId;
+                if (vals.prepNote) targetDay.prepNote = vals.prepNote;
+                try { localStorage.setItem('hh_step2_generated_days', JSON.stringify(savedPlan)); } catch (e) {}
+            } else {
+                // Save in date-pinned overrides map so Monthly view & future plans use it!
+                const pinnedMap = JSON.parse(localStorage.getItem('hh_pinned_meals_by_date') || '{}');
+                if (!pinnedMap[vals.dateIso]) pinnedMap[vals.dateIso] = {};
+                pinnedMap[vals.dateIso][vals.slotKey] = vals.recipeId;
+                if (vals.prepNote) pinnedMap[vals.dateIso].prepNote = vals.prepNote;
+                localStorage.setItem('hh_pinned_meals_by_date', JSON.stringify(pinnedMap));
+            }
+            buildAndRenderCustomPlanCards(false);
+            if (typeof window.rebuildAndRenderRestoredShoppingList === 'function') {
+                window.rebuildAndRenderRestoredShoppingList();
+            }
+        });
+    };
+
+    // =========================================================================
+    // 3. CALENDAR VIEW MODE SWITCHERS & PRINTABLE PLAN-BOOK SPREAD
+    // =========================================================================
+    window.setMealCalViewMode = function(mode) {
+        window.mealCalViewMode = mode;
+        window.mealCalOffset = 0;
+        buildAndRenderCustomPlanCards(false);
+    };
+
+    window.shiftMealCalOffset = function(delta) {
+        window.mealCalOffset = (window.mealCalOffset || 0) + delta;
+        buildAndRenderCustomPlanCards(false);
+    };
+
+    window.jumpToMealCalDate = function(isoStr) {
+        let plan = [];
+        try { plan = JSON.parse(localStorage.getItem('hh_step2_generated_days') || '[]'); } catch (e) {}
+        const idx = plan.findIndex(d => d.dateIso === isoStr);
+        window.mealCalViewMode = 'daily';
+        window.mealCalOffset = idx >= 0 ? idx : 0;
+        buildAndRenderCustomPlanCards(false);
+    };
+
+    window.printMealPlanBookSpread = function() {
+        let plan = [];
+        try { plan = JSON.parse(localStorage.getItem('hh_step2_generated_days') || '[]'); } catch (e) {}
+        if (!plan.length) return;
+
+        const allRecipes = getAllVaultRecipes();
+        const recMap = new Map();
+        allRecipes.forEach(r => { if (r && r.id) recMap.set(r.id, r); });
+
+        const ticket = document.getElementById('printable-student-ticket');
+        if (!ticket) { window.print(); return; }
+
+        const slotRows = [
+            { key: 'breakfastId', label: '☀️ Breakfast' },
+            { key: 'kidLunchId', label: '👧 Kids\' Lunch' },
+            { key: 'adultLunchId', label: '🥗 Adult Lunch' },
+            { key: 'dinnerId', label: '🌙 Family Dinner' },
+            { key: 'snackId', label: '🧀 Snack / Elixir' },
+            { key: 'drinkId', label: '🍋 Hydrating Drink' }
+        ];
+
+        ticket.style.display = 'block';
+        ticket.innerHTML = `
+            <div style="padding:16px; font-family:sans-serif; color:#111;">
+                <div style="border-bottom:2px solid #2E5A44; padding-bottom:10px; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <h2 style="margin:0; font-family:Georgia, serif; color:#2E5A44;">🌻 Honeysuckle Hub • Family Meal Plan-Book Spread</h2>
+                        <div style="font-size:0.82rem; color:#555;">${plan[0].dateFormatted || plan[0].dayName} – ${plan[plan.length - 1].dateFormatted || plan[plan.length - 1].dayName} (${plan.length} Days)</div>
+                    </div>
+                </div>
+                <table style="width:100%; border-collapse:collapse; font-size:0.78rem;">
+                    <thead>
+                        <tr style="background:#E8F2EC; color:#1F4230;">
+                            <th style="border:1px solid #999; padding:8px; text-align:left; width:14%;">Meal Slot</th>
+                            ${plan.map(d => `<th style="border:1px solid #999; padding:8px; text-align:left;">Day ${d.dayNumber}<br>${escapeSafeHtml(d.shortDateLabel || d.dayName)}</th>`).join('')}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${slotRows.map(sr => `
+                            <tr>
+                                <td style="border:1px solid #999; padding:8px; font-weight:700; background:#FAF7F0;">${sr.label}</td>
+                                ${plan.map(d => {
+                                    const r = recMap.get(d[sr.key]);
+                                    return `<td style="border:1px solid #999; padding:8px; vertical-align:top;">${r ? `☐ <strong>${escapeSafeHtml(r.title)}</strong>` : '—'}</td>`;
+                                }).join('')}
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+        window.print();
+        setTimeout(() => { ticket.style.display = 'none'; }, 1000);
+    };
+
+    // =========================================================================
+    // 4. GENERATE & RENDER REAL-DATE SYNCED MEAL PLAN + 4-VIEW CALENDAR OS
+    // =========================================================================
     function buildAndRenderCustomPlanCards(forceRegenerate = false) {
         const summaryBanner = document.getElementById('ab-plan-summary-text') ||
             Array.from(document.querySelectorAll('span, p')).find(el => (el.textContent || '').trim().startsWith('Planning for ') && (el.textContent || '').includes('Adult Portions'));
@@ -19580,18 +19842,9 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
         const daysCount = getDaysToPlanCount();
         const step3Themes = readStep3DinnerThemes();
 
-        const lunchSummaryLabel =
-            cfg.lunchMode === 'homeschool_dual' ? `👧 Kid Lunches (${portions.kidsOnlyMult}x) + 🥗 My Adult Lunch (${cfg.adultsAtLunch}.0x)` :
-            cfg.lunchMode === 'school_weekdays' ? `🥗 Adult Lunch Mon–Fri + 👧 Kid Lunches on Weekends` :
-            cfg.lunchMode === 'adults_only' ? `🥗 Filling Adult Lunches Only (${cfg.adultsAtLunch}.0x)` :
-            cfg.lunchMode === 'shared_kid' ? `👧 Shared Family Lunches (${portions.totalFamilyMult}x)` :
-            `🚫 Breakfast & Dinner Only`;
-
-        if (summaryBanner) {
-            summaryBanner.innerHTML = `
-                Planning for <strong>${portions.totalMembers} Family Members</strong> (${portions.totalFamilyMult}x Adult Portions for Breakfast & Dinner • ${lunchSummaryLabel}) across <strong>${daysCount} Days</strong> • 💡 <em>Tip: Click any meal title below to open its full Step-by-Step Recipe Card!</em>
-            `;
-        }
+        const startDateObj = getEffectivePlanStartDateObj();
+        const expectedStartIso = formatDateToIsoLocal(startDateObj);
+        const todayIso = getTodayIsoLocal();
 
         let plan = null;
         if (!forceRegenerate) {
@@ -19602,7 +19855,10 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
         const recMap = new Map();
         allRecipes.forEach(r => { if (r && r.id) recMap.set(r.id, r); });
 
-        if (!Array.isArray(plan) || plan.length !== daysCount || forceRegenerate) {
+        // Regenerate if count changed, forced, or if old cached plan wasn't synced to expectedStartIso!
+        const needsDateResync = !Array.isArray(plan) || plan.length !== daysCount || !plan[0]?.dateIso || plan[0].dateIso !== expectedStartIso;
+
+        if (needsDateResync || forceRegenerate) {
             const used = new Set();
             const smoothies = getPool('smoothie', 'breakfast');
             const breakfasts = getPool('breakfast', 'breakfast');
@@ -19617,19 +19873,31 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
             ];
             const snacks = getPool('snack', 'snack');
             const drinks = getPool('drink', 'snack');
+            const pinnedByDate = JSON.parse(localStorage.getItem('hh_pinned_meals_by_date') || '{}');
 
             let prevDinnerId = null;
 
             plan = Array.from({ length: daysCount }, (_, i) => {
-                const dayName = DAY_NAMES[i % 7];
-                const isWeekend = (i % 7) >= 5;
+                // Calculate the REAL calendar date for Day (i + 1)!
+                const dObj = new Date(startDateObj);
+                dObj.setDate(startDateObj.getDate() + i);
+                const dIso = formatDateToIsoLocal(dObj);
+                const jsDay = dObj.getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
+                const realDayName = DAY_NAMES_SUN_FIRST[jsDay];
+                const isWeekend = (jsDay === 0 || jsDay === 6);
+                const shortDateLabel = dObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                const dateFormatted = dObj.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
 
+                const pinned = pinnedByDate[dIso] || {};
+
+                // 1. Breakfast (Uses real weekday vs. weekend!)
                 let bPool = quickBreakfasts;
                 if (cfg.breakfastMode === 'big_daily') bPool = bigBreakfasts.length ? bigBreakfasts : breakfasts;
                 else if (cfg.breakfastMode === 'smoothie_focus') bPool = isWeekend ? bigBreakfasts : smoothies;
                 else bPool = isWeekend ? (bigBreakfasts.length ? bigBreakfasts : breakfasts) : [...quickBreakfasts, ...smoothies.slice(0, 4)];
                 const bRec = pickFrom(bPool, used);
 
+                // 2. Kid Lunch & Adult Lunch (Uses real weekday vs. weekend!)
                 let kLunch = null;
                 let aLunch = null;
                 if (cfg.lunchMode === 'homeschool_dual') {
@@ -19644,7 +19912,8 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
                     kLunch = pickFrom(kidLunches, used);
                 }
 
-                const dayTheme = step3Themes[dayName] || '';
+                // 3. Dinner (Matched to Step 3 Weekly Dinner Rhythm for `realDayName`!)
+                const dayTheme = step3Themes[realDayName] || '';
                 let dId = null;
                 if (dayTheme.includes('repeat') && prevDinnerId) {
                     dId = prevDinnerId;
@@ -19654,40 +19923,78 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
                     prevDinnerId = dId;
                 }
 
+                // 4. Snack & Drink
                 const snRec = cfg.includeSnacksAndDrinks ? pickFrom(snacks, used) : null;
                 const drRec = cfg.includeSnacksAndDrinks ? pickFrom(drinks, used) : null;
 
                 return {
                     dayNumber: i + 1,
-                    dayName,
-                    themeLabel: step3Themes[dayName] || 'Family Dinner',
-                    breakfastId: bRec?.id || null,
-                    kidLunchId: kLunch?.id || null,
-                    adultLunchId: aLunch?.id || null,
-                    dinnerId: dId,
-                    snackId: snRec?.id || null,
-                    drinkId: drRec?.id || null
+                    dateIso: dIso,
+                    dayName: realDayName,
+                    shortDateLabel,
+                    dateFormatted,
+                    themeLabel: step3Themes[realDayName] || 'Family Dinner',
+                    breakfastId: pinned.breakfastId || bRec?.id || null,
+                    kidLunchId: pinned.kidLunchId || kLunch?.id || null,
+                    adultLunchId: pinned.adultLunchId || aLunch?.id || null,
+                    dinnerId: pinned.dinnerId || dId,
+                    snackId: pinned.snackId || snRec?.id || null,
+                    drinkId: pinned.drinkId || drRec?.id || null,
+                    prepNote: pinned.prepNote || '',
+                    cookedSlots: {}
                 };
             });
 
             try { localStorage.setItem('hh_step2_generated_days', JSON.stringify(plan)); } catch (e) {}
         }
 
-        // Hide ONLY the old #ab-days-grid element (never hide sibling panels like the Shopping List!)
-        if (oldDaysGrid) {
-            oldDaysGrid.style.display = 'none';
+        // Sync Today's meals into `ab_current_plan` so the Home Command Center shows Today's real meals!
+        if (typeof setLocalData === 'function' && plan.length > 0) {
+            const syncedLegacyPlan = plan.map(d => ({
+                day: d.dayNumber,
+                dayName: d.dayName,
+                dateIso: d.dateIso,
+                themeLabel: d.themeLabel,
+                breakfast: recMap.get(d.breakfastId) || null,
+                lunch: recMap.get(d.adultLunchId) || recMap.get(d.kidLunchId) || null,
+                dinner: recMap.get(d.dinnerId) || null,
+                snack: recMap.get(d.snackId) || null
+            }));
+            setLocalData('ab_current_plan', syncedLegacyPlan, true);
+        }
+
+        const firstDayStr = plan[0]?.shortDateLabel || plan[0]?.dayName || 'Today';
+        const lastDayStr = plan[plan.length - 1]?.shortDateLabel || plan[plan.length - 1]?.dayName || '';
+        const lunchSummaryLabel =
+            cfg.lunchMode === 'homeschool_dual' ? `👧 Kid Lunches (${portions.kidsOnlyMult}x) + 🥗 My Adult Lunch (${cfg.adultsAtLunch}.0x)` :
+            cfg.lunchMode === 'school_weekdays' ? `🥗 Adult Lunch Mon–Fri + 👧 Kid Lunches on Weekends` :
+            cfg.lunchMode === 'adults_only' ? `🥗 Filling Adult Lunches Only (${cfg.adultsAtLunch}.0x)` :
+            cfg.lunchMode === 'shared_kid' ? `👧 Shared Family Lunches (${portions.totalFamilyMult}x)` :
+            `🚫 Breakfast & Dinner Only`;
+
+        if (summaryBanner) {
+            summaryBanner.innerHTML = `
+                Planning for <strong>${portions.totalMembers} Family Members</strong> (${portions.totalFamilyMult}x Base • ${lunchSummaryLabel}) across <strong>${daysCount} Days (${firstDayStr} – ${lastDayStr})</strong> • 💡 <em>Click any meal title to open its Step-by-Step Recipe Card!</em>
+            `;
+        }
+
+        if (oldDaysGrid) oldDaysGrid.style.display = 'none';
+
+        // Create or locate the Calendar Toolbar + Stage Container
+        let calToolbar = document.getElementById('hh-meal-calendar-toolbar');
+        if (!calToolbar) {
+            calToolbar = document.createElement('div');
+            calToolbar.id = 'hh-meal-calendar-toolbar';
+            calToolbar.className = 'no-print';
+            if (oldDaysGrid) oldDaysGrid.insertAdjacentElement('beforeend', calToolbar);
+            anchorEl.insertAdjacentElement('afterend', calToolbar);
         }
 
         let gridBox = document.getElementById('hh-upgraded-dual-lunch-grid');
         if (!gridBox) {
             gridBox = document.createElement('div');
             gridBox.id = 'hh-upgraded-dual-lunch-grid';
-            gridBox.style.cssText = 'display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-top: 16px;';
-            if (oldDaysGrid) {
-                oldDaysGrid.insertAdjacentElement('afterend', gridBox);
-            } else {
-                anchorEl.insertAdjacentElement('afterend', gridBox);
-            }
+            calToolbar.insertAdjacentElement('afterend', gridBox);
         }
 
         const famScaleLbl = `${portions.totalMembers} Family Members (${portions.totalFamilyMult}x Adult Base)`;
@@ -19696,52 +20003,284 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
         const adultScaleMult = cfg.adultsAtLunch;
         const adultScaleLbl = `${cfg.adultsAtLunch} Adult${cfg.adultsAtLunch > 1 ? 's' : ''} (${cfg.adultsAtLunch}.0x Adult Base)`;
 
-        function renderSlotCard(dayIdx, slotKey, badgeTitle, borderHex, recObj, mult, scaleLbl) {
-            if (!recObj) return '';
-            return `
-                <div class="meal-slot" data-rec-id="${recObj.id}" data-mult="${mult}" style="background:#ffffff; border:1px solid var(--border); border-left:4px solid ${borderHex}; border-radius:10px; padding:9px 11px; margin-bottom:8px;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:4px;">
-                        <span style="font-size:0.7rem; font-weight:800; color:${borderHex}; text-transform:uppercase;">${badgeTitle}</span>
-                        <button type="button" onclick="swapStep2SingleMeal(${dayIdx}, '${slotKey}')" style="background:var(--bg-warm-cream); border:1px solid var(--border); border-radius:6px; padding:2px 8px; font-size:0.68rem; font-weight:700; cursor:pointer;">
-                            🔄 Swap
-                        </button>
+        // Render the Homeschool-Style Connected Kitchen Calendar Toolbar
+        calToolbar.style.cssText = 'background: linear-gradient(135deg, #FFFDF8 0%, #FEF5D8 100%); border: 2px solid var(--sage); border-radius: 16px; padding: 12px 16px; margin-top: 14px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;';
+        calToolbar.innerHTML = `
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                <span class="card-tag" style="background:var(--sage); color:#fff; margin:0;">🗓️ Kitchen Calendar OS</span>
+                <strong style="font-size:0.92rem; color:var(--primary);">${firstDayStr} – ${lastDayStr} (${daysCount} Days)</strong>
+            </div>
+            <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+                <button type="button" class="icon-btn" style="${window.mealCalViewMode === 'cards' ? 'background:var(--sage); color:#fff; border-color:var(--sage);' : ''}" onclick="setMealCalViewMode('cards')">🗓️ Day Cards (${daysCount}d)</button>
+                <button type="button" class="icon-btn" style="${window.mealCalViewMode === 'matrix' ? 'background:var(--sage); color:#fff; border-color:var(--sage);' : ''}" onclick="setMealCalViewMode('matrix')">📖 Plan-Book Grid</button>
+                <button type="button" class="icon-btn" style="${window.mealCalViewMode === 'daily' ? 'background:var(--sage); color:#fff; border-color:var(--sage);' : ''}" onclick="setMealCalViewMode('daily')">☀️ Daily View</button>
+                <button type="button" class="icon-btn" style="${window.mealCalViewMode === 'monthly' ? 'background:var(--sage); color:#fff; border-color:var(--sage);' : ''}" onclick="setMealCalViewMode('monthly')">📅 Monthly Calendar</button>
+                ${(window.mealCalViewMode === 'daily' || window.mealCalViewMode === 'monthly') ? `
+                    <button type="button" class="icon-btn" onclick="shiftMealCalOffset(-1)">&larr; Prev</button>
+                    <button type="button" class="icon-btn" onclick="window.mealCalOffset=0; buildAndRenderCustomPlanCards(false);">Today</button>
+                    <button type="button" class="icon-btn" onclick="shiftMealCalOffset(1)">Next &rarr;</button>
+                ` : ''}
+                <button type="button" class="btn-secondary" style="padding:5px 11px; font-size:0.76rem;" onclick="printMealPlanBookSpread()">🖨️ Print Spread</button>
+                <button type="button" class="btn-primary" style="padding:5px 12px; font-size:0.76rem;" onclick="openPinMealToDateModal()">📅 + Pin Meal to Date</button>
+            </div>
+        `;
+
+        // Hidden shopping-list data nodes so BLOCK 5 always sees all planned meals regardless of view mode!
+        const hiddenShoppingSyncHtml = `
+            <div id="hh-hidden-shopping-sync-slots" style="display:none;">
+                ${plan.map(d => {
+                    const pairs = [
+                        [d.breakfastId, portions.totalFamilyMult],
+                        [d.kidLunchId, kidScaleMult],
+                        [d.adultLunchId, adultScaleMult],
+                        [d.dinnerId, portions.totalFamilyMult],
+                        [d.snackId, Math.round(portions.totalFamilyMult * 0.75 * 100) / 100],
+                        [d.drinkId, Math.round(portions.totalFamilyMult * 0.75 * 100) / 100]
+                    ];
+                    return pairs.filter(([id]) => !!id).map(([id, m]) => `<div class="meal-slot" data-rec-id="${id}" data-mult="${m}"></div>`).join('');
+                }).join('')}
+            </div>
+        `;
+
+        // -------------------- VIEW MODE 1: MULTI-DAY CARDS (SYNCED TO REAL DATES) --------------------
+        if (window.mealCalViewMode === 'cards') {
+            gridBox.style.cssText = 'display: grid; grid-template-columns: repeat(auto-fit, minmax(305px, 1fr)); gap: 16px; margin-top: 8px;';
+
+            function renderSlotCard(dayIdx, slotKey, badgeTitle, borderHex, recObj, mult, scaleLbl, isCooked) {
+                if (!recObj) return '';
+                return `
+                    <div style="background:${isCooked ? '#E8F2EC' : '#ffffff'}; opacity:${isCooked ? '0.72' : '1'}; border:1px solid var(--border); border-left:4px solid ${borderHex}; border-radius:10px; padding:9px 11px; margin-bottom:8px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; gap:4px; margin-bottom:4px; flex-wrap:wrap;">
+                            <span style="font-size:0.68rem; font-weight:800; color:${borderHex}; text-transform:uppercase;">${badgeTitle}</span>
+                            <div style="display:flex; gap:4px; align-items:center;">
+                                <button type="button" onclick="swapStep2SingleMeal(${dayIdx}, '${slotKey}')" style="background:var(--bg-warm-cream); border:1px solid var(--border); border-radius:6px; padding:1px 6px; font-size:0.66rem; font-weight:700; cursor:pointer;" title="Swap this meal">🔄 Swap</button>
+                                <label style="font-size:0.68rem; font-weight:700; color:var(--sage); cursor:pointer; display:flex; align-items:center; gap:2px;">
+                                    <input type="checkbox" ${isCooked ? 'checked' : ''} onchange="toggleStep2MealMadeIt(${dayIdx}, '${slotKey}', this.checked)" style="accent-color:var(--sage);">
+                                    ${isCooked ? 'Done ✓' : 'Made'}
+                                </label>
+                            </div>
+                        </div>
+                        <div onclick="viewAdaptiveRecipeDetails('${recObj.id}', ${mult}, '${escapeSafeHtml(scaleLbl)}', ${dayIdx}, '${slotKey}')" style="font-size:0.86rem; font-weight:700; color:var(--text-main); cursor:pointer; text-decoration:${isCooked ? 'line-through' : 'underline'}; text-decoration-color:rgba(184,118,18,0.4); line-height:1.35;">
+                            ${escapeSafeHtml(recObj.title)}
+                        </div>
                     </div>
-                    <div onclick="viewAdaptiveRecipeDetails('${recObj.id}', ${mult}, '${escapeSafeHtml(scaleLbl)}')" style="font-size:0.86rem; font-weight:700; color:var(--text-main); cursor:pointer; text-decoration:underline; text-decoration-color:rgba(184,118,18,0.4); line-height:1.35;">
-                        ${escapeSafeHtml(recObj.title)}
+                `;
+            }
+
+            gridBox.innerHTML = hiddenShoppingSyncHtml + plan.map((d, idx) => {
+                const isToday = d.dateIso === todayIso;
+                const bRec = recMap.get(d.breakfastId);
+                const klRec = recMap.get(d.kidLunchId);
+                const alRec = recMap.get(d.adultLunchId);
+                const dnRec = recMap.get(d.dinnerId);
+                const snRec = recMap.get(d.snackId);
+                const drRec = recMap.get(d.drinkId);
+                const cMap = d.cookedSlots || {};
+
+                return `
+                    <div style="background:${isToday ? '#FFFBEB' : 'var(--bg-warm-cream)'}; border:${isToday ? '2.5px solid var(--primary)' : '2px solid var(--border)'}; border-radius:18px; padding:16px; box-shadow:0 6px 18px rgba(0,0,0,0.04);">
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:1.5px solid var(--border); padding-bottom:8px; margin-bottom:10px; gap:6px;">
+                            <div>
+                                <span style="font-size:0.7rem; font-weight:800; color:${isToday ? 'var(--sage)' : 'var(--text-muted)'}; text-transform:uppercase;">
+                                    DAY ${d.dayNumber} ${isToday ? '• 🌻 TODAY' : ''} (${escapeSafeHtml(d.dateIso)})
+                                </span>
+                                <h4 style="font-family:var(--font-serif); font-size:1.22rem; color:var(--primary); margin:0; cursor:pointer;" onclick="jumpToMealCalDate('${d.dateIso}')">
+                                    🗓️ ${escapeSafeHtml(d.dateFormatted || d.dayName)}
+                                </h4>
+                            </div>
+                            <span style="font-size:0.68rem; font-weight:700; background:#FEF5D8; color:#B87612; padding:3px 9px; border-radius:999px; border:1px solid #E5C378; white-space:nowrap;">
+                                ${klRec && alRec ? '👧 Kid + 🥗 My Lunch' : (klRec ? '👧 Family Lunch' : (alRec ? '🥗 Adult Lunch' : '🍽️ Breakfast & Dinner'))}
+                            </span>
+                        </div>
+
+                        ${d.prepNote ? `<div style="background:#E8F2EC; border-left:3px solid var(--sage); padding:5px 8px; border-radius:6px; font-size:0.74rem; color:var(--sage); font-weight:700; margin-bottom:8px;">📌 Note: ${escapeSafeHtml(d.prepNote)}</div>` : ''}
+
+                        ${renderSlotCard(idx, 'breakfastId', `☀️ Breakfast (${portions.totalFamilyMult}x)`, '#B87612', bRec, portions.totalFamilyMult, famScaleLbl, !!cMap.breakfastId)}
+                        ${klRec ? renderSlotCard(idx, 'kidLunchId', `👧 Kids' Lunch (${kidScaleMult}x)`, '#D97706', klRec, kidScaleMult, kidScaleLbl, !!cMap.kidLunchId) : ''}
+                        ${alRec ? renderSlotCard(idx, 'adultLunchId', `🥗 My Filling Adult Lunch (${adultScaleMult}.0x)`, '#2E5A44', alRec, adultScaleMult, adultScaleLbl, !!cMap.adultLunchId) : ''}
+                        ${renderSlotCard(idx, 'dinnerId', `🌙 Family Dinner (${portions.totalFamilyMult}x)`, '#7C2D12', dnRec, portions.totalFamilyMult, famScaleLbl, !!cMap.dinnerId)}
+                        ${cfg.includeSnacksAndDrinks && snRec ? renderSlotCard(idx, 'snackId', `🧀 Batch-Prep Snack / Elixir`, '#6D28D9', snRec, Math.round(portions.totalFamilyMult * 0.75 * 100) / 100, famScaleLbl, !!cMap.snackId) : ''}
+                        ${cfg.includeSnacksAndDrinks && drRec ? renderSlotCard(idx, 'drinkId', `🍋 Hydrating Drink`, '#0D9488', drRec, Math.round(portions.totalFamilyMult * 0.75 * 100) / 100, famScaleLbl, !!cMap.drinkId) : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // -------------------- VIEW MODE 2: TEACHER PLAN-BOOK MATRIX (SLOTS × DAYS) --------------------
+        else if (window.mealCalViewMode === 'matrix') {
+            gridBox.style.cssText = 'display: block; margin-top: 8px; overflow-x: auto;';
+            const matrixRows = [
+                { key: 'breakfastId', label: `☀️ Breakfast (${portions.totalFamilyMult}x)`, mult: portions.totalFamilyMult, scaleLbl: famScaleLbl, color: '#B87612' },
+                { key: 'kidLunchId', label: `👧 Kids' Lunch (${kidScaleMult}x)`, mult: kidScaleMult, scaleLbl: kidScaleLbl, color: '#D97706' },
+                { key: 'adultLunchId', label: `🥗 Adult Lunch (${adultScaleMult}.0x)`, mult: adultScaleMult, scaleLbl: adultScaleLbl, color: '#2E5A44' },
+                { key: 'dinnerId', label: `🌙 Family Dinner (${portions.totalFamilyMult}x)`, mult: portions.totalFamilyMult, scaleLbl: famScaleLbl, color: '#7C2D12' },
+                { key: 'snackId', label: `🧀 Batch-Prep Snack`, mult: Math.round(portions.totalFamilyMult * 0.75 * 100) / 100, scaleLbl: famScaleLbl, color: '#6D28D9' },
+                { key: 'drinkId', label: `🍋 Hydrating Drink`, mult: Math.round(portions.totalFamilyMult * 0.75 * 100) / 100, scaleLbl: famScaleLbl, color: '#0D9488' }
+            ];
+
+            gridBox.innerHTML = hiddenShoppingSyncHtml + `
+                <table style="width:100%; min-width:780px; border-collapse:separate; border-spacing:0; border:2px solid var(--border); border-radius:14px; overflow:hidden; background:#fff; font-size:0.8rem;">
+                    <thead>
+                        <tr style="background:linear-gradient(135deg, #2E5A44 0%, #1F4230 100%); color:#ffffff;">
+                            <th style="padding:12px; text-align:left; width:16%; border-right:1px solid rgba(255,255,255,0.2);">🍽️ Meal Slot</th>
+                            ${plan.map(d => {
+                                const isToday = d.dateIso === todayIso;
+                                return `
+                                    <th style="padding:10px 12px; text-align:left; border-right:1px solid rgba(255,255,255,0.2); background:${isToday ? '#B87612' : 'transparent'};">
+                                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                                            <span style="cursor:pointer; text-decoration:underline;" onclick="jumpToMealCalDate('${d.dateIso}')">Day ${d.dayNumber} • ${escapeSafeHtml(d.shortDateLabel || d.dayName)}</span>
+                                            <button type="button" onclick="openPinMealToDateModal('${d.dateIso}')" style="background:rgba(255,255,255,0.2); color:#fff; border:none; border-radius:6px; padding:1px 6px; cursor:pointer; font-weight:700;" title="Pin recipe to ${d.dateIso}">+</button>
+                                        </div>
+                                    </th>
+                                `;
+                            }).join('')}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${matrixRows.map(row => `
+                            <tr>
+                                <td style="padding:12px; border-bottom:1px solid var(--border); border-right:1px solid var(--border); background:var(--bg-warm-cream); font-weight:800; color:${row.color};">
+                                    ${row.label}
+                                </td>
+                                ${plan.map((d, dIdx) => {
+                                    const rec = recMap.get(d[row.key]);
+                                    const isCooked = !!(d.cookedSlots && d.cookedSlots[row.key]);
+                                    if (!rec) {
+                                        return `<td onclick="openPinMealToDateModal('${d.dateIso}', '${row.key}')" style="padding:10px; border-bottom:1px solid var(--border); border-right:1px solid var(--border); background:#FAF8F5; color:#B5A895; text-align:center; cursor:pointer;">—<br><span style="font-size:0.65rem;">(+ Pin)</span></td>`;
+                                    }
+                                    return `
+                                        <td style="padding:10px; border-bottom:1px solid var(--border); border-right:1px solid var(--border); vertical-align:top; background:${isCooked ? '#E8F2EC' : '#ffffff'};">
+                                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                                                <button type="button" onclick="swapStep2SingleMeal(${dIdx}, '${row.key}')" style="background:var(--bg-warm-cream); border:1px solid var(--border); border-radius:5px; padding:1px 5px; font-size:0.65rem; cursor:pointer;">🔄 Swap</button>
+                                                <input type="checkbox" ${isCooked ? 'checked' : ''} onchange="toggleStep2MealMadeIt(${dIdx}, '${row.key}', this.checked)" title="Mark Made It" style="accent-color:var(--sage);">
+                                            </div>
+                                            <div onclick="viewAdaptiveRecipeDetails('${rec.id}', ${row.mult}, '${escapeSafeHtml(row.scaleLbl)}', ${dIdx}, '${row.key}')" style="font-weight:700; color:var(--text-main); cursor:pointer; text-decoration:${isCooked ? 'line-through' : 'underline'}; line-height:1.35;">
+                                                ${escapeSafeHtml(rec.title)}
+                                            </div>
+                                        </td>
+                                    `;
+                                }).join('')}
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        // -------------------- VIEW MODE 3: DAILY KITCHEN VIEW (WITH NIGHT-BEFORE THAW BELL) --------------------
+        else if (window.mealCalViewMode === 'daily') {
+            gridBox.style.cssText = 'display: block; margin-top: 8px;';
+            const activeIdx = Math.max(0, Math.min(plan.length - 1, window.mealCalOffset || 0));
+            const d = plan[activeIdx] || plan[0];
+            const nextDay = plan[activeIdx + 1] || null;
+            const nextDinnerRec = nextDay ? recMap.get(nextDay.dinnerId) : null;
+
+            const dailySlots = [
+                { key: 'breakfastId', label: `☀️ Morning Breakfast (${portions.totalFamilyMult}x)`, mult: portions.totalFamilyMult, scaleLbl: famScaleLbl, color: '#B87612' },
+                { key: 'kidLunchId', label: `👧 Kids' Midday Lunch (${kidScaleMult}x)`, mult: kidScaleMult, scaleLbl: kidScaleLbl, color: '#D97706' },
+                { key: 'adultLunchId', label: `🥗 My Filling Adult Lunch (${adultScaleMult}.0x)`, mult: adultScaleMult, scaleLbl: adultScaleLbl, color: '#2E5A44' },
+                { key: 'dinnerId', label: `🌙 Family Dinner (${portions.totalFamilyMult}x)`, mult: portions.totalFamilyMult, scaleLbl: famScaleLbl, color: '#7C2D12' },
+                { key: 'snackId', label: `🧀 Afternoon Batch-Prep Snack / Elixir`, mult: Math.round(portions.totalFamilyMult * 0.75 * 100) / 100, scaleLbl: famScaleLbl, color: '#6D28D9' },
+                { key: 'drinkId', label: `🍋 Hydrating Mineral Drink`, mult: Math.round(portions.totalFamilyMult * 0.75 * 100) / 100, scaleLbl: famScaleLbl, color: '#0D9488' }
+            ];
+
+            gridBox.innerHTML = hiddenShoppingSyncHtml + `
+                <div style="background:var(--bg-warm-cream); border:2.5px solid var(--sage); border-radius:18px; padding:20px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid var(--border); padding-bottom:10px; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
+                        <div>
+                            <span class="card-tag" style="background:var(--sage); color:#fff;">☀️ Daily Kitchen Prep & Cooking Sheet • Day ${d.dayNumber} of ${plan.length}</span>
+                            <h4 style="font-size:1.45rem; color:var(--primary); margin:4px 0 0 0;">🗓️ ${escapeSafeHtml(d.dateFormatted || d.dayName)} (${escapeSafeHtml(d.dateIso)})</h4>
+                        </div>
+                        <div style="display:flex; gap:8px;">
+                            <button type="button" class="btn-secondary" style="font-size:0.78rem;" onclick="openPinMealToDateModal('${d.dateIso}')">📅 + Pin Specific Meal to ${d.dateIso}</button>
+                        </div>
+                    </div>
+
+                    ${nextDinnerRec ? `
+                        <div style="background:#FFFBEB; border:1.5px solid #F59E0B; border-radius:12px; padding:10px 14px; margin-bottom:14px; font-size:0.84rem; color:#B45309;">
+                            🔔 <strong>8:00 PM Night-Before Kitchen Bell (For Tomorrow — ${escapeSafeHtml(nextDay.shortDateLabel)}):</strong> Thaw meat or prep ingredients tonight for tomorrow's dinner: <strong>${escapeSafeHtml(nextDinnerRec.title)}</strong>!
+                        </div>
+                    ` : ''}
+
+                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:12px;">
+                        ${dailySlots.map(sl => {
+                            const rec = recMap.get(d[sl.key]);
+                            if (!rec) return '';
+                            const isCooked = !!(d.cookedSlots && d.cookedSlots[sl.key]);
+                            return `
+                                <div style="background:#ffffff; border:1.5px solid var(--border); border-left:5px solid ${sl.color}; border-radius:12px; padding:14px;">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                                        <span style="font-size:0.74rem; font-weight:800; color:${sl.color}; text-transform:uppercase;">${sl.label}</span>
+                                        <button type="button" class="icon-btn" onclick="swapStep2SingleMeal(${activeIdx}, '${sl.key}')">🔄 Swap</button>
+                                    </div>
+                                    <h5 onclick="viewAdaptiveRecipeDetails('${rec.id}', ${sl.mult}, '${escapeSafeHtml(sl.scaleLbl)}', ${activeIdx}, '${sl.key}')" style="font-size:1.05rem; color:var(--primary); margin:0 0 6px 0; cursor:pointer; text-decoration:underline;">
+                                        ${escapeSafeHtml(rec.title)}
+                                    </h5>
+                                    <div style="font-size:0.76rem; color:var(--text-muted); margin-bottom:8px;">
+                                        ⏱️ ${escapeSafeHtml(rec.prepCookTime || '15m')} • 🌡️ ${escapeSafeHtml(rec.stoveTemp || 'Medium')}
+                                    </div>
+                                    <button type="button" class="btn-secondary" style="width:100%; font-size:0.78rem; padding:6px;" onclick="viewAdaptiveRecipeDetails('${rec.id}', ${sl.mult}, '${escapeSafeHtml(sl.scaleLbl)}', ${activeIdx}, '${sl.key}')">
+                                        📖 Open Full Step-by-Step Recipe Card
+                                    </button>
+                                </div>
+                            `;
+                        }).join('')}
                     </div>
                 </div>
             `;
         }
 
-        gridBox.innerHTML = plan.map((d, idx) => {
-            const bRec = recMap.get(d.breakfastId);
-            const klRec = recMap.get(d.kidLunchId);
-            const alRec = recMap.get(d.adultLunchId);
-            const dnRec = recMap.get(d.dinnerId);
-            const snRec = recMap.get(d.snackId);
-            const drRec = recMap.get(d.drinkId);
+        // -------------------- VIEW MODE 4: MONTHLY MEAL CALENDAR GRID --------------------
+        else {
+            gridBox.style.cssText = 'display: block; margin-top: 8px;';
+            const base = new Date();
+            const viewMonth = new Date(base.getFullYear(), base.getMonth() + (window.mealCalOffset || 0), 1);
+            const yr = viewMonth.getFullYear();
+            const mo = viewMonth.getMonth();
+            const monthTitle = viewMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+            const daysInMonth = new Date(yr, mo + 1, 0).getDate();
 
-            return `
-                <div style="background:var(--bg-warm-cream); border:2px solid var(--border); border-radius:18px; padding:16px; box-shadow:0 6px 18px rgba(0,0,0,0.04);">
-                    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1.5px solid var(--border); padding-bottom:8px; margin-bottom:10px;">
+            const planByDate = {};
+            plan.forEach(d => { if (d.dateIso) planByDate[d.dateIso] = d; });
+            const pinnedByDate = JSON.parse(localStorage.getItem('hh_pinned_meals_by_date') || '{}');
+
+            const cells = [];
+            for (let dayNum = 1; dayNum <= daysInMonth; dayNum++) {
+                const dObj = new Date(yr, mo, dayNum);
+                const dIso = formatDateToIsoLocal(dObj);
+                const isToday = dIso === todayIso;
+                const wkShort = SHORT_DAYS_SUN_FIRST[dObj.getDay()];
+                const plannedDay = planByDate[dIso] || pinnedByDate[dIso] || null;
+
+                const bRec = plannedDay ? recMap.get(plannedDay.breakfastId) : null;
+                const dnRec = plannedDay ? recMap.get(plannedDay.dinnerId) : null;
+                const lRec = plannedDay ? (recMap.get(plannedDay.adultLunchId) || recMap.get(plannedDay.kidLunchId)) : null;
+
+                cells.push(`
+                    <div onclick="${planByDate[dIso] ? `jumpToMealCalDate('${dIso}')` : `openPinMealToDateModal('${dIso}')`}" style="cursor:pointer; background:${isToday ? '#FFFBEB' : plannedDay ? '#FFFDF8' : '#ffffff'}; border:${isToday ? '2px solid var(--primary)' : plannedDay ? '1.5px solid var(--sage)' : '1px solid var(--border)'}; border-radius:10px; padding:8px; min-height:108px; display:flex; flex-direction:column; justify-content:space-between;">
                         <div>
-                            <span style="font-size:0.7rem; font-weight:800; color:var(--text-muted); text-transform:uppercase;">DAY ${d.dayNumber}</span>
-                            <h4 style="font-family:var(--font-serif); font-size:1.2rem; color:var(--primary); margin:0;">🗓️ ${escapeSafeHtml(d.dayName)}</h4>
+                            <div style="display:flex; justify-content:space-between; font-size:0.75rem; font-weight:800; color:${isToday ? 'var(--primary)' : 'var(--sage)'}; margin-bottom:4px;">
+                                <span>${wkShort} ${dayNum}</span>
+                                <span>${isToday ? '🌻 Today' : plannedDay ? `Day ${plannedDay.dayNumber || ''}` : '+'}</span>
+                            </div>
+                            ${bRec ? `<div style="font-size:0.68rem; color:#B87612; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">☀️ ${escapeSafeHtml(bRec.title.replace(/\[.*?\]/g, '').trim())}</div>` : ''}
+                            ${lRec ? `<div style="font-size:0.68rem; color:#2E5A44; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">🥗 ${escapeSafeHtml(lRec.title.replace(/\[.*?\]/g, '').trim())}</div>` : ''}
+                            ${dnRec ? `<div style="font-size:0.7rem; font-weight:700; color:#7C2D12; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">🌙 ${escapeSafeHtml(dnRec.title.replace(/\[.*?\]/g, '').trim())}</div>` : ''}
+                            ${!plannedDay ? `<div style="font-size:0.66rem; color:var(--text-muted); font-style:italic; margin-top:12px;">+ Tap to pin meal</div>` : ''}
                         </div>
-                        <span style="font-size:0.7rem; font-weight:700; background:#FEF5D8; color:#B87612; padding:3px 9px; border-radius:999px; border:1px solid #E5C378;">
-                            ${klRec && alRec ? '👧 Kid + 🥗 My Lunch' : (klRec ? '👧 Family Lunch' : (alRec ? '🥗 Adult Lunch' : '🍽️ Breakfast & Dinner'))}
-                        </span>
                     </div>
+                `);
+            }
 
-                    ${renderSlotCard(idx, 'breakfastId', `☀️ Breakfast (${portions.totalFamilyMult}x)`, '#B87612', bRec, portions.totalFamilyMult, famScaleLbl)}
-                    ${klRec ? renderSlotCard(idx, 'kidLunchId', `👧 Kids' Lunch (${kidScaleMult}x)`, '#D97706', klRec, kidScaleMult, kidScaleLbl) : ''}
-                    ${alRec ? renderSlotCard(idx, 'adultLunchId', `🥗 My Filling Adult Lunch (${adultScaleMult}.0x)`, '#2E5A44', alRec, adultScaleMult, adultScaleLbl) : ''}
-                    ${renderSlotCard(idx, 'dinnerId', `🌙 Family Dinner (${portions.totalFamilyMult}x)`, '#7C2D12', dnRec, portions.totalFamilyMult, famScaleLbl)}
-                    ${cfg.includeSnacksAndDrinks && snRec ? renderSlotCard(idx, 'snackId', `🧀 Batch-Prep Snack / Elixir`, '#6D28D9', snRec, Math.round(portions.totalFamilyMult * 0.75 * 100) / 100, famScaleLbl) : ''}
-                    ${cfg.includeSnacksAndDrinks && drRec ? renderSlotCard(idx, 'drinkId', `🍋 Hydrating Drink`, '#0D9488', drRec, Math.round(portions.totalFamilyMult * 0.75 * 100) / 100, famScaleLbl) : ''}
+            gridBox.innerHTML = hiddenShoppingSyncHtml + `
+                <div style="background:#ffffff; border:2px solid var(--border); border-radius:16px; padding:16px;">
+                    <h4 style="font-size:1.3rem; color:var(--primary); margin:0 0 12px 0;">📅 ${monthTitle} — Monthly Kitchen & Dinner Calendar</h4>
+                    <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); gap:8px;">
+                        ${cells.join('')}
+                    </div>
                 </div>
             `;
-        }).join('');
+        }
     }
 
     window.swapStep2SingleMeal = function(dayIdx, slotKey) {
@@ -19776,549 +20315,6 @@ getLocalData('homestead_seed_vault', DEFAULT_SEEDS).forEach(s => {
 
     [300, 800, 1600, 2800].forEach(ms => setTimeout(runStep2AndStep3Enhancements, ms));
     document.addEventListener('click', () => setTimeout(runStep2AndStep3Enhancements, 120));
-})();
-</script>
-
-<!-- ================= BLOCK 5 (FIXED): SELF-HEALING MASTER SHOPPING LIST + 1-CLICK GROCERY STORE CART LOADER ================= -->
-<script>
-(function() {
-    const GROCERY_STORES = {
-        walmart: {
-            name: '🔵 Walmart Pickup & Delivery',
-            shortName: 'Walmart',
-            color: '#0071DC',
-            bg: '#EFF6FF',
-            searchUrl: (q) => `https://www.walmart.com/search?q=${encodeURIComponent(q)}`,
-            homeUrl: 'https://www.walmart.com/cp/groceries/1735450'
-        },
-        sprouts: {
-            name: '🟢 Sprouts Farmers Market',
-            shortName: 'Sprouts',
-            color: '#2E5A44',
-            bg: '#E8F2EC',
-            searchUrl: (q) => `https://shop.sprouts.com/shop?search_term=${encodeURIComponent(q)}`,
-            homeUrl: 'https://shop.sprouts.com'
-        },
-        heb: {
-            name: '🔴 H-E-B Curbside & Delivery',
-            shortName: 'H-E-B',
-            color: '#B91C1C',
-            bg: '#FEF2F2',
-            searchUrl: (q) => `https://www.heb.com/search?q=${encodeURIComponent(q)}`,
-            homeUrl: 'https://www.heb.com'
-        },
-        kroger: {
-            name: '🔵 Kroger Pickup & Delivery',
-            shortName: 'Kroger',
-            color: '#1D4ED8',
-            bg: '#EFF6FF',
-            searchUrl: (q) => `https://www.kroger.com/search?query=${encodeURIComponent(q)}`,
-            homeUrl: 'https://www.kroger.com'
-        },
-        aldi: {
-            name: '🟠 ALDI Curbside (Instacart)',
-            shortName: 'ALDI',
-            color: '#D97706',
-            bg: '#FFFBEB',
-            searchUrl: (q) => `https://shop.aldi.us/store/aldi/s?k=${encodeURIComponent(q)}`,
-            homeUrl: 'https://shop.aldi.us'
-        },
-        azure: {
-            name: '🌾 Azure Standard (Bulk & Whole Grains)',
-            shortName: 'Azure Standard',
-            color: '#9A5B0A',
-            bg: '#FEF5D8',
-            searchUrl: (q) => `https://www.azurestandard.com/shop/search/${encodeURIComponent(q)}`,
-            homeUrl: 'https://www.azurestandard.com'
-        },
-        target: {
-            name: '🎯 Target Drive-Up & Delivery',
-            shortName: 'Target',
-            color: '#DC2626',
-            bg: '#FEF2F2',
-            searchUrl: (q) => `https://www.target.com/s?searchTerm=${encodeURIComponent(q)}`,
-            homeUrl: 'https://www.target.com/c/grocery/-/N-5xt1a'
-        },
-        instacart: {
-            name: '🥕 Instacart (All Local Stores)',
-            shortName: 'Instacart',
-            color: '#15803D',
-            bg: '#DCFCE7',
-            searchUrl: (q) => `https://www.instacart.com/store/s?k=${encodeURIComponent(q)}`,
-            homeUrl: 'https://www.instacart.com'
-        }
-    };
-
-    function safeEsc(str) {
-        return String(str === undefined || str === null ? '' : str)
-            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-    }
-
-    function getPreferredStoreKey() {
-        return localStorage.getItem('hh_preferred_grocery_store') || 'walmart';
-    }
-
-    function setPreferredStoreKey(storeKey) {
-        if (GROCERY_STORES[storeKey]) {
-            localStorage.setItem('hh_preferred_grocery_store', storeKey);
-        }
-    }
-
-    function cleanIngredientForStoreSearch(rawName) {
-        let s = String(rawName || '')
-            .replace(/\(.*?\)/g, '')
-            .replace(/\[.*?\]/g, '')
-            .replace(/•.*$/g, '')
-            .replace(/\b(or|and\/or)\b.*$/i, '')
-            .replace(/\b(rinsed|dried|diced|sliced|cubed|halved|minced|grated|melted|softened|room-temp|warm|chilled|splash|generous|pinch|fresh-squeezed|stovetop|baked|crispy|creamy)\b/gi, '')
-            .replace(/\s+/g, ' ')
-            .trim();
-        return s || String(rawName || '').trim();
-    }
-
-    // =========================================================================
-    // 1. SELF-HEALING SHOPPING LIST PANEL (WORKS WITH #hh-upgraded-dual-lunch-grid!)
-    // =========================================================================
-    function ensureMasterShoppingListPanelExists() {
-        const dualGrid = document.getElementById('hh-upgraded-dual-lunch-grid');
-        const oldDaysGrid = document.getElementById('ab-days-grid');
-        const anchorGrid = dualGrid || oldDaysGrid;
-        if (!anchorGrid) return;
-
-        // Unhide any parent panel that may have been hidden earlier!
-        document.querySelectorAll('#ab-printable-area .clinical-panel, #tool-tab-weekly-planner .clinical-panel').forEach(p => {
-            if (p.style.display === 'none') p.style.display = 'block';
-        });
-
-        let groceryGrid = document.getElementById('ab-grocery-grid') || document.getElementById('ab-grocery-list');
-
-        if (!groceryGrid) {
-            const daysPanel = anchorGrid.closest('.clinical-panel') || anchorGrid.parentElement;
-            const outerArea = document.getElementById('ab-printable-area') || daysPanel?.parentElement;
-            if (!outerArea) return;
-
-            const shopPanel = document.createElement('div');
-            shopPanel.id = 'hh-restored-shopping-list-panel';
-            shopPanel.className = 'clinical-panel';
-            shopPanel.style.marginTop = '22px';
-            shopPanel.innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
-                    <div>
-                        <span class="card-tag">Includes All 6 Daily Meal Slots + Low-Stock Restocks + Custom Extras</span>
-                        <h3 style="font-size: 1.4rem;">Master Family Shopping List</h3>
-                    </div>
-                    <div style="display: flex; gap: 8px; flex-wrap: wrap;" class="no-print">
-                        <button type="button" class="btn-primary" style="background: linear-gradient(135deg, #2E5A44 0%, #1E4230 100%); border-color: #173325;" onclick="if(typeof restockCheckedGroceriesToInventory==='function') restockCheckedGroceriesToInventory()">📦 Done Shopping (Move Checked to Storage)</button>
-                        <button type="button" class="btn-primary" onclick="if(typeof openCustomGroceryModal==='function') openCustomGroceryModal()">+ Add Custom Item</button>
-                        <button type="button" class="btn-secondary" onclick="if(typeof addLowStockItemsToShoppingList==='function') addLowStockItemsToShoppingList()">⚠️ + Pull Low-Stock Items</button>
-                        <button type="button" class="btn-secondary" onclick="window.resetAllRestoredGroceryChecks()">↺ Reset Checks</button>
-                        <button type="button" class="btn-secondary" onclick="if(typeof copyWeeklyGroceryList==='function') copyWeeklyGroceryList()">📋 Copy List</button>
-                    </div>
-                </div>
-                <div style="background: var(--bg-warm-cream); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-                    <span id="ab-grocery-progress-text" style="font-size: 0.85rem; font-weight: 700; color: var(--primary);"></span>
-                    <label style="font-size: 0.8rem; font-weight: 600; cursor: pointer;" class="no-print">
-                        <input type="checkbox" id="ab-hide-covered-toggle" onchange="window.rebuildAndRenderRestoredShoppingList()" style="accent-color: var(--sage);"> Hide checked items
-                    </label>
-                </div>
-                <div id="ab-grocery-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 14px;"></div>
-            `;
-            if (daysPanel && daysPanel !== outerArea) {
-                daysPanel.insertAdjacentElement('afterend', shopPanel);
-            } else {
-                outerArea.appendChild(shopPanel);
-            }
-            groceryGrid = document.getElementById('ab-grocery-grid');
-        }
-
-        const shopPanelWrap = groceryGrid.closest('.clinical-panel');
-        if (shopPanelWrap) shopPanelWrap.style.display = 'block';
-
-        window.rebuildAndRenderRestoredShoppingList();
-    }
-
-    window.resetAllRestoredGroceryChecks = function() {
-        if (typeof setLocalData === 'function') setLocalData('ab_checked_groceries', {});
-        window.rebuildAndRenderRestoredShoppingList();
-    };
-
-    // Calculates exact shopping list items directly from the 6-slot Dual-Lunch Plan (`hh_step2_generated_days`)!
-    window.rebuildAndRenderRestoredShoppingList = function() {
-        const grid = document.getElementById('ab-grocery-grid') || document.getElementById('ab-grocery-list');
-        if (!grid) return;
-
-        const checkedMap = (typeof getLocalData === 'function' ? getLocalData('ab_checked_groceries', {}) : {}) || {};
-        const deletedSet = new Set((typeof getLocalData === 'function' ? getLocalData('ab_deleted_groceries', []) : []) || []);
-        const hideChecked = document.getElementById('ab-hide-covered-toggle')?.checked;
-        const inv = (typeof getLocalData === 'function' ? getLocalData('homestead_inventory_list', []) : []) || [];
-        const stockMap = {};
-        inv.forEach(i => {
-            if (i && i.name) stockMap[i.name.trim().toLowerCase()] = (stockMap[i.name.trim().toLowerCase()] || 0) + (parseFloat(i.qty) || 0);
-        });
-
-        const allRecipes = [
-            ...((typeof getLocalData === 'function' ? getLocalData('private_household_recipes', []) : []) || []),
-            ...(window.HONEYSUCKLE_WHOLE_FOOD_RECIPES || []),
-            ...((typeof DEFAULT_RECIPES !== 'undefined' && Array.isArray(DEFAULT_RECIPES)) ? DEFAULT_RECIPES : [])
-        ];
-        const recMap = new Map();
-        allRecipes.forEach(r => { if (r && r.id && !recMap.has(r.id)) recMap.set(r.id, r); });
-
-        const totals = {};
-        const addIng = (name, qty, unit, cat) => {
-            const key = String(name || '').trim();
-            if (!key || deletedSet.has(key)) return;
-            const normCat = cat === 'Animal Fats & Pantry' ? 'Traditional Fats & Pantry Staples' : (cat || 'Traditional Fats & Pantry Staples');
-            if (!totals[key]) {
-                totals[key] = { key, name: key, qty: 0, unit: unit || 'whole', category: normCat };
-            }
-            totals[key].qty += (parseFloat(qty) || 0.25);
-        };
-
-        // Read all rendered `.meal-slot[data-rec-id]` cards inside #hh-upgraded-dual-lunch-grid
-        const slotEls = document.querySelectorAll('#hh-upgraded-dual-lunch-grid .meal-slot[data-rec-id]');
-        if (slotEls.length > 0) {
-            slotEls.forEach(el => {
-                const rId = el.getAttribute('data-rec-id');
-                const mult = parseFloat(el.getAttribute('data-mult')) || 1;
-                const rec = recMap.get(rId);
-                if (rec && Array.isArray(rec.ingredients)) {
-                    rec.ingredients.forEach(ing => {
-                        addIng(ing.name, (parseFloat(ing.qty) || 0.25) * mult, ing.unit, ing.category);
-                    });
-                }
-            });
-        } else {
-            // Fallback to saved `hh_step2_generated_days` in localStorage
-            let savedDays = [];
-            try { savedDays = JSON.parse(localStorage.getItem('hh_step2_generated_days') || '[]'); } catch (e) {}
-            const portions = typeof window.readStep1PortionMultipliers === 'function'
-                ? window.readStep1PortionMultipliers()
-                : { totalFamilyMult: 5.15, kidsOnlyMult: 3.15 };
-            savedDays.forEach(d => {
-                const pairs = [
-                    [d.breakfastId, portions.totalFamilyMult],
-                    [d.kidLunchId, portions.kidsOnlyMult],
-                    [d.adultLunchId, 1.0],
-                    [d.dinnerId, portions.totalFamilyMult],
-                    [d.snackId, portions.totalFamilyMult * 0.75],
-                    [d.drinkId, portions.totalFamilyMult * 0.75]
-                ];
-                pairs.forEach(([id, m]) => {
-                    const rec = recMap.get(id);
-                    if (rec && Array.isArray(rec.ingredients)) {
-                        rec.ingredients.forEach(ing => addIng(ing.name, (parseFloat(ing.qty) || 0.25) * m, ing.unit, ing.category));
-                    }
-                });
-            });
-        }
-
-        // Also include extra_shopping_items
-        const extras = (typeof getLocalData === 'function' ? getLocalData('extra_shopping_items', []) : []) || [];
-        extras.forEach(ex => {
-            if (ex && ex.name) addIng(ex.name, ex.qty || 1, ex.unit || 'whole', ex.category || 'Household & Cleaning Supplies');
-        });
-
-        const categories = {
-            'Meats & Organs': [],
-            'Eggs & Raw Dairy': [],
-            'Fruits & Produce': [],
-            'Traditional Fats & Pantry Staples': [],
-            'Household & Cleaning Supplies': []
-        };
-
-        let totalCount = 0;
-        let checkedCount = 0;
-
-        Object.values(totals).forEach(item => {
-            totalCount++;
-            const onHand = stockMap[item.key.toLowerCase()] || 0;
-            const netToBuy = Math.max(0.25, Math.round((item.qty - onHand) * 4) / 4);
-            const isChecked = !!checkedMap[item.key];
-            if (isChecked) checkedCount++;
-            if (hideChecked && isChecked) return;
-
-            const cat = categories[item.category] ? item.category : 'Traditional Fats & Pantry Staples';
-            categories[cat].push({ ...item, netToBuy, onHand, isChecked });
-        });
-
-        const progEl = document.getElementById('ab-grocery-progress-text');
-        if (progEl) progEl.textContent = `🛒 Shopping Progress: ${checkedCount} of ${totalCount} items checked off`;
-
-        grid.innerHTML = Object.entries(categories).map(([catName, items]) => {
-            if (!items.length) return '';
-            return `
-                <div class="grocery-category">
-                    <h4 style="font-size:1.1rem; margin-bottom:8px; border-bottom:2px solid var(--border); padding-bottom:4px;">${safeEsc(catName)}</h4>
-                    ${items.map(i => {
-                        const encKey = encodeURIComponent(i.key);
-                        const qtyStr = (i.unit === 'eggs' || i.unit === 'whole' || i.unit === 'slices' || i.unit === 'tbsp')
-                            ? `${Math.ceil(i.netToBuy)} ${i.unit}`
-                            : `${i.netToBuy.toFixed(2).replace(/\.00$/, '')} ${i.unit}`;
-                        return `
-                            <div class="grocery-item ${i.isChecked ? 'checked' : ''}" style="justify-content:space-between; align-items:center;">
-                                <label style="display:flex; align-items:flex-start; gap:10px; cursor:pointer; flex:1;">
-                                    <input type="checkbox" ${i.isChecked ? 'checked' : ''} onchange="window.toggleRestoredGroceryCheck('${encKey}', this.checked)" style="accent-color:var(--sage); margin-top:3px;">
-                                    <div style="flex:1;">
-                                        <div class="g-name" style="font-weight:600; font-size:0.9rem;">${safeEsc(i.name)}</div>
-                                        <div style="font-size:0.76rem; color:var(--text-muted);">
-                                            Need: <strong>${safeEsc(qtyStr)}</strong> ${i.onHand > 0 ? `(Have ${i.onHand} ${i.unit})` : ''}
-                                        </div>
-                                    </div>
-                                </label>
-                            </div>
-                        `;
-                    }).join('')}
-                </div>
-            `;
-        }).filter(Boolean).join('');
-    };
-
-    window.toggleRestoredGroceryCheck = function(encKey, isChecked) {
-        const key = decodeURIComponent(encKey);
-        if (typeof getLocalData === 'function' && typeof setLocalData === 'function') {
-            const map = getLocalData('ab_checked_groceries', {}) || {};
-            map[key] = !!isChecked;
-            setLocalData('ab_checked_groceries', map);
-        }
-        window.rebuildAndRenderRestoredShoppingList();
-    };
-
-    function scrapeCurrentShoppingListItems() {
-        ensureMasterShoppingListPanelExists();
-        const items = [];
-        const seen = new Set();
-
-        const listRoot = document.getElementById('ab-grocery-grid') ||
-                         document.getElementById('ab-grocery-list') ||
-                         document.querySelector('[id*="grocery"]');
-
-        if (listRoot) {
-            listRoot.querySelectorAll('.grocery-item').forEach(row => {
-                const chk = row.querySelector('input[type="checkbox"]');
-                if (!chk) return;
-
-                const nameEl = row.querySelector('.g-name');
-                const strongEl = row.querySelector('strong');
-
-                const itemName = nameEl ? nameEl.textContent.trim() : '';
-                const qtyUnit = strongEl ? strongEl.textContent.trim() : '1 whole';
-
-                if (!itemName || itemName.length < 2) return;
-                const cleanSearch = cleanIngredientForStoreSearch(itemName);
-                const dedupeKey = cleanSearch.toLowerCase();
-                if (seen.has(dedupeKey)) return;
-                seen.add(dedupeKey);
-
-                items.push({
-                    rawLabel: `${qtyUnit} ${itemName}`,
-                    qtyUnit,
-                    name: itemName,
-                    searchQuery: cleanSearch,
-                    alreadyCheckedOff: chk.checked
-                });
-            });
-        }
-
-        return items;
-    }
-
-    window.markItemAddedToStoreCart = function(itemName, btnEl, rowIdx) {
-        if (typeof getLocalData === 'function' && typeof setLocalData === 'function') {
-            const checkedMap = getLocalData('ab_checked_groceries', {}) || {};
-            checkedMap[itemName] = true;
-            setLocalData('ab_checked_groceries', checkedMap, true);
-            window.rebuildAndRenderRestoredShoppingList();
-        }
-        if (btnEl) {
-            btnEl.innerHTML = '✓ Added to Cart';
-            btnEl.style.background = '#15803D';
-            btnEl.style.borderColor = '#15803D';
-            btnEl.style.color = '#ffffff';
-        }
-        const rowEl = document.getElementById(`hh-cart-row-${rowIdx}`);
-        if (rowEl) {
-            rowEl.style.opacity = '0.6';
-            rowEl.style.background = '#E8F2EC';
-        }
-    };
-
-    window.addSingleItemToSelectedStoreCart = function(idx, searchQuery, originalName, btnEl) {
-        const storeKey = document.getElementById('hh-cart-modal-store-sel')?.value || getPreferredStoreKey();
-        setPreferredStoreKey(storeKey);
-        const store = GROCERY_STORES[storeKey] || GROCERY_STORES.walmart;
-
-        window.open(store.searchUrl(searchQuery), 'HoneysuckleGroceryStoreTab');
-        window.markItemAddedToStoreCart(originalName, btnEl, idx);
-    };
-
-    window.copyAndLaunchStoreMultiList = function() {
-        const storeKey = document.getElementById('hh-cart-modal-store-sel')?.value || getPreferredStoreKey();
-        setPreferredStoreKey(storeKey);
-        const store = GROCERY_STORES[storeKey] || GROCERY_STORES.walmart;
-
-        const selectedQueries = [];
-        document.querySelectorAll('.hh-cart-item-chk:checked').forEach(chk => {
-            const q = chk.getAttribute('data-query');
-            if (q) selectedQueries.push(q);
-        });
-
-        if (selectedQueries.length === 0) {
-            alert('Please check at least one item to send to your cart!');
-            return;
-        }
-
-        const cleanListText = selectedQueries.join('\n');
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(cleanListText).catch(() => {});
-        }
-
-        window.open(store.searchUrl(selectedQueries[0]), 'HoneysuckleGroceryStoreTab');
-        alert(`🛒 Copied ${selectedQueries.length} clean items to your clipboard & opened ${store.shortName}!`);
-    };
-
-    window.toggleAllGroceryCartCheckboxes = function(checkAll) {
-        document.querySelectorAll('.hh-cart-item-chk').forEach(chk => {
-            chk.checked = Boolean(checkAll);
-        });
-    };
-
-    window.refreshCartModalStoreLabels = function(storeKey) {
-        setPreferredStoreKey(storeKey);
-        const store = GROCERY_STORES[storeKey] || GROCERY_STORES.walmart;
-        document.querySelectorAll('.hh-single-store-add-btn').forEach(btn => {
-            if (!btn.textContent.includes('✓')) {
-                btn.innerHTML = `🛒 + Add on ${store.shortName} &rarr;`;
-                btn.style.background = store.color;
-                btn.style.borderColor = store.color;
-            }
-        });
-    };
-
-    window.openSendToGroceryCartModal = function(initialStoreKey = null) {
-        document.getElementById('hh-grocery-cart-bridge-modal')?.remove();
-
-        const storeKey = initialStoreKey || document.getElementById('hh-inline-store-picker')?.value || getPreferredStoreKey();
-        setPreferredStoreKey(storeKey);
-        const activeStore = GROCERY_STORES[storeKey] || GROCERY_STORES.walmart;
-
-        const allItems = scrapeCurrentShoppingListItems();
-        const neededItems = allItems.filter(i => !i.alreadyCheckedOff);
-        const displayItems = neededItems.length > 0 ? neededItems : allItems;
-
-        const storeOptionsHtml = Object.entries(GROCERY_STORES).map(([k, st]) =>
-            `<option value="${k}" ${k === storeKey ? 'selected' : ''}>${st.name}</option>`
-        ).join('');
-
-        const rowsHtml = displayItems.length === 0
-            ? `<div style="padding:24px; text-align:center; color:var(--text-muted); font-style:italic;">Your shopping list is currently empty! Click "✨ Generate Meal Plan & Shopping List" above to populate your ingredients first.</div>`
-            : displayItems.map((it, idx) => `
-                <div id="hh-cart-row-${idx}" style="background:#FFFDF8; border:1.5px solid var(--border); border-radius:12px; padding:10px 14px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-                    <label style="display:flex; align-items:center; gap:10px; flex:1; min-width:210px; cursor:pointer;">
-                        <input type="checkbox" class="hh-cart-item-chk" data-idx="${idx}" data-query="${safeEsc(it.searchQuery)}" data-qtyunit="${safeEsc(it.qtyUnit)}" checked style="width:18px; height:18px; accent-color:var(--sage);">
-                        <div>
-                            <strong style="font-size:0.9rem; color:var(--text-main); display:block;">${safeEsc(it.searchQuery)}</strong>
-                            <span style="font-size:0.76rem; color:var(--text-muted);">Needed for Plan: <strong>${safeEsc(it.qtyUnit)}</strong> (${safeEsc(it.name)})</span>
-                        </div>
-                    </label>
-                    <button type="button" class="btn-primary hh-single-store-add-btn"
-                        style="background:${activeStore.color}; border-color:${activeStore.color}; color:#fff; padding:8px 14px; font-size:0.78rem; border-radius:999px; cursor:pointer; font-weight:700;"
-                        onclick="addSingleItemToSelectedStoreCart(${idx}, '${safeEsc(it.searchQuery.replace(/'/g, "\\'"))}', '${safeEsc(it.name.replace(/'/g, "\\'"))}', this)">
-                        🛒 + Add on ${activeStore.shortName} &rarr;
-                    </button>
-                </div>
-            `).join('');
-
-        const modal = document.createElement('div');
-        modal.id = 'hh-grocery-cart-bridge-modal';
-        modal.className = 'modal-overlay';
-        modal.style.cssText = 'display:flex; z-index:2970;';
-        modal.innerHTML = `
-            <div style="background:#ffffff; width:100%; max-width:780px; border-radius:24px; padding:26px; max-height:92vh; overflow-y:auto; box-shadow:0 25px 65px rgba(0,0,0,0.42); border:3px solid var(--sage);">
-                <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid var(--border); padding-bottom:12px; margin-bottom:14px; gap:12px;">
-                    <div>
-                        <span class="card-tag" style="background:var(--sage); color:#fff;">🛒 Direct Grocery Store Cart Loader</span>
-                        <h3 style="font-size:1.55rem; color:var(--primary); margin:3px 0 2px 0;">Send Selected Items to Your Store Cart</h3>
-                        <p style="font-size:0.82rem; color:var(--text-main); margin:0;">
-                            Choose your store below, uncheck anything you already have, and tap <strong>+ Add</strong> to load items directly into your logged-in store cart!
-                        </p>
-                    </div>
-                    <button type="button" onclick="document.getElementById('hh-grocery-cart-bridge-modal').remove()" style="background:none; border:none; font-size:1.7rem; cursor:pointer;">&times;</button>
-                </div>
-
-                <div style="background:var(--bg-warm-cream); border:1.5px solid var(--border); border-radius:14px; padding:12px 14px; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
-                    <div style="flex:1; min-width:230px;">
-                        <label style="font-size:0.75rem; font-weight:800; color:var(--primary); display:block; margin-bottom:4px;">🏪 1. Select Your Grocery Store:</label>
-                        <select id="hh-cart-modal-store-sel" onchange="refreshCartModalStoreLabels(this.value)" style="width:100%; padding:8px 10px; border:1.5px solid var(--sage); border-radius:10px; font-size:0.86rem; font-weight:700; background:#fff;">
-                            ${storeOptionsHtml}
-                        </select>
-                    </div>
-                    <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-                        <button type="button" class="btn-secondary" style="padding:8px 12px; font-size:0.76rem;" onclick="toggleAllGroceryCartCheckboxes(true)">✓ Select All</button>
-                        <button type="button" class="btn-secondary" style="padding:8px 12px; font-size:0.76rem;" onclick="toggleAllGroceryCartCheckboxes(false)">⬜ Clear All</button>
-                        <button type="button" class="btn-primary" style="padding:9px 15px; font-size:0.8rem; background:linear-gradient(135deg, #2E5A44 0%, #1F4230 100%); border-color:#173325;" onclick="copyAndLaunchStoreMultiList()">
-                            📋 Copy Selected & Open Store ↗
-                        </button>
-                    </div>
-                </div>
-
-                <div style="max-height:390px; overflow-y:auto; padding-right:4px;">
-                    ${rowsHtml}
-                </div>
-
-                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-top:16px; padding-top:12px; border-top:1.5px solid var(--border);">
-                    <span style="font-size:0.76rem; color:var(--text-muted);">
-                        💡 <em>Tip: Keep your store tab logged in—every click reuses that same tab so you can build your pickup order in 60 seconds!</em>
-                    </span>
-                    <button type="button" class="btn-secondary" onclick="document.getElementById('hh-grocery-cart-bridge-modal').remove()">Done Shopping</button>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modal);
-    };
-
-    function injectGroceryCartBridgeBar() {
-        ensureMasterShoppingListPanelExists();
-
-        const groceryEl = document.getElementById('ab-grocery-grid') ||
-                          document.getElementById('ab-grocery-list') ||
-                          document.querySelector('[id*="grocery-grid"]') ||
-                          document.querySelector('[id*="grocery-list"]');
-        if (!groceryEl || document.getElementById('hh-grocery-cart-bridge-bar')) return;
-
-        const prefKey = getPreferredStoreKey();
-        const storeOptionsHtml = Object.entries(GROCERY_STORES).map(([k, st]) =>
-            `<option value="${k}" ${k === prefKey ? 'selected' : ''}>${st.name}</option>`
-        ).join('');
-
-        const bar = document.createElement('div');
-        bar.id = 'hh-grocery-cart-bridge-bar';
-        bar.className = 'no-print';
-        bar.style.cssText = 'background: linear-gradient(135deg, #E8F2EC 0%, #FFFDF8 100%); border: 2.5px solid var(--sage); border-radius: 16px; padding: 14px 18px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; box-shadow: 0 6px 18px rgba(46,90,68,0.1);';
-        bar.innerHTML = `
-            <div style="max-width:520px;">
-                <span class="card-tag" style="background:var(--sage); color:#fff;">🛒 1-Click Online Grocery Pickup & Delivery Bridge</span>
-                <h4 style="font-size:1.18rem; color:var(--primary); margin:4px 0 2px 0;">Send Your Shopping List Straight to Your Store Cart</h4>
-                <p style="font-size:0.8rem; color:var(--text-main); margin:0;">
-                    Shop at <strong>Walmart, Sprouts, H-E-B, Kroger, ALDI, Target, or Azure Standard</strong>? Pick your store and click below to select your items and load them straight into your online cart!
-                </p>
-            </div>
-            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                <select id="hh-inline-store-picker" onchange="localStorage.setItem('hh_preferred_grocery_store', this.value)" style="padding:9px 12px; border:1.5px solid var(--sage); border-radius:10px; font-size:0.82rem; font-weight:700; background:#ffffff; color:var(--text-main);">
-                    ${storeOptionsHtml}
-                </select>
-                <button type="button" class="btn-primary" style="background:linear-gradient(135deg, #2E5A44 0%, #1F4230 100%); border-color:#173325; padding:10px 18px; font-size:0.85rem; font-weight:800;" onclick="openSendToGroceryCartModal()">
-                    🛒 Send Items to My Store Cart &rarr;
-                </button>
-            </div>
-        `;
-        groceryEl.insertAdjacentElement('beforebegin', bar);
-    }
-
-    [400, 1000, 1900, 3100].forEach(ms => setTimeout(injectGroceryCartBridgeBar, ms));
-    window.addEventListener('hashchange', () => setTimeout(injectGroceryCartBridgeBar, 250));
-    document.addEventListener('click', () => setTimeout(injectGroceryCartBridgeBar, 250));
 })();
 </script>
 </body>
