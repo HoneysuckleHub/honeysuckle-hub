@@ -21148,7 +21148,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
 })();
 </script>
 
-<!-- ================= BLOCK 4B: HIDE REDUNDANT OLD SHOPPING LIST & WIRE ACTION BUTTONS TO NEW CURATED LIST ================= -->
+<!-- ================= BLOCK 4B: HIDE REDUNDANT BOTTOM SHOPPING LIST & BOTTOM BUTTON ROW ================= -->
 <script>
 (function() {
     if (!document.getElementById('hh-hide-legacy-shopping-style')) {
@@ -21286,43 +21286,60 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         const storeBar = document.getElementById('hh-master-shopping-store-bridge');
         if (!listHeading || !cleanGrid) return;
 
-        // Walk up to the outer clinical-panel that holds the entire shopping list section
-        const outerPanel = listHeading.closest('.clinical-panel') || listHeading.parentElement?.parentElement || listHeading.parentElement;
-        if (!outerPanel) return;
-
-        // 1. Hide every sibling/descendant inside outerPanel that belongs to the old redundant bottom shopping list!
-        Array.from(outerPanel.children).forEach(child => {
-            if (
-                child === listHeading ||
-                child === storeBar ||
-                child === cleanGrid ||
-                child.id === 'hh-curated-action-toolbar' ||
-                child.contains(listHeading) ||
-                child.contains(storeBar) ||
-                child.contains(cleanGrid)
-            ) {
-                return;
-            }
-            child.classList.add('hh-legacy-redundant-shopping-el');
-        });
-
-        // Also catch any old buttons/progress/grid that were siblings inside listHeading.parentElement
-        if (listHeading.parentElement && listHeading.parentElement !== outerPanel) {
-            Array.from(listHeading.parentElement.children).forEach(ch => {
-                const txt = (ch.textContent || '').trim();
-                if (ch === listHeading || ch === storeBar || ch === cleanGrid || ch.id === 'hh-curated-action-toolbar' || txt.includes('INCLUDES MEAL INGREDIENTS')) {
-                    return;
-                }
-                ch.classList.add('hh-legacy-redundant-shopping-el');
-            });
-        }
-
-        // 2. Inject our clean, wired Action & Progress Toolbar right above #hh-clean-curated-4col-grid
+        // 1. Inject our single top Action & Progress Toolbar right above #hh-clean-curated-4col-grid
         let toolbar = document.getElementById('hh-curated-action-toolbar');
         if (!toolbar) {
             toolbar = document.createElement('div');
             toolbar.id = 'hh-curated-action-toolbar';
             cleanGrid.insertAdjacentElement('beforebegin', toolbar);
+        }
+
+        // 2. Hide ANY duplicate "Done Shopping (Move Checked to Storage)" / "+ Add Custom Item" buttons & rows outside our top toolbar!
+        document.querySelectorAll('button').forEach(btn => {
+            if (btn.closest('#hh-curated-action-toolbar')) return;
+            const bTxt = (btn.textContent || '').trim();
+            if (
+                bTxt.includes('Done Shopping (Move Checked to Storage)') ||
+                bTxt === '+ Add Custom Item' ||
+                bTxt.includes('+ Pull Low-Stock Items') ||
+                bTxt.includes('Reset Checks')
+            ) {
+                btn.classList.add('hh-legacy-redundant-shopping-el');
+                btn.style.setProperty('display', 'none', 'important');
+                if (btn.parentElement && !btn.parentElement.contains(cleanGrid) && !btn.parentElement.contains(listHeading)) {
+                    btn.parentElement.classList.add('hh-legacy-redundant-shopping-el');
+                    btn.parentElement.style.setProperty('display', 'none', 'important');
+                }
+            }
+        });
+
+        // 3. Hide any old shopping progress bars or old 4-column grids below cleanGrid
+        const outerPanel = listHeading.closest('.clinical-panel') || listHeading.parentElement?.parentElement || listHeading.parentElement;
+        if (outerPanel) {
+            Array.from(outerPanel.children).forEach(child => {
+                if (
+                    child === listHeading ||
+                    child === storeBar ||
+                    child === cleanGrid ||
+                    child === toolbar ||
+                    child.contains(listHeading) ||
+                    child.contains(storeBar) ||
+                    child.contains(cleanGrid) ||
+                    child.contains(toolbar)
+                ) {
+                    return;
+                }
+                child.classList.add('hh-legacy-redundant-shopping-el');
+                child.style.setProperty('display', 'none', 'important');
+            });
+        }
+
+        // Also hide any element that comes AFTER cleanGrid inside its parent container
+        let nextSib = cleanGrid.nextElementSibling;
+        while (nextSib) {
+            nextSib.classList.add('hh-legacy-redundant-shopping-el');
+            nextSib.style.setProperty('display', 'none', 'important');
+            nextSib = nextSib.nextElementSibling;
         }
 
         syncCuratedShoppingToolbar();
