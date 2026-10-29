@@ -21147,5 +21147,240 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
     });
 })();
 </script>
+
+<!-- ================= BLOCK 4B: HIDE REDUNDANT OLD SHOPPING LIST & WIRE ACTION BUTTONS TO NEW CURATED LIST ================= -->
+<script>
+(function() {
+    if (!document.getElementById('hh-hide-legacy-shopping-style')) {
+        const st = document.createElement('style');
+        st.id = 'hh-hide-legacy-shopping-style';
+        st.innerHTML = `
+            .hh-legacy-redundant-shopping-el { display: none !important; }
+        `;
+        document.head.appendChild(st);
+    }
+
+    window.addCustomItemToNewCuratedList = function() {
+        if (typeof openUniversalModal === 'function') {
+            openUniversalModal('➕ Add Custom Item to Shopping List', [
+                { name: 'name', label: '1. Item Name', placeholder: 'e.g. Raw Local Cheese, Paper Towels, Avocados' },
+                { name: 'qty', label: '2. Quantity Needed', type: 'number', value: 1 },
+                { name: 'unit', label: '3. Unit', value: 'whole', placeholder: 'lbs, cups, oz, whole, bags' },
+                { name: 'category', label: '4. Category', type: 'select', value: 'Fruits & Produce', options: [
+                    { value: 'Meats & Organs', label: '🥩 Meats & Organs' },
+                    { value: 'Eggs & Raw Dairy', label: '🥚 Eggs & Raw Dairy' },
+                    { value: 'Fruits & Produce', label: '🍓 Fruits & Produce' },
+                    { value: 'Traditional Fats & Pantry Staples', label: '🫙 Traditional Fats & Pantry Staples' }
+                ]}
+            ], vals => {
+                if (!vals.name || !vals.name.trim()) return;
+                const extras = (typeof getLocalData === 'function') ? (getLocalData('extra_shopping_items', []) || []) : [];
+                extras.push({
+                    name: vals.name.trim(),
+                    qty: parseFloat(vals.qty) || 1,
+                    unit: (vals.unit || 'whole').trim(),
+                    category: vals.category || 'Fruits & Produce'
+                });
+                if (typeof setLocalData === 'function') setLocalData('extra_shopping_items', extras);
+                if (typeof window.rebuildAndRenderRestoredShoppingList === 'function') {
+                    window.rebuildAndRenderRestoredShoppingList();
+                }
+                syncCuratedShoppingToolbar();
+            });
+        }
+    };
+
+    window.pullLowStockIntoNewCuratedList = function() {
+        if (typeof getLocalData !== 'function' || typeof setLocalData !== 'function') return;
+        const inv = getLocalData('homestead_inventory_list', []) || [];
+        const extras = getLocalData('extra_shopping_items', []) || [];
+        let added = 0;
+
+        inv.forEach(item => {
+            const q = parseFloat(item.qty) || 0;
+            const par = parseFloat(item.par) || 1;
+            if (q < par && item.name) {
+                const needQty = Math.max(1, Math.round((par - q) * 10) / 10);
+                const exists = extras.some(e => e && e.name && e.name.toLowerCase() === item.name.trim().toLowerCase());
+                if (!exists) {
+                    extras.push({
+                        name: item.name.trim(),
+                        qty: needQty,
+                        unit: item.unit || 'whole',
+                        category: 'Traditional Fats & Pantry Staples'
+                    });
+                    added++;
+                }
+            }
+        });
+
+        setLocalData('extra_shopping_items', extras);
+        if (typeof window.rebuildAndRenderRestoredShoppingList === 'function') {
+            window.rebuildAndRenderRestoredShoppingList();
+        }
+        syncCuratedShoppingToolbar();
+        alert(added > 0 ? `⚠️ Pulled ${added} low-stock item(s) from your inventory into your Shopping List!` : `✅ All inventory items are currently at or above par level!`);
+    };
+
+    window.moveCheckedCuratedToStorage = function() {
+        const checkedMap = JSON.parse(localStorage.getItem('hh_clean_grocery_checks_v2') || '{}');
+        const checkedNames = Object.keys(checkedMap).filter(k => checkedMap[k]);
+        if (checkedNames.length === 0) {
+            alert('Check off the items you bought first, then click "📦 Done Shopping" to move them into your storage inventory!');
+            return;
+        }
+        if (typeof getLocalData === 'function' && typeof setLocalData === 'function') {
+            const inv = getLocalData('homestead_inventory_list', []) || [];
+            checkedNames.forEach(name => {
+                const existing = inv.find(i => i && i.name && i.name.trim().toLowerCase() === name.trim().toLowerCase());
+                if (existing) {
+                    existing.qty = Math.round(((parseFloat(existing.qty) || 0) + 1) * 100) / 100;
+                } else {
+                    inv.unshift({
+                        id: 'inv_shop_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+                        zone: 'fridge',
+                        name: name,
+                        qty: 1,
+                        par: 1,
+                        unit: 'whole',
+                        notes: '🛒 Added from Shopping List'
+                    });
+                }
+            });
+            setLocalData('homestead_inventory_list', inv);
+            if (typeof renderInventoryGrid === 'function') renderInventoryGrid();
+        }
+        alert(`📦 Moved ${checkedNames.length} checked item(s) into your Household Storage Inventory!`);
+    };
+
+    window.resetNewCuratedShoppingChecks = function() {
+        localStorage.setItem('hh_clean_grocery_checks_v2', '{}');
+        if (typeof window.rebuildAndRenderRestoredShoppingList === 'function') {
+            window.rebuildAndRenderRestoredShoppingList();
+        }
+        syncCuratedShoppingToolbar();
+    };
+
+    window.toggleHideCheckedCuratedItems = function(hideChecked) {
+        localStorage.setItem('hh_hide_checked_curated_items', hideChecked ? 'true' : 'false');
+        applyHideCheckedFilterToCuratedGrid();
+    };
+
+    function applyHideCheckedFilterToCuratedGrid() {
+        const hideChecked = localStorage.getItem('hh_hide_checked_curated_items') === 'true';
+        const cleanGrid = document.getElementById('hh-clean-curated-4col-grid');
+        if (!cleanGrid) return;
+
+        cleanGrid.querySelectorAll('input[type="checkbox"]').forEach(chk => {
+            const rowWrapper = chk.closest('div[style*="border-bottom"]');
+            if (rowWrapper) {
+                rowWrapper.style.display = (hideChecked && chk.checked) ? 'none' : '';
+            }
+        });
+    }
+
+    function hideRedundantBottomShoppingListAndSyncToolbar() {
+        const allHeadings = Array.from(document.querySelectorAll('h2, h3, h4, div'));
+        const listHeading = allHeadings.find(el => el.children.length === 0 && (el.textContent || '').trim() === 'Master Family Shopping List');
+        const cleanGrid = document.getElementById('hh-clean-curated-4col-grid');
+        const storeBar = document.getElementById('hh-master-shopping-store-bridge');
+        if (!listHeading || !cleanGrid) return;
+
+        // Walk up to the outer clinical-panel that holds the entire shopping list section
+        const outerPanel = listHeading.closest('.clinical-panel') || listHeading.parentElement?.parentElement || listHeading.parentElement;
+        if (!outerPanel) return;
+
+        // 1. Hide every sibling/descendant inside outerPanel that belongs to the old redundant bottom shopping list!
+        Array.from(outerPanel.children).forEach(child => {
+            if (
+                child === listHeading ||
+                child === storeBar ||
+                child === cleanGrid ||
+                child.id === 'hh-curated-action-toolbar' ||
+                child.contains(listHeading) ||
+                child.contains(storeBar) ||
+                child.contains(cleanGrid)
+            ) {
+                return;
+            }
+            child.classList.add('hh-legacy-redundant-shopping-el');
+        });
+
+        // Also catch any old buttons/progress/grid that were siblings inside listHeading.parentElement
+        if (listHeading.parentElement && listHeading.parentElement !== outerPanel) {
+            Array.from(listHeading.parentElement.children).forEach(ch => {
+                const txt = (ch.textContent || '').trim();
+                if (ch === listHeading || ch === storeBar || ch === cleanGrid || ch.id === 'hh-curated-action-toolbar' || txt.includes('INCLUDES MEAL INGREDIENTS')) {
+                    return;
+                }
+                ch.classList.add('hh-legacy-redundant-shopping-el');
+            });
+        }
+
+        // 2. Inject our clean, wired Action & Progress Toolbar right above #hh-clean-curated-4col-grid
+        let toolbar = document.getElementById('hh-curated-action-toolbar');
+        if (!toolbar) {
+            toolbar = document.createElement('div');
+            toolbar.id = 'hh-curated-action-toolbar';
+            cleanGrid.insertAdjacentElement('beforebegin', toolbar);
+        }
+
+        syncCuratedShoppingToolbar();
+        applyHideCheckedFilterToCuratedGrid();
+    }
+
+    function syncCuratedShoppingToolbar() {
+        const toolbar = document.getElementById('hh-curated-action-toolbar');
+        const cleanGrid = document.getElementById('hh-clean-curated-4col-grid');
+        if (!toolbar || !cleanGrid) return;
+
+        const allChks = Array.from(cleanGrid.querySelectorAll('input[type="checkbox"]'));
+        const totalItems = allChks.length;
+        const checkedItems = allChks.filter(c => c.checked).length;
+        const hideChecked = localStorage.getItem('hh_hide_checked_curated_items') === 'true';
+
+        toolbar.innerHTML = `
+            <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:10px;">
+                <button type="button" class="btn-primary" style="background:linear-gradient(135deg, #2E5A44 0%, #1F4230 100%); border-color:#173325; padding:9px 16px; font-size:0.8rem;" onclick="moveCheckedCuratedToStorage()">
+                    📦 Done Shopping (Move Checked to Storage)
+                </button>
+                <button type="button" class="btn-primary" style="padding:9px 16px; font-size:0.8rem;" onclick="addCustomItemToNewCuratedList()">
+                    + Add Custom Item
+                </button>
+                <button type="button" class="btn-secondary" style="padding:8px 14px; font-size:0.78rem;" onclick="pullLowStockIntoNewCuratedList()">
+                    ⚠️ + Pull Low-Stock Items
+                </button>
+                <button type="button" class="btn-secondary" style="padding:8px 14px; font-size:0.78rem;" onclick="resetNewCuratedShoppingChecks()">
+                    ↺ Reset Checks
+                </button>
+                <button type="button" class="btn-secondary" style="padding:8px 14px; font-size:0.78rem;" onclick="copyCuratedStoreBrandShoppingList()">
+                    📋 Copy List
+                </button>
+            </div>
+            <div style="background:#FFFDF8; border:1.5px solid var(--border); border-radius:12px; padding:10px 16px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                <span style="font-size:0.84rem; font-weight:800; color:var(--primary);">
+                    🛒 Shopping Progress: ${checkedItems} of ${totalItems} whole-food items checked
+                </span>
+                <label style="display:inline-flex; align-items:center; gap:6px; font-size:0.8rem; font-weight:700; color:var(--text-main); cursor:pointer;">
+                    <input type="checkbox" ${hideChecked ? 'checked' : ''} onchange="toggleHideCheckedCuratedItems(this.checked)" style="width:16px; height:16px; accent-color:var(--sage);">
+                    Hide checked items
+                </label>
+            </div>
+        `;
+    }
+
+    [400, 1000, 2000].forEach(ms => setTimeout(hideRedundantBottomShoppingListAndSyncToolbar, ms));
+    document.addEventListener('change', () => setTimeout(() => {
+        syncCuratedShoppingToolbar();
+        applyHideCheckedFilterToCuratedGrid();
+    }, 80));
+    document.addEventListener('click', (e) => {
+        if (e.target.closest('select, option, input')) return;
+        setTimeout(hideRedundantBottomShoppingListAndSyncToolbar, 200);
+    });
+})();
+</script>
+
+
 </body>
 </html>
