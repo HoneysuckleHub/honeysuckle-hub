@@ -19008,7 +19008,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
 })();
 </script>
 
-<!-- ================= BLOCK 4 (STORE-ADAPTIVE BRAND EDITION): 7-STORE CURATED CLEAN BRANDS, DIRECT WALMART AUTO-CART, ZERO-FLICKER DROPDOWN & 4-VIEW KITCHEN CALENDAR OS ================= -->
+<!-- ================= BLOCK 4 (STORE-ADAPTIVE BRAND GUIDE EDITION): 7-STORE CURATED CLEAN BRANDS, COPY BRAND LIST, INSTACART COMING SOON BADGE & 4-VIEW KITCHEN CALENDAR OS ================= -->
 <script>
 (function() {
     const FOUNDER_EMAIL = 'contacthoneysuckleandco@gmail.com';
@@ -19042,7 +19042,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
 
     // =========================================================================
     // 0. STORE-ADAPTIVE CLEAN BRAND DATABASE (WALMART, SPROUTS, H-E-B, KROGER, ALDI, AZURE, TARGET)
-    //    Automatically changes the recommended brand & product to match the exact store selected!
     // =========================================================================
     const STORE_BRAND_PREFIX_FALLBACK = {
         walmart: 'Marketside Organic / Great Value USDA Organic',
@@ -19063,8 +19062,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             kroger:  'Simple Truth Organic Free-Range Air-Chilled Chicken Breasts',
             aldi:    'Simply Nature Organic Free-Range Boneless Skinless Chicken Breasts',
             azure:   'Mary’s Free-Range Organic Heirloom Boneless Chicken Breasts',
-            target:  'Good & Gather Organic Free-Range Boneless Skinless Chicken Breasts',
-            walmartId: '840966504', packSizeLbs: 2.5
+            target:  'Good & Gather Organic Free-Range Boneless Skinless Chicken Breasts'
         },
         'Boneless Chicken Thighs': {
             walmart: 'Perdue Harvestland Free-Range Fresh Boneless Skinless Chicken Thighs',
@@ -19073,8 +19071,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             kroger:  'Simple Truth Organic Free-Range Boneless Chicken Thighs',
             aldi:    'Simply Nature Organic Free-Range Boneless Chicken Thighs',
             azure:   'Mary’s Free-Range Organic Heirloom Pastured Chicken Thighs',
-            target:  'Good & Gather Organic Free-Range Boneless Chicken Thighs',
-            walmartId: '44391065', packSizeLbs: 1.5
+            target:  'Good & Gather Organic Free-Range Boneless Chicken Thighs'
         },
         '80/20 Ground Beef': {
             walmart: 'Marketside Organic 100% Grass-Fed 80/20 Ground Beef (or Verde Farms)',
@@ -19083,18 +19080,16 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             kroger:  'Simple Truth Natural 100% Grass-Fed 80/20 Ground Beef',
             aldi:    'Simply Nature 100% Organic Grass-Fed Ground Beef',
             azure:   'Thousand Hills / Eel River 100% Grass-Fed Regenerative Ground Beef',
-            target:  'Good & Gather Organic 100% Grass-Fed Ground Beef (or Verde Farms)',
-            walmartId: '133893542', packSizeLbs: 1.0
+            target:  'Good & Gather Organic 100% Grass-Fed Ground Beef (or Verde Farms)'
         },
         'Beef Chuck Roast': {
-            walmart: 'Marketside 100% Grass-Fed / Angus Beef Chuck Roast',
+            walmart: 'Marketside 100% Grass-Fed / Choice Angus Beef Chuck Roast',
             sprouts: 'Sprouts 100% Grass-Fed Boneless Beef Chuck Roast',
             heb:     'H-E-B Natural 100% Grass-Fed Boneless Beef Chuck Roast',
             kroger:  'Simple Truth Natural 100% Grass-Fed Beef Chuck Roast',
             aldi:    'Black Angus USDA Choice / Grass-Fed Beef Chuck Roast',
             azure:   'Thousand Hills 100% Grass-Fed Regenerative Beef Chuck Roast',
-            target:  'Good & Gather / Verde Farms 100% Grass-Fed Beef Chuck Roast',
-            walmartId: '44390992', packSizeLbs: 2.5
+            target:  'Good & Gather / Verde Farms 100% Grass-Fed Beef Chuck Roast'
         },
         'Top Sirloin Steak': {
             walmart: 'Marketside Organic 100% Grass-Fed Beef Top Sirloin Steak',
@@ -19103,8 +19098,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             kroger:  'Simple Truth Natural 100% Grass-Fed Top Sirloin Steak',
             aldi:    'Simply Nature 100% Organic Grass-Fed Beef Sirloin Steak',
             azure:   'Thousand Hills 100% Grass-Fed Regenerative Top Sirloin Steak',
-            target:  'Verde Farms Organic 100% Grass-Fed Beef Sirloin Steak',
-            walmartId: '133893545', packSizeLbs: 1.0
+            target:  'Verde Farms Organic 100% Grass-Fed Beef Sirloin Steak'
         },
         'Ribeye or NY Strip Steak': {
             walmart: 'Marketside Organic 100% Grass-Fed Beef Ribeye Steak',
@@ -19113,8 +19107,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             kroger:  'Simple Truth Natural 100% Grass-Fed Ribeye Steak',
             aldi:    'Simply Nature 100% Organic Grass-Fed Ribeye Steak',
             azure:   'Thousand Hills 100% Grass-Fed Regenerative Ribeye Steak',
-            target:  'Verde Farms Organic 100% Grass-Fed Ribeye Steak',
-            walmartId: '44390984', packSizeLbs: 1.0
+            target:  'Verde Farms Organic 100% Grass-Fed Ribeye Steak'
         },
         'Wild-Caught Salmon': {
             walmart: 'Wild-Caught Alaskan Sockeye Salmon Fillets (Never Farmed)',
@@ -19123,8 +19116,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             kroger:  'Simple Truth Wild-Caught Alaskan Sockeye Salmon Fillets',
             aldi:    'Fresh Wild-Caught Coho / Sockeye Salmon Fillets',
             azure:   'Wild-Caught Alaskan Sockeye Salmon Fillets (Flash-Frozen)',
-            target:  'Good & Gather Wild-Caught Alaskan Sockeye Salmon',
-            walmartId: '10794643', packSizeLbs: 1.0
+            target:  'Good & Gather Wild-Caught Alaskan Sockeye Salmon'
         },
         'Oven-Roasted Turkey Breast': {
             walmart: 'Applegate Naturals Oven-Roasted Turkey Breast (Zero Nitrates/Carrageenan)',
@@ -19133,8 +19125,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             kroger:  'Simple Truth Organic Oven-Roasted Turkey Breast',
             aldi:    'Never Any! Uncured Oven-Roasted Turkey Breast (No Nitrates)',
             azure:   'Diestel Family Ranch Organic Pasture-Raised Oven-Roasted Turkey',
-            target:  'Applegate Naturals Oven-Roasted Sliced Turkey Breast',
-            walmartId: '15556156', packSizeLbs: 0.5
+            target:  'Applegate Naturals Oven-Roasted Sliced Turkey Breast'
         },
         'Uncured Pasture Bacon': {
             walmart: 'Applegate Naturals No-Sugar Uncured Sunday Bacon',
@@ -19143,8 +19134,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             kroger:  'Simple Truth Organic No-Sugar Uncured Hardwood Smoked Bacon',
             aldi:    'Never Any! Uncured Hickory Bacon (Zero Sugar / Zero Nitrates)',
             azure:   'Beeler’s Pure Pork Uncured Non-GMO No-Sugar Hickory Bacon',
-            target:  'Applegate Naturals No-Sugar Uncured Sunday Bacon',
-            walmartId: '15556148', packSizeLbs: 1.0
+            target:  'Applegate Naturals No-Sugar Uncured Sunday Bacon'
         },
         'Pork or Beef Breakfast Sausage': {
             walmart: 'Jones Dairy Farm All-Natural Pork Breakfast Sausage (Pork, Water, Salt, Spices)',
@@ -19153,8 +19143,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             kroger:  'Simple Truth Organic Pork Breakfast Sausage Links/Patties',
             aldi:    'Never Any! All-Natural Chicken or Pork Breakfast Sausage',
             azure:   'Beeler’s Pure Pork Heritage Breakfast Sausage (Zero Sugar/MSG)',
-            target:  'Applegate Organics / Jones Dairy Farm All-Natural Breakfast Sausage',
-            walmartId: '10818593', packSizeLbs: 1.0
+            target:  'Applegate Organics / Jones Dairy Farm All-Natural Breakfast Sausage'
         },
 
         // ---------------- EGGS & RAW / GRASS-FED DAIRY ----------------
@@ -19165,8 +19154,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             kroger:  'Simple Truth Organic Pasture-Raised Large Brown Eggs (or Vital Farms)',
             aldi:    'Simply Nature Organic Pasture-Raised / Cage-Free Brown Eggs',
             azure:   'Chino Valley Ranchers Organic Soy-Free Pasture-Raised Eggs',
-            target:  'Vital Farms Pasture-Raised Grade-A Large Brown Eggs',
-            walmartId: '115864065', packCount: 12
+            target:  'Vital Farms Pasture-Raised Grade-A Large Brown Eggs'
         },
         'Whole Milk': {
             walmart: 'Horizon Organic / Maple Hill 100% Grass-Fed Whole Vitamin D Milk',
@@ -19175,8 +19163,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             kroger:  'Simple Truth Organic 100% Grass-Fed Whole Milk (or Maple Hill)',
             aldi:    'Friendly Farms USDA Organic Whole Milk (or Grass-Fed Whole Milk)',
             azure:   'Alexandre Family Farm A2/A2 Organic 100% Grass-Fed / Kalona Whole Milk',
-            target:  'Horizon Organic / Maple Hill 100% Grass-Fed Whole Milk',
-            walmartId: '10315798', packCups: 8
+            target:  'Horizon Organic / Maple Hill 100% Grass-Fed Whole Milk'
         },
         'Whole Milk Greek Yogurt': {
             walmart: 'FAGE Total 5% Whole-Milk Plain Greek Yogurt (Milk & Live Cultures Only)',
@@ -19185,8 +19172,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             kroger:  'Simple Truth Organic Plain Whole-Milk Greek Yogurt (or FAGE Total 5%)',
             aldi:    'Friendly Farms Whole-Milk Plain Greek Yogurt (32 oz Tub)',
             azure:   'Straus Family Creamery / Nancy’s Organic 100% Grass-Fed Whole-Milk Yogurt',
-            target:  'FAGE Total 5% Plain Whole-Milk Greek Yogurt (or Stonyfield Organic)',
-            walmartId: '19857845', packCups: 4
+            target:  'FAGE Total 5% Plain Whole-Milk Greek Yogurt (or Stonyfield Organic)'
         },
         'Sharp Cheddar Cheese': {
             walmart: 'Kerrygold Dubliner Irish Cheese / Organic Valley Raw Sharp Cheddar Block',
@@ -19195,8 +19181,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             kroger:  'Simple Truth Organic Raw Milk Sharp Cheddar Block (or Kerrygold)',
             aldi:    'Emporium Selection Aged Irish Grass-Fed White Cheddar Block',
             azure:   'Rumiano Organic 100% Grass-Fed Redwood Coast Sharp Cheddar Block (or Raw Farm)',
-            target:  'Organic Valley Raw Sharp Cheddar Block / Kerrygold Reserve Cheddar',
-            walmartId: '10804877', packOz: 8
+            target:  'Organic Valley Raw Sharp Cheddar Block / Kerrygold Reserve Cheddar'
         },
         'Shredded Mozzarella Cheese': {
             walmart: 'Organic Valley Whole-Milk Mozzarella (Block or Potato-Starch Shreds)',
@@ -19205,8 +19190,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             kroger:  'Simple Truth Organic Whole-Milk Low-Moisture Mozzarella',
             aldi:    'Simply Nature Organic Whole-Milk Mozzarella',
             azure:   'Rumiano Organic 100% Grass-Fed Whole-Milk Mozzarella Loaf',
-            target:  'Organic Valley / Good & Gather Organic Whole-Milk Mozzarella',
-            walmartId: '10449302', packOz: 8
+            target:  'Organic Valley / Good & Gather Organic Whole-Milk Mozzarella'
         },
         'Heavy Whipping Cream': {
             walmart: 'Organic Valley Ultra-Pasteurized Heavy Whipping Cream (Gellan-Gum Free when available)',
@@ -19215,8 +19199,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             kroger:  'Simple Truth Organic Heavy Whipping Cream',
             aldi:    'Friendly Farms Heavy Whipping Cream',
             azure:   'Kalona SuperNatural / Alexandre Family Farm A2/A2 Pure Organic Heavy Cream',
-            target:  'Organic Valley / Horizon Organic Heavy Whipping Cream',
-            walmartId: '10315022', packCups: 2
+            target:  'Organic Valley / Horizon Organic Heavy Whipping Cream'
         },
         'Grated Parmesan Cheese': {
             walmart: 'BelGioioso / Marketside Aged Parmigiano-Reggiano Wedge',
@@ -19225,8 +19208,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             kroger:  'Private Selection Imported Aged Parmigiano-Reggiano Wedge',
             aldi:    'Specially Selected 24-Month Aged Parmigiano-Reggiano Wedge',
             azure:   'Organic Valley / Rumiano Aged Parmesan Wedge',
-            target:  'Good & Gather Imported Aged Parmigiano-Reggiano Wedge',
-            walmartId: '10452384', packOz: 8
+            target:  'Good & Gather Imported Aged Parmigiano-Reggiano Wedge'
         },
 
         // ---------------- TRADITIONAL FATS, GRAINS & PANTRY STAPLES ----------------
@@ -19237,8 +19219,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             kroger:  'Kerrygold Pure Irish Grass-Fed Butter / Simple Truth Organic Grass-Fed Butter',
             aldi:    'Countryside Creamery Pure Irish Grass-Fed Salted Butter',
             azure:   'Rumiano Organic 100% Grass-Fed / Sierra Nevada Vat-Cultured Pasture Butter',
-            target:  'Kerrygold Pure Irish Grass-Fed Butter / Good & Gather Organic Butter',
-            walmartId: '149199797', packTbsp: 16
+            target:  'Kerrygold Pure Irish Grass-Fed Butter / Good & Gather Organic Butter'
         },
         'Raw Local Honey': {
             walmart: 'Nature Nate’s 100% Pure Raw & Unfiltered Organic Honey',
@@ -19247,8 +19228,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             kroger:  'Simple Truth Organic 100% Raw & Unfiltered Honey',
             aldi:    'Simply Nature Organic Wildflower Raw & Unfiltered Honey',
             azure:   'Azure Market Organics Raw Unfiltered Clover/Wildflower Honey (Glass Jar or Pail)',
-            target:  'Good & Gather Organic Raw & Unfiltered Honey (or Nature Nate’s)',
-            walmartId: '934675372', packTbsp: 24
+            target:  'Good & Gather Organic Raw & Unfiltered Honey (or Nature Nate’s)'
         },
         'Pure Maple Syrup': {
             walmart: 'Maple Grove Farms USDA Organic 100% Pure Grade-A Dark Maple Syrup',
@@ -19257,8 +19237,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             kroger:  'Simple Truth Organic Grade-A Dark 100% Pure Maple Syrup',
             aldi:    'Specially Selected 100% Pure Grade-A Maple Syrup (Glass Bottle)',
             azure:   'Azure Market Organics Grade-A Dark Robust Pure Maple Syrup',
-            target:  'Good & Gather Organic 100% Pure Grade-A Maple Syrup',
-            walmartId: '20977470', packTbsp: 16
+            target:  'Good & Gather Organic 100% Pure Grade-A Maple Syrup'
         },
         'Organic Unbleached All-Purpose Flour': {
             walmart: 'King Arthur USDA Organic Unbleached All-Purpose Flour (Never Bleached/Bromated)',
@@ -19267,8 +19246,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             kroger:  'Simple Truth Organic Unbleached All-Purpose Flour (or King Arthur Organic)',
             aldi:    'Baker’s Corner / Simply Nature Organic Unbleached All-Purpose Flour',
             azure:   'Azure Market Organics Unbleached Heritage All-Purpose / Pastry Flour',
-            target:  'King Arthur USDA Organic Unbleached All-Purpose Flour',
-            walmartId: '32532179', packCups: 16
+            target:  'King Arthur USDA Organic Unbleached All-Purpose Flour'
         },
         'Freshly Milled Soft White / Hard Red Wheat Flour': {
             walmart: 'Palouse Brand Hard Red / Soft White Wheat Berries (or King Arthur Organic Whole Wheat)',
@@ -19277,8 +19255,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             kroger:  'Bob’s Red Mill Organic Hard Red & Soft White Wheat Berries / Whole Wheat Flour',
             aldi:    'Simply Nature Organic Whole Grain / Unbleached Flour',
             azure:   'Azure Market Organics Hard Red, Soft White & Einkorn Wheat Berries (25 lb / 5 lb for Home Milling!)',
-            target:  'King Arthur Organic Whole Wheat / Bob’s Red Mill Organic Wheat Berries',
-            walmartId: '2819960251', packCups: 16
+            target:  'King Arthur Organic Whole Wheat / Bob’s Red Mill Organic Wheat Berries'
         },
         'Organic Unbleached Pasta': {
             walmart: 'Jovial 100% Organic Einkorn / Bionaturae Organic Italian Bronze-Die Pasta',
@@ -19287,8 +19264,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             kroger:  'Private Selection Bronze-Cut / Simple Truth Organic Italian Pasta',
             aldi:    'Simply Nature Organic Bronze-Cut Italian Pasta',
             azure:   'Jovial 100% Organic Traditional Einkorn Pasta (Elbows, Penne & Ziti)',
-            target:  'Good & Gather Organic Bronze-Cut Italian Pasta / Jovial Einkorn',
-            walmartId: '47228543', packOz: 12
+            target:  'Good & Gather Organic Bronze-Cut Italian Pasta / Jovial Einkorn'
         },
         'Artisan Einkorn / Fresh-Milled Pasta': {
             walmart: 'Jovial 100% Organic Traditional Ancient Einkorn Pasta',
@@ -19297,8 +19273,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             kroger:  'Jovial 100% Organic Ancient Einkorn Pasta',
             aldi:    'Priano / Simply Nature Organic Bronze-Die Durum Pasta',
             azure:   'Jovial 100% Organic Einkorn Pasta (or Azure Market Einkorn Berries for Fresh Pasta)',
-            target:  'Jovial 100% Organic Einkorn Pasta',
-            walmartId: '47228543', packOz: 12
+            target:  'Jovial 100% Organic Einkorn Pasta'
         },
         'Artisan Sourdough or Whole-Grain Bread': {
             walmart: 'Marketside Bakery 3-Ingredient Artisan Sourdough Loaf (or Ezekiel 4:9 Sprouted Bread)',
@@ -19307,8 +19282,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             kroger:  'Bakery Fresh Long-Fermented Artisan Sourdough Loaf (or Ezekiel 4:9 Sprouted)',
             aldi:    'Specially Selected Knock Your Sprouts Off / 3-Ingredient Artisan Sourdough Loaf',
             azure:   'Berlin Natural Bakery Heirloom Spelt Sourdough / Food for Life Sprouted Bread',
-            target:  'Favorite Day Bakery Artisan Sourdough / Food for Life Ezekiel 4:9 Sprouted Loaf',
-            walmartId: '44391112', packWhole: 1
+            target:  'Favorite Day Bakery Artisan Sourdough / Food for Life Ezekiel 4:9 Sprouted Loaf'
         },
         'Organic Rolled Oats': {
             walmart: 'One Degree Organic Foods Sprouted Rolled Oats (100% Glyphosate-Free)',
@@ -19317,18 +19291,16 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             kroger:  'One Degree Organic Sprouted Oats / Simple Truth Organic Old-Fashioned Rolled Oats',
             aldi:    'Simply Nature Organic Old-Fashioned Rolled Oats',
             azure:   'Azure Market Organics Thick Rolled Oats (Glyphosate-Free Bulk Bag) / One Degree Sprouted',
-            target:  'One Degree Organic Sprouted Rolled Oats / Bob’s Red Mill Organic Rolled Oats',
-            walmartId: '147093911', packCups: 10
+            target:  'One Degree Organic Sprouted Rolled Oats / Bob’s Red Mill Organic Rolled Oats'
         },
         'Creamy Peanut Butter': {
             walmart: 'Smucker’s Natural / MaraNatha Organic Creamy Peanut Butter (Peanuts & Salt Only)',
             sprouts: 'Sprouts Fresh-Ground In-Store Creamy Peanut or Almond Butter (1-Ingredient!)',
-            heb:     'H-E-B Fresh-Ground In-Store Honey Roasted / Unsalted Peanut or Almond Butter',
+            heb:     'H-E-B Fresh-Ground In-Store Unsalted Peanut or Almond Butter (1-Ingredient!)',
             kroger:  'Simple Truth Organic Creamy Peanut Butter (Dry-Roasted Organic Peanuts & Sea Salt)',
             aldi:    'Simply Nature Organic Creamy Peanut Butter (Just Peanuts & Sea Salt)',
             azure:   'Azure Market Organics / CB’s Nuts Organic 1-Ingredient Creamy Peanut Butter',
-            target:  'Good & Gather Organic Stir Creamy Peanut Butter (Peanuts & Salt Only)',
-            walmartId: '10308124', packTbsp: 28
+            target:  'Good & Gather Organic Stir Creamy Peanut Butter (Peanuts & Salt Only)'
         },
         'Chicken Bone Broth': {
             walmart: 'Kettle & Fire Organic Free-Range Chicken Bone Broth',
@@ -19337,8 +19309,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             kroger:  'Simple Truth Organic Free-Range Chicken Bone Broth (or Kettle & Fire)',
             aldi:    'Simply Nature Organic Free-Range Chicken Bone Broth',
             azure:   'Bonafide Provisions / Kettle & Fire Organic Free-Range Chicken Bone Broth',
-            target:  'Good & Gather Organic Chicken Bone Broth / Kettle & Fire',
-            walmartId: '169083788', packCups: 4
+            target:  'Good & Gather Organic Chicken Bone Broth / Kettle & Fire'
         },
         'Beef Bone Broth': {
             walmart: 'Kettle & Fire 100% Grass-Fed Beef Bone Broth',
@@ -19347,8 +19318,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             kroger:  'Simple Truth Organic Grass-Fed Beef Bone Broth',
             aldi:    'Simply Nature Organic Beef Bone Broth',
             azure:   'Kettle & Fire / Bonafide Provisions 100% Grass-Fed Beef Bone Broth',
-            target:  'Kettle & Fire 100% Grass-Fed Beef Bone Broth',
-            walmartId: '176197735', packCups: 4
+            target:  'Kettle & Fire 100% Grass-Fed Beef Bone Broth'
         },
         'Extra-Virgin Olive Oil': {
             walmart: 'California Olive Ranch 100% Cold-Pressed Extra-Virgin Olive Oil (Dark Glass Bottle)',
@@ -19357,8 +19327,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             kroger:  'Simple Truth Organic Cold-Pressed Extra-Virgin Olive Oil',
             aldi:    'Simply Nature Organic Cold-Pressed Extra-Virgin Olive Oil (Dark Glass)',
             azure:   'Azure Market Organics / Bragg Organic First Cold-Pressed Extra-Virgin Olive Oil',
-            target:  'California Olive Ranch 100% Extra-Virgin Olive Oil',
-            walmartId: '10309075', packTbsp: 32
+            target:  'California Olive Ranch 100% Extra-Virgin Olive Oil'
         },
         'Grass-Fed Collagen Peptides': {
             walmart: 'Vital Proteins Pasture-Raised Grass-Fed Unflavored Collagen Peptides',
@@ -19367,8 +19336,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             kroger:  'Simple Truth / Vital Proteins Grass-Fed Collagen Peptides',
             aldi:    'Vital Proteins Grass-Fed Collagen Peptides',
             azure:   'Great Lakes Wellness / Zint Pasture-Raised Grass-Fed Beef Collagen Hydrolysate',
-            target:  'Vital Proteins Pasture-Raised Grass-Fed Collagen Peptides',
-            walmartId: '620403766', packTbsp: 20
+            target:  'Vital Proteins Pasture-Raised Grass-Fed Collagen Peptides'
         },
         'Raw Cacao Powder': {
             walmart: 'Navitas Organics / BetterBody Foods Organic Unsweetened Raw Cacao Powder',
@@ -19377,8 +19345,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             kroger:  'Simple Truth Organic Fair-Trade Raw Cacao Powder',
             aldi:    'Simply Nature Organic Unsweetened Cocoa / Cacao Powder',
             azure:   'Azure Market Organics Raw Peru Fair-Trade Cacao Powder (1 lb / 5 lb)',
-            target:  'Navitas Organics Organic Unsweetened Raw Cacao Powder',
-            walmartId: '149649492', packTbsp: 16
+            target:  'Navitas Organics Organic Unsweetened Raw Cacao Powder'
         },
         'Raw Pecans': {
             walmart: 'Great Value / Marketside Natural Raw Pecan Halves (No Oils Added)',
@@ -19387,8 +19354,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             kroger:  'Simple Truth Organic Raw Unsalted Pecan Halves',
             aldi:    'Southern Grove Raw Unsalted Pecan Halves',
             azure:   'Azure Market Organics Raw Unpasteurized Sproutable Pecan Halves',
-            target:  'Good & Gather Organic Raw Unsalted Pecan Halves',
-            walmartId: '10315284', packCups: 3
+            target:  'Good & Gather Organic Raw Unsalted Pecan Halves'
         },
 
         // ---------------- ORGANIC FRUITS & PRODUCE ----------------
@@ -19399,8 +19365,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             kroger:  'Simple Truth Organic Triple-Washed Baby Spinach',
             aldi:    'Simply Nature Organic Baby Spinach Clamshell',
             azure:   'Organic Girl / Azure Market Organic Fresh Baby Spinach',
-            target:  'Good & Gather Organic Triple-Washed Baby Spinach',
-            walmartId: '51259346', packCups: 5
+            target:  'Good & Gather Organic Triple-Washed Baby Spinach'
         },
         'Honeycrisp Apples': {
             walmart: 'Marketside USDA Organic Honeycrisp Apples',
@@ -19409,8 +19374,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             kroger:  'Simple Truth Organic Honeycrisp Apples',
             aldi:    'Simply Nature Organic Honeycrisp Apples (2 lb Bag)',
             azure:   'Azure Market Organics Washington Biodynamic/Organic Honeycrisp Apples',
-            target:  'Good & Gather Organic Honeycrisp Apples',
-            walmartId: '44390953', packWhole: 1
+            target:  'Good & Gather Organic Honeycrisp Apples'
         },
         'Ripe Bananas': {
             walmart: 'Marketside USDA Organic Fresh Bananas Bunch',
@@ -19419,8 +19383,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             kroger:  'Simple Truth Organic Fresh Bananas',
             aldi:    'Simply Nature Organic Fresh Bananas',
             azure:   'Azure Market Organics Fair-Trade Fresh Bananas',
-            target:  'Good & Gather Organic Fresh Bananas',
-            walmartId: '44390948', packWhole: 1
+            target:  'Good & Gather Organic Fresh Bananas'
         },
         'Mixed Berries (Fresh or Frozen)': {
             walmart: 'Great Value USDA Organic Frozen Triple Berry Blend (Strawberries, Blueberries, Blackberries)',
@@ -19429,8 +19392,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             kroger:  'Simple Truth Organic Frozen Triple Berry Medley',
             aldi:    'Simply Nature Organic Frozen Triple Berry Blend',
             azure:   'Stahlbush Island Farms / Azure Market Organics Frozen Mixed Berries',
-            target:  'Good & Gather Organic Frozen Triple Berry Blend',
-            walmartId: '11964804', packCups: 4
+            target:  'Good & Gather Organic Frozen Triple Berry Blend'
         },
         'Fresh Strawberries': {
             walmart: 'USDA Organic Fresh Strawberries (1 lb Clamshell — Dirty Dozen Priority!)',
@@ -19439,8 +19401,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             kroger:  'Simple Truth Organic Fresh Strawberries',
             aldi:    'Simply Nature Organic Fresh Strawberries',
             azure:   'Azure Market Organics Fresh / Stahlbush Frozen Organic Strawberries',
-            target:  'Good & Gather Organic Fresh Strawberries',
-            walmartId: '44391025', packCups: 3
+            target:  'Good & Gather Organic Fresh Strawberries'
         },
         'Blueberries': {
             walmart: 'Wyman’s Wild Blueberries (Frozen) / USDA Organic Fresh Blueberries',
@@ -19449,8 +19410,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             kroger:  'Simple Truth Organic Wild Blueberries / Fresh Organic Blueberries',
             aldi:    'Simply Nature Organic Fresh or Frozen Wild Blueberries',
             azure:   'Stahlbush Island Farms / Oregon Organic Blueberries',
-            target:  'Wyman’s Wild Blueberries / Good & Gather Organic Blueberries',
-            walmartId: '10898757', packCups: 4
+            target:  'Wyman’s Wild Blueberries / Good & Gather Organic Blueberries'
         },
         'Ripe Avocados': {
             walmart: 'Fresh Hass Avocados (Clean Fifteen — Conventional or Organic)',
@@ -19459,8 +19419,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             kroger:  'Simple Truth Organic Hass Avocados',
             aldi:    'Fresh Hass Avocados Bag',
             azure:   'Azure Market Organics California Hass Avocados',
-            target:  'Good & Gather Organic Hass Avocados',
-            walmartId: '44390957', packWhole: 1
+            target:  'Good & Gather Organic Hass Avocados'
         },
         'Crushed Tomatoes (No Sugar Added)': {
             walmart: 'Bionaturae / Muir Glen USDA Organic Crushed Tomatoes (BPA-Free or Glass Jar)',
@@ -19469,8 +19428,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             kroger:  'Simple Truth Organic Crushed Tomatoes (No Sugar or Calcium Chloride)',
             aldi:    'Simply Nature Organic Crushed Tomatoes',
             azure:   'Jovial 100% Organic Italian Crushed Tomatoes in Glass Jar (or Bionaturae)',
-            target:  'Good & Gather Organic / Muir Glen Organic Crushed Tomatoes',
-            walmartId: '10324041', packCups: 3.5
+            target:  'Good & Gather Organic / Muir Glen Organic Crushed Tomatoes'
         },
         'Pure Coconut Water': {
             walmart: 'Harmless Harvest Organic Pink Coconut Water (100% Raw Coconut Water, Zero Sugar Added)',
@@ -19479,8 +19437,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             kroger:  'Simple Truth Organic 100% Pure Coconut Water (or Harmless Harvest)',
             aldi:    'Simply Nature Organic 100% Pure Coconut Water',
             azure:   'Harmless Harvest / Taste Nirvana 100% Pure Glass-Bottled Coconut Water',
-            target:  'Harmless Harvest Organic / Good & Gather Organic Pure Coconut Water',
-            walmartId: '46330156', packCups: 4
+            target:  'Harmless Harvest Organic / Good & Gather Organic Pure Coconut Water'
         }
     };
 
@@ -19514,22 +19471,12 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
 
         if (entry) {
             const storePick = entry[activeStore] || entry.walmart || `${STORE_BRAND_PREFIX_FALLBACK[activeStore] || 'Organic'} ${ingName}`;
-            return {
-                brandPick: storePick,
-                walmartId: entry.walmartId || null,
-                packSizeLbs: entry.packSizeLbs,
-                packCount: entry.packCount,
-                packCups: entry.packCups,
-                packTbsp: entry.packTbsp,
-                packOz: entry.packOz,
-                packWhole: entry.packWhole
-            };
+            return { brandPick: storePick };
         }
 
         const prefix = STORE_BRAND_PREFIX_FALLBACK[activeStore] || 'USDA Organic';
         return {
-            brandPick: `${prefix} ${ingName} (100% Whole-Food, No Additives)`,
-            walmartId: null
+            brandPick: `${prefix} ${ingName} (100% Whole-Food, No Additives)`
         };
     }
 
@@ -20873,53 +20820,18 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
     }
 
     // =========================================================================
-    // 8. STORE-ADAPTIVE CONSOLIDATED SHOPPING LIST + DIRECT WALMART AUTO-CART
+    // 8. STORE-ADAPTIVE BRAND GUIDE ON "MASTER FAMILY SHOPPING LIST"
+    //    (Zero broken external links! Shows starred store-specific brand picks +
+    //     1-click Copy Store Brand List + "🥕 Instacart Instant Shopping Coming Soon!")
     // =========================================================================
     const GROCERY_STORES = {
-        walmart: {
-            name: '🔵 Walmart Pickup & Delivery (Direct Auto-Cart)',
-            short: 'Walmart',
-            color: '#0071DC',
-            itemUrl: (itemName, brandObj) => brandObj?.walmartId
-                ? `https://www.walmart.com/ip/${brandObj.walmartId}`
-                : `https://www.walmart.com/search?q=${encodeURIComponent(brandObj?.brandPick || itemName)}`
-        },
-        sprouts: {
-            name: '🟢 Sprouts Farmers Market',
-            short: 'Sprouts',
-            color: '#2E5A44',
-            itemUrl: (itemName, brandObj) => `https://shop.sprouts.com/shop?search_term=${encodeURIComponent(brandObj?.brandPick || itemName)}`
-        },
-        heb: {
-            name: '🔴 H-E-B Curbside & Delivery',
-            short: 'H-E-B',
-            color: '#B91C1C',
-            itemUrl: (itemName, brandObj) => `https://www.heb.com/search?q=${encodeURIComponent(brandObj?.brandPick || itemName)}`
-        },
-        kroger: {
-            name: '🔵 Kroger Pickup & Delivery',
-            short: 'Kroger',
-            color: '#1D4ED8',
-            itemUrl: (itemName, brandObj) => `https://www.kroger.com/search?query=${encodeURIComponent(brandObj?.brandPick || itemName)}`
-        },
-        aldi: {
-            name: '🟠 ALDI Curbside',
-            short: 'ALDI',
-            color: '#D97706',
-            itemUrl: (itemName, brandObj) => `https://shop.aldi.us/store/aldi/s?k=${encodeURIComponent(brandObj?.brandPick || itemName)}`
-        },
-        azure: {
-            name: '🌾 Azure Standard (Bulk & Heritage Grains)',
-            short: 'Azure Standard',
-            color: '#9A5B0A',
-            itemUrl: (itemName, brandObj) => `https://www.azurestandard.com/shop/search/${encodeURIComponent(brandObj?.brandPick || itemName)}`
-        },
-        target: {
-            name: '🎯 Target Drive-Up',
-            short: 'Target',
-            color: '#DC2626',
-            itemUrl: (itemName, brandObj) => `https://www.target.com/s?searchTerm=${encodeURIComponent(brandObj?.brandPick || itemName)}`
-        }
+        walmart: { name: '🔵 Walmart (In-Store & Curbside)', short: 'Walmart', color: '#0071DC' },
+        sprouts: { name: '🟢 Sprouts Farmers Market', short: 'Sprouts', color: '#2E5A44' },
+        heb:     { name: '🔴 H-E-B (Texas In-Store & Curbside)', short: 'H-E-B', color: '#B91C1C' },
+        kroger:  { name: '🔵 Kroger', short: 'Kroger', color: '#1D4ED8' },
+        aldi:    { name: '🟠 ALDI', short: 'ALDI', color: '#D97706' },
+        azure:   { name: '🌾 Azure Standard (Bulk & Heritage Grains)', short: 'Azure Standard', color: '#9A5B0A' },
+        target:  { name: '🎯 Target', short: 'Target', color: '#DC2626' }
     };
 
     function buildConsolidatedGroceryItemsArray() {
@@ -20997,18 +20909,8 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         return Object.values(consolidated);
     }
 
-    function calculateStorePackCount(item, brandObj) {
-        const q = parseFloat(item.qty) || 1;
-        if (brandObj?.packSizeLbs && item.unit === 'lbs') return Math.max(1, Math.ceil(q / brandObj.packSizeLbs));
-        if (brandObj?.packCount && item.unit === 'eggs') return Math.max(1, Math.ceil(q / brandObj.packCount));
-        if (brandObj?.packCups && item.unit === 'cups') return Math.max(1, Math.ceil(q / brandObj.packCups));
-        if (brandObj?.packTbsp && item.unit === 'tbsp') return Math.max(1, Math.ceil(q / brandObj.packTbsp));
-        if (brandObj?.packOz && item.unit === 'oz') return Math.max(1, Math.ceil(q / brandObj.packOz));
-        if (brandObj?.packWhole && item.unit === 'whole') return Math.max(1, Math.ceil(q));
-        return 1;
-    }
-
-    window.autoLoadAllUncheckedIntoStoreCart = function() {
+    // Copy the user's unchecked shopping list WITH their store-specific brand recommendations included!
+    window.copyCuratedStoreBrandShoppingList = function() {
         const storeKey = document.getElementById('hh-master-store-sel')?.value || localStorage.getItem('hh_preferred_grocery_store') || 'walmart';
         localStorage.setItem('hh_preferred_grocery_store', storeKey);
         const stObj = GROCERY_STORES[storeKey] || GROCERY_STORES.walmart;
@@ -21018,75 +20920,37 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         const unchecked = allItems.filter(it => !checkedMap[it.name]);
         const targetList = unchecked.length > 0 ? unchecked : allItems;
 
-        if (storeKey === 'walmart') {
-            const walmartCartPairs = [];
-            targetList.forEach(it => {
-                const brandObj = getCuratedBrandForIngredientAndStore(it.name, 'walmart');
-                if (brandObj && brandObj.walmartId) {
-                    const packQty = calculateStorePackCount(it, brandObj);
-                    walmartCartPairs.push(`${brandObj.walmartId}_${packQty}`);
-                }
-            });
-
-            if (walmartCartPairs.length > 0) {
-                const walmartAddToCartUrl = `https://www.walmart.com/sc/cart/addToCart?items=${walmartCartPairs.join(',')}`;
-                window.open(walmartAddToCartUrl, '_blank');
-                return;
-            }
-        }
-
-        const curatedLines = targetList.map(it => {
+        const lines = [
+            `🌻 Honeysuckle Hub — ${stObj.short} Clean-Brand Shopping List`,
+            `------------------------------------------------`
+        ];
+        targetList.forEach(it => {
+            const amt = formatPracticalGroceryAmount(it.qty, it.unit, it.name);
             const brandObj = getCuratedBrandForIngredientAndStore(it.name, storeKey);
-            return `${brandObj?.brandPick || it.name}`;
+            lines.push(`☐ ${it.name} (${amt})\n   ✨ ${stObj.short} Pick: ${brandObj.brandPick}`);
         });
+
+        const finalTxt = lines.join('\n');
         if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(curatedLines.join('\n')).catch(() => {});
+            navigator.clipboard.writeText(finalTxt).catch(() => {});
         }
-        const firstItem = targetList[0];
-        const firstBrand = firstItem ? getCuratedBrandForIngredientAndStore(firstItem.name, storeKey) : null;
-        window.open(stObj.itemUrl(firstItem?.name || 'Organic Chicken Breast', firstBrand), '_blank');
-        alert(`🛒 Copied your ${curatedLines.length} ${stObj.short}-Specific Clean Brand Picks & opened ${stObj.short}!\n\nTap any "+ ${stObj.short}" button below to open that exact ${stObj.short} brand product in 1 click.`);
+        alert(`📋 Copied your ${targetList.length}-item ${stObj.short} Brand Shopping List!\n\nYou can paste this straight into your phone's Notes app, text it to your spouse, or keep it open while you shop!`);
     };
 
-    window.openSingleCuratedStoreItem = function(itemName, btnEl) {
-        const storeKey = document.getElementById('hh-master-store-sel')?.value || localStorage.getItem('hh_preferred_grocery_store') || 'walmart';
-        localStorage.setItem('hh_preferred_grocery_store', storeKey);
-        const stObj = GROCERY_STORES[storeKey] || GROCERY_STORES.walmart;
-        const brandObj = getCuratedBrandForIngredientAndStore(itemName, storeKey);
-
-        if (storeKey === 'walmart' && brandObj?.walmartId) {
-            window.open(`https://www.walmart.com/ip/${brandObj.walmartId}`, 'HoneysuckleStoreTab');
-        } else {
-            window.open(stObj.itemUrl(itemName, brandObj), 'HoneysuckleStoreTab');
-        }
-
-        if (btnEl) {
-            btnEl.innerHTML = '✓ Opened';
-            btnEl.style.background = '#15803D';
-        }
-    };
-
-    // When the user switches stores in the dropdown, update the button AND re-render the 4-column grid with that store's exact brands!
     window.onChangeMasterStoreDropdown = function(newStoreKey) {
         localStorage.setItem('hh_preferred_grocery_store', newStoreKey);
         const stObj = GROCERY_STORES[newStoreKey] || GROCERY_STORES.walmart;
-        const mainBtn = document.getElementById('hh-master-auto-cart-btn');
-        if (mainBtn) {
-            mainBtn.innerHTML = newStoreKey === 'walmart'
-                ? `🛒 Auto-Load Walmart-Approved Brands into Cart ↗`
-                : `🛒 Shop ${stObj.short}-Approved Brands ↗`;
-            mainBtn.style.background = stObj.color;
-            mainBtn.style.borderColor = stObj.color;
+        const copyBtn = document.getElementById('hh-master-copy-brand-list-btn');
+        if (copyBtn) {
+            copyBtn.innerHTML = `📋 Copy My ${escapeSafeHtml(stObj.short)} Brand List`;
         }
         const subDesc = document.getElementById('hh-store-bridge-active-desc');
         if (subDesc) {
             subDesc.innerHTML = `Showing <strong>${escapeSafeHtml(stObj.short)}’s Best Clean Whole-Food Brands</strong> on every ingredient below!`;
         }
-        // Re-render only the 4-column grid below (leaves the dropdown untouched so it never flickers!)
         renderFourColumnShoppingGridOnly();
     };
 
-    // Admin Modal so Ashton can customize her preferred brand for ANY of the 7 stores!
     window.openAdminCustomizeApprovedBrandsModal = function() {
         if (!isStrictFounderAdmin()) return;
         const allItems = buildConsolidatedGroceryItemsArray();
@@ -21113,25 +20977,11 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                 label: '3. Approved Brand & Product Name for This Store',
                 placeholder: 'e.g. Perdue Harvestland Free-Range Chicken / H-E-B Organics Free-Range Chicken',
                 value: getCuratedBrandForIngredientAndStore(names[0], curStore)?.brandPick || ''
-            },
-            {
-                name: 'walmartUrlOrId',
-                label: '4. Optional Walmart Product URL or Item ID (If editing Walmart)',
-                required: false,
-                placeholder: 'Paste a walmart.com/ip/... link or numeric Item ID',
-                value: getCuratedBrandForIngredientAndStore(names[0], 'walmart')?.walmartId || ''
             }
         ], vals => {
             const custom = getCustomStoreBrandOverrides();
             if (!custom[vals.ingredientName]) custom[vals.ingredientName] = {};
             custom[vals.ingredientName][vals.storeKey] = vals.brandPick.trim();
-
-            if (vals.walmartUrlOrId) {
-                let wmId = vals.walmartUrlOrId.trim();
-                const matchIp = wmId.match(/\/ip\/(?:[^/]+\/)?(\d+)/);
-                if (matchIp) wmId = matchIp[1];
-                custom[vals.ingredientName].walmartId = wmId;
-            }
             localStorage.setItem('hh_ashton_store_brands_v3', JSON.stringify(custom));
             renderFourColumnShoppingGridOnly();
             alert(`✅ Updated ${GROCERY_STORES[vals.storeKey]?.short || vals.storeKey} Brand Pick for ${vals.ingredientName}!`);
@@ -21181,22 +21031,19 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                         const brandObj = getCuratedBrandForIngredientAndStore(item.name, prefStore);
                         const safeName = item.name.replace(/'/g, "\\'");
                         return `
-                            <div style="padding:8px 0; border-bottom:1px dashed var(--border); display:flex; justify-content:space-between; align-items:flex-start; gap:8px; opacity:${isChk ? '0.55' : '1'};">
-                                <label style="display:flex; align-items:flex-start; gap:8px; cursor:pointer; flex:1;">
-                                    <input type="checkbox" ${isChk ? 'checked' : ''} onchange="toggleCleanMasterGroceryItem('${escapeSafeHtml(safeName)}', this.checked)" style="width:17px; height:17px; accent-color:var(--sage); margin-top:3px; flex-shrink:0;">
-                                    <div>
-                                        <strong style="font-size:0.88rem; color:var(--text-main); display:block; ${isChk ? 'text-decoration:line-through;' : ''}">${escapeSafeHtml(item.name)}</strong>
-                                        <span style="font-size:0.76rem; color:var(--text-muted); display:block;">Need: <strong style="color:var(--primary);">${escapeSafeHtml(friendlyAmt)}</strong></span>
-                                        <span style="font-size:0.72rem; color:${stObj.color}; background:#ffffff; border:1px solid var(--border); padding:2px 6px; border-radius:6px; font-weight:700; display:inline-block; margin-top:3px; line-height:1.3;">
+                            <div style="padding:8px 0; border-bottom:1px dashed var(--border); opacity:${isChk ? '0.55' : '1'};">
+                                <label style="display:flex; align-items:flex-start; gap:9px; cursor:pointer; width:100%;">
+                                    <input type="checkbox" ${isChk ? 'checked' : ''} onchange="toggleCleanMasterGroceryItem('${escapeSafeHtml(safeName)}', this.checked)" style="width:18px; height:18px; accent-color:var(--sage); margin-top:3px; flex-shrink:0;">
+                                    <div style="flex:1;">
+                                        <div style="display:flex; justify-content:space-between; align-items:baseline; gap:6px; flex-wrap:wrap;">
+                                            <strong style="font-size:0.9rem; color:var(--text-main); ${isChk ? 'text-decoration:line-through;' : ''}">${escapeSafeHtml(item.name)}</strong>
+                                            <span style="font-size:0.76rem; color:var(--text-muted);">Need: <strong style="color:var(--primary);">${escapeSafeHtml(friendlyAmt)}</strong></span>
+                                        </div>
+                                        <div style="font-size:0.73rem; color:${stObj.color}; background:#ffffff; border:1px solid var(--border); border-left:3px solid ${stObj.color}; padding:4px 8px; border-radius:6px; font-weight:700; margin-top:4px; line-height:1.35;">
                                             ✨ ${escapeSafeHtml(stObj.short)} Pick: ${escapeSafeHtml(brandObj.brandPick)}
-                                        </span>
+                                        </div>
                                     </div>
                                 </label>
-                                <button type="button" class="hh-curated-item-store-btn"
-                                    onclick="openSingleCuratedStoreItem('${escapeSafeHtml(safeName)}', this)"
-                                    style="background:${stObj.color}; color:#fff; border:none; border-radius:999px; padding:5px 10px; font-size:0.7rem; font-weight:700; cursor:pointer; flex-shrink:0; white-space:nowrap;">
-                                    🛒 + ${escapeSafeHtml(stObj.short)}
-                                </button>
                             </div>
                         `;
                     }).join('')}
@@ -21216,7 +21063,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         const prefStore = localStorage.getItem('hh_preferred_grocery_store') || 'walmart';
         const stObj = GROCERY_STORES[prefStore] || GROCERY_STORES.walmart;
 
-        // Mount the Store Selector Bar ONLY ONCE so the dropdown never flickers
+        // Mount the Store Brand Guide Bar ONLY ONCE so the dropdown stays smooth
         let storeBar = document.getElementById('hh-master-shopping-store-bridge');
         if (!storeBar) {
             storeBar = document.createElement('div');
@@ -21228,8 +21075,13 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             storeBar.innerHTML = `
                 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
                     <div style="max-width:560px;">
-                        <span class="card-tag" style="background:var(--sage); color:#fff;">🛒 Store-Specific Clean-Brand Concierge</span>
-                        <h4 style="font-size:1.12rem; color:var(--primary); margin:4px 0 2px 0;">Switch Stores to See Each Store’s Best Whole-Food Brands</h4>
+                        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:4px;">
+                            <span class="card-tag" style="background:var(--sage); color:#fff; margin:0;">✨ Store-Specific Clean-Brand Concierge</span>
+                            <span style="background:#FEF5D8; color:#B87612; border:1px solid #E5C378; padding:3px 10px; border-radius:999px; font-size:0.71rem; font-weight:800;">
+                                🥕 Instacart 1-Click Instant Shopping — Coming Soon!
+                            </span>
+                        </div>
+                        <h4 style="font-size:1.12rem; color:var(--primary); margin:2px 0;">Choose Your Grocery Store to See Ashton’s Vetted Brand Picks</h4>
                         <p id="hh-store-bridge-active-desc" style="font-size:0.79rem; color:var(--text-main); margin:0;">
                             Showing <strong>${escapeSafeHtml(stObj.short)}’s Best Clean Whole-Food Brands</strong> on every ingredient below!
                         </p>
@@ -21238,8 +21090,8 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                         <select id="hh-master-store-sel" onchange="onChangeMasterStoreDropdown(this.value)" style="padding:9px 12px; border:2px solid var(--sage); border-radius:10px; font-size:0.84rem; font-weight:700; background:#fff; cursor:pointer;">
                             ${Object.entries(GROCERY_STORES).map(([k, s]) => `<option value="${k}" ${k === prefStore ? 'selected' : ''}>${s.name}</option>`).join('')}
                         </select>
-                        <button type="button" id="hh-master-auto-cart-btn" class="btn-primary" style="background:${stObj.color}; border-color:${stObj.color}; padding:10px 16px; font-size:0.82rem; font-weight:800;" onclick="autoLoadAllUncheckedIntoStoreCart()">
-                            ${prefStore === 'walmart' ? `🛒 Auto-Load Walmart-Approved Brands into Cart ↗` : `🛒 Shop ${stObj.short}-Approved Brands ↗`}
+                        <button type="button" id="hh-master-copy-brand-list-btn" class="btn-primary" style="background:linear-gradient(135deg, #2E5A44 0%, #1F4230 100%); border-color:#173325; padding:10px 16px; font-size:0.82rem; font-weight:800;" onclick="copyCuratedStoreBrandShoppingList()">
+                            📋 Copy My ${escapeSafeHtml(stObj.short)} Brand List
                         </button>
                         ${isStrictFounderAdmin() ? `
                             <button type="button" class="btn-secondary" style="padding:8px 12px; font-size:0.75rem;" onclick="openAdminCustomizeApprovedBrandsModal()">
