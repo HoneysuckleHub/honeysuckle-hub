@@ -21398,6 +21398,554 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
 })();
 </script>
 
+    <!-- ================= BLOCK 5: RECLAIM YOUR TERRAIN — GUIDED HAND-HOLDING COACH LAYOUT, COLOR PSYCHOLOGY & DOPAMINE CELEBRATION ENGINE ================= -->
+<script>
+(function() {
+    const FOUNDER_EMAIL = 'contacthoneysuckleandco@gmail.com';
+    window._activeTerrainCoachTab = window._activeTerrainCoachTab || 'habits'; // 'habits' | 'workout' | 'meals' | 'supplements'
+    window._adminDrawerExpanded = window._adminDrawerExpanded || false;
+    let isEnhancingTerrainCoach = false;
+
+    function isStrictFounderAdmin() {
+        if (typeof window.isInteractiveDemoSession === 'function' && window.isInteractiveDemoSession()) return false;
+        if (window.isDemoMode || window._isLiveDemoModeActive) return false;
+        const email = (typeof currentUser !== 'undefined' && currentUser?.email) ? currentUser.email.trim().toLowerCase() : '';
+        return email === FOUNDER_EMAIL;
+    }
+
+    const COACH_AFFIRMATIONS = [
+        "🌻 You don't have to heal everything today. Just lay today's 5 gentle bricks—your body knows how to respond to safety and nourishment.",
+        "🌿 Consistency beats intensity every single time. An 85% week is an A+ in nervous-system healing!",
+        "💧 Every mineral elixir, slow breath, and protein-rich meal tells your adrenals: 'The emergency is over. You are safe.'",
+        "🕊️ Grace over perfectionism: if you miss a habit today, simply pick up the next brick tomorrow. You are building a lifelong foundation.",
+        "✨ Your energy, hormones, and digestion are rebuilding from the roots up—one peaceful day at a time."
+    ];
+
+    // Inject Coaching & Color Psychology Styles
+    if (!document.getElementById('hh-terrain-coach-ux-styles')) {
+        const st = document.createElement('style');
+        st.id = 'hh-terrain-coach-ux-styles';
+        st.innerHTML = `
+            .hh-coach-step-map-wrap {
+                background: linear-gradient(135deg, #1E3F2E 0%, #142B1F 100%);
+                color: #FFFDF8;
+                border-radius: 20px;
+                padding: 20px 22px;
+                margin-bottom: 18px;
+                border: 2.5px solid #D9B36C;
+                box-shadow: 0 12px 30px rgba(20, 43, 31, 0.18);
+            }
+            .hh-stepping-stones-row {
+                display: flex;
+                gap: 6px;
+                overflow-x: auto;
+                padding: 8px 2px 10px 2px;
+                scrollbar-width: thin;
+            }
+            .hh-stone-pill {
+                flex: 0 0 auto;
+                padding: 6px 12px;
+                border-radius: 999px;
+                font-size: 0.73rem;
+                font-weight: 800;
+                display: inline-flex;
+                align-items: center;
+                gap: 5px;
+                border: 1.5px solid rgba(255,255,255,0.2);
+                background: rgba(255,255,255,0.08);
+                color: #D7E8DF;
+                transition: all 0.2s;
+            }
+            .hh-stone-pill.done {
+                background: #15803D;
+                border-color: #86EFAC;
+                color: #ffffff;
+            }
+            .hh-stone-pill.active {
+                background: #FEF5D8;
+                border: 2px solid #F59E0B;
+                color: #9A5B0A;
+                transform: scale(1.06);
+                box-shadow: 0 0 16px rgba(245, 158, 11, 0.55);
+            }
+            .hh-coach-nav-tabs {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+                gap: 10px;
+                margin-bottom: 18px;
+            }
+            .hh-coach-tab-btn {
+                background: #FFFDF8;
+                border: 2px solid #EADBC0;
+                border-radius: 16px;
+                padding: 13px 14px;
+                text-align: left;
+                cursor: pointer;
+                transition: all 0.18s;
+                display: flex;
+                flex-direction: column;
+                gap: 3px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+            }
+            .hh-coach-tab-btn:hover {
+                border-color: #2E5A44;
+                transform: translateY(-1px);
+            }
+            .hh-coach-tab-btn.active {
+                background: linear-gradient(135deg, #2E5A44 0%, #1F4230 100%);
+                border-color: #173325;
+                color: #ffffff;
+                box-shadow: 0 10px 22px rgba(46, 90, 68, 0.25);
+            }
+            .hh-coach-tab-btn .tab-step-num {
+                font-size: 0.68rem;
+                font-weight: 800;
+                text-transform: uppercase;
+                letter-spacing: 0.04em;
+                color: #B87612;
+            }
+            .hh-coach-tab-btn.active .tab-step-num {
+                color: #FEF5D8;
+            }
+            .hh-coach-tab-btn .tab-main-title {
+                font-size: 0.92rem;
+                font-weight: 800;
+                color: #2A1E14;
+            }
+            .hh-coach-tab-btn.active .tab-main-title {
+                color: #ffffff;
+            }
+            .hh-habit-card-upgraded {
+                border-radius: 18px !important;
+                padding: 18px 20px !important;
+                margin-bottom: 14px !important;
+                transition: all 0.25s ease !important;
+                box-shadow: 0 6px 18px rgba(0,0,0,0.04) !important;
+                cursor: pointer;
+            }
+            .hh-habit-card-upgraded:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 10px 24px rgba(0,0,0,0.08) !important;
+            }
+            .hh-habit-card-done {
+                background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%) !important;
+                border: 2.5px solid #10B981 !important;
+                border-left: 8px solid #059669 !important;
+            }
+            @keyframes hhConfettiPop {
+                0% { transform: scale(0.92); opacity: 0; }
+                60% { transform: scale(1.02); opacity: 1; }
+                100% { transform: scale(1); opacity: 1; }
+            }
+            .hh-victory-banner {
+                animation: hhConfettiPop 0.35s ease-out forwards;
+            }
+        `;
+        document.head.appendChild(st);
+    }
+
+    function playHabitRewardChime(isAllFiveDone = false) {
+        try {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (!AudioCtx) return;
+            const ctx = new AudioCtx();
+            const notes = isAllFiveDone ? [528, 660, 792, 1056] : [528, 660];
+            notes.forEach((freq, idx) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.14);
+                gain.gain.setValueAtTime(0.14, ctx.currentTime + idx * 0.14);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + idx * 0.14 + 0.35);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(ctx.currentTime + idx * 0.14);
+                osc.stop(ctx.currentTime + idx * 0.14 + 0.36);
+            });
+        } catch (e) {}
+    }
+
+    window.switchTerrainCoachTab = function(tabKey) {
+        window._activeTerrainCoachTab = tabKey;
+        applyTerrainCoachLayout();
+    };
+
+    window.toggleAdminTerrainDrawer = function() {
+        window._adminDrawerExpanded = !window._adminDrawerExpanded;
+        applyTerrainCoachLayout();
+    };
+
+    function applyTerrainCoachLayout() {
+        if (isEnhancingTerrainCoach) return;
+        const container = document.getElementById('view-reclaim-terrain');
+        if (!container) return;
+
+        const tState = (typeof getTerrainState === 'function') ? getTerrainState() : null;
+        if (!tState || (!tState.unlocked && !isStrictFounderAdmin())) return;
+        if (!tState.consultCompleted && !isStrictFounderAdmin()) return;
+
+        // Locate the core sections inside #view-reclaim-terrain
+        const wodCard = document.getElementById('hh-terrain-ai-wod-studio-card');
+        const twoColGrid = Array.from(container.querySelectorAll('div')).find(el => {
+            const st = el.getAttribute('style') || '';
+            return st.includes('grid-template-columns') && (el.textContent || '').includes('Micro-Habits') && (el.textContent || '').includes('MEAL BLUEPRINT');
+        });
+
+        if (!twoColGrid) return;
+
+        isEnhancingTerrainCoach = true;
+        try {
+            const curStep = Math.max(1, Math.min(16, parseInt(tState.currentStep) || 1));
+            const phaseNum = curStep <= 4 ? 1 : (curStep <= 8 ? 2 : (curStep <= 12 ? 3 : 4));
+            const phaseNames = {
+                1: 'Phase 1: Calming the Alarm (Drainage, Hydration & Circadian Anchors)',
+                2: 'Phase 2: Gut & Bile Drainage (Microbiome, Stomach Acid & Liver Flow)',
+                3: 'Phase 3: Metabolic Fire & Muscle (Mitochondria, Thyroid & Strength)',
+                4: 'Phase 4: Hormone & Cycle Stewardship (Lifelong Rhythm & Peace)'
+            };
+
+            const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+            const todayDayIdx = (new Date().getDay() + 6) % 7;
+            const activeDayKey = tState.selectedViewDay || daysOfWeek[todayDayIdx];
+
+            // 1. Tidy up Ashton's Admin Portal at the top into a clean collapsible drawer so it never overwhelms the screen
+            if (isStrictFounderAdmin()) {
+                const adminSumBar = document.getElementById('btn-admin-clinical-summarizer');
+                const adminClientBox = Array.from(container.children).find(ch => ch.querySelector && ch.querySelector('button[onclick^="openAdminClientConsultViewer("]'));
+
+                if ((adminSumBar || adminClientBox) && !document.getElementById('hh-admin-collapsible-drawer-bar')) {
+                    const toggleBar = document.createElement('div');
+                    toggleBar.id = 'hh-admin-collapsible-drawer-bar';
+                    toggleBar.style.cssText = 'background:#FEF5D8; border:2px solid #B87612; border-radius:14px; padding:10px 16px; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; cursor:pointer;';
+                    toggleBar.onclick = window.toggleAdminTerrainDrawer;
+                    container.prepend(toggleBar);
+                }
+
+                const toggleBar = document.getElementById('hh-admin-collapsible-drawer-bar');
+                if (toggleBar) {
+                    toggleBar.innerHTML = `
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span class="card-tag" style="background:#B87612; color:#fff; margin:0;">👑 ADMIN TOOLS</span>
+                            <strong style="font-size:0.88rem; color:var(--primary);">Ashton's Client Roster & Clinical Summarizer</strong>
+                        </div>
+                        <button type="button" class="btn-secondary" style="padding:5px 12px; font-size:0.76rem; pointer-events:none;">
+                            ${window._adminDrawerExpanded ? '▲ Hide Admin Client Roster (Preview Clean Member View)' : '▼ Expand Admin Client Roster & Summarizer'}
+                        </button>
+                    `;
+                    if (adminSumBar) adminSumBar.style.display = window._adminDrawerExpanded ? 'flex' : 'none';
+                    if (adminClientBox) adminClientBox.style.display = window._adminDrawerExpanded ? 'block' : 'none';
+                }
+            }
+
+            // 2. Identify the Left Column (Micro-Habits + WOD Card) and Right Column (Meal Blueprint + Dispensary)
+            const leftCol = twoColGrid.children[0];
+            const rightCol = twoColGrid.children[1];
+            if (!leftCol || !rightCol) return;
+
+            // Find the native Micro-Habits panel inside leftCol
+            const habitsPanel = Array.from(leftCol.children).find(ch => ch.id !== 'hh-terrain-ai-wod-studio-card' && (ch.textContent || '').includes('Micro-Habits')) || leftCol;
+
+            // Style and color-code the 5 individual Micro-Habit Cards inside habitsPanel!
+            const habitColorThemes = [
+                {
+                    match: 'SPIRIT',
+                    num: 1,
+                    title: 'Habit 1 of 5 • Morning First-Fruits & 3-Breath Surrender',
+                    when: '🌅 Do First Thing Upon Waking (Takes 60 Seconds)',
+                    why: 'Calms morning cortisol spikes before your feet hit the floor so your nervous system starts in peace, not fight-or-flight.',
+                    bg: '#FFFBEB',
+                    border: '#D97706',
+                    tagBg: '#FEF3C7',
+                    tagColor: '#B45309'
+                },
+                {
+                    match: 'HYDRATION',
+                    num: 2,
+                    title: 'Habit 2 of 5 • Cellular Hydration & Adrenal Mineral Spark',
+                    when: '💧 Drink Within 15 Mins of Waking (Before Coffee!)',
+                    why: 'Replenishes cellular potassium and sodium depleted overnight so your adrenals don’t crash at 2:00 PM.',
+                    bg: '#F0F9FF',
+                    border: '#0284C7',
+                    tagBg: '#E0F2FE',
+                    tagColor: '#0369A1'
+                },
+                {
+                    match: 'NOURISHMENT',
+                    num: 3,
+                    title: 'Habit 3 of 5 • Blood-Sugar & Protein Nourishment Anchor',
+                    when: '🥩 Follow at Breakfast, Lunch & Dinner',
+                    why: 'Stabilizes blood sugar and protects your thyroid and hormones from stress-hormone rollercoasters.',
+                    bg: '#FFF7ED',
+                    border: '#EA580C',
+                    tagBg: '#FFEDD5',
+                    tagColor: '#C2410C'
+                },
+                {
+                    match: 'MOVEMENT',
+                    num: 4,
+                    title: 'Habit 4 of 5 • Gentle Lymphatic & Hormone-Safe Movement',
+                    when: '💪 8–20 Minutes Today (Or Use the Guided Workout Tab!)',
+                    why: 'Pumps your lymphatic drainage system and builds insulin-sensitive muscle without spiking adrenal exhaustion.',
+                    bg: '#F0FDF4',
+                    border: '#16A34A',
+                    tagBg: '#DCFCE7',
+                    tagColor: '#15803D',
+                    hasWorkoutBtn: true
+                },
+                {
+                    match: 'SOUL',
+                    num: 5,
+                    title: 'Habit 5 of 5 • Nervous System & Evening Vagus Nerve Reset',
+                    when: '🧠 Practice Throughout the Day & Before Bed',
+                    why: 'Signals safety to your vagus nerve so digestion, bile flow, and deep restorative sleep can turn back on.',
+                    bg: '#FDF2F8',
+                    border: '#DB2777',
+                    tagBg: '#FCE7F3',
+                    tagColor: '#BE185D'
+                }
+            ];
+
+            let completedTodayCount = 0;
+            const habitCheckboxes = Array.from(habitsPanel.querySelectorAll('input[type="checkbox"]'));
+
+            habitCheckboxes.forEach((chk, idx) => {
+                const cardBox = chk.closest('div[style*="border"]') || chk.parentElement?.parentElement;
+                if (!cardBox) return;
+
+                const cardTxt = (cardBox.textContent || '').toUpperCase();
+                const theme = habitColorThemes.find(t => cardTxt.includes(t.match)) || habitColorThemes[idx] || habitColorThemes[0];
+                const isDone = chk.checked;
+                if (isDone) completedTodayCount++;
+
+                cardBox.classList.add('hh-habit-card-upgraded');
+                if (isDone) {
+                    cardBox.classList.add('hh-habit-card-done');
+                } else {
+                    cardBox.classList.remove('hh-habit-card-done');
+                    cardBox.style.background = theme.bg;
+                    cardBox.style.border = `2px solid ${theme.border}`;
+                    cardBox.style.borderLeft = `8px solid ${theme.border}`;
+                }
+
+                // Make the checkbox larger and add a reward chime when checked
+                chk.style.cssText = 'width: 26px; height: 26px; accent-color: #059669; cursor: pointer; flex-shrink: 0;';
+                if (!chk.dataset.hhChimeWired) {
+                    chk.dataset.hhChimeWired = 'true';
+                    chk.addEventListener('change', () => {
+                        if (chk.checked) {
+                            const nowChecked = Array.from(habitsPanel.querySelectorAll('input[type="checkbox"]')).filter(c => c.checked).length;
+                            playHabitRewardChime(nowChecked >= 5);
+                        }
+                        setTimeout(applyTerrainCoachLayout, 60);
+                    });
+                }
+
+                // Inject a clear Step Number Header, Timing Cue & "Why This Matters" Coach Note inside each habit card
+                let coachMeta = cardBox.querySelector('.hh-habit-coach-meta');
+                if (!coachMeta) {
+                    coachMeta = document.createElement('div');
+                    coachMeta.className = 'hh-habit-coach-meta';
+                    cardBox.prepend(coachMeta);
+                }
+
+                coachMeta.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:8px; padding-bottom:6px; border-bottom:1px dashed rgba(0,0,0,0.12);">
+                        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                            <span style="background:${isDone ? '#059669' : theme.tagBg}; color:${isDone ? '#ffffff' : theme.tagColor}; padding:4px 11px; border-radius:999px; font-size:0.74rem; font-weight:800; letter-spacing:0.02em;">
+                                ${isDone ? `✅ HABIT #${theme.num} COMPLETE!` : `📍 ${theme.title}`}
+                            </span>
+                            <span style="font-size:0.75rem; font-weight:700; color:#5A4634;">
+                                ${theme.when}
+                            </span>
+                        </div>
+                        <span style="font-size:0.75rem; font-weight:800; color:${isDone ? '#059669' : theme.tagColor};">
+                            ${isDone ? '🌟 Great job! Brick laid for today' : 'Tap box on right when done ➔'}
+                        </span>
+                    </div>
+                `;
+
+                // Inject "Why Coach Ashton Prescribes This" + Workout Studio Quick-Jump button at the bottom of the habit card
+                let whyFooter = cardBox.querySelector('.hh-habit-why-footer');
+                if (!whyFooter) {
+                    whyFooter = document.createElement('div');
+                    whyFooter.className = 'hh-habit-why-footer';
+                    cardBox.appendChild(whyFooter);
+                }
+                whyFooter.innerHTML = `
+                    <div style="margin-top:8px; padding-top:8px; border-top:1px dashed rgba(0,0,0,0.1); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; font-size:0.77rem; color:#4A3728;">
+                        <span>💡 <strong>Why This Heals Your Terrain:</strong> <em>${theme.why}</em></span>
+                        ${theme.hasWorkoutBtn ? `
+                            <button type="button" onclick="event.stopPropagation(); switchTerrainCoachTab('workout');" style="background:#16A34A; color:#fff; border:none; border-radius:999px; padding:5px 12px; font-size:0.74rem; font-weight:800; cursor:pointer;">
+                                💪 Open Today's Workout Generator & Timer &rarr;
+                            </button>
+                        ` : ''}
+                    </div>
+                `;
+            });
+
+            // 3. Build the Top "16-Step Journey Map & Hand-Holding Coach Guide" + "4-Tab Guided Navigation" right above twoColGrid!
+            let coachMasterHeader = document.getElementById('hh-terrain-guided-coach-header');
+            if (!coachMasterHeader) {
+                coachMasterHeader = document.createElement('div');
+                coachMasterHeader.id = 'hh-terrain-guided-coach-header';
+                twoColGrid.insertAdjacentElement('beforebegin', coachMasterHeader);
+            }
+
+            const affirmationToday = COACH_AFFIRMATIONS[(curStep + todayDayIdx) % COACH_AFFIRMATIONS.length];
+            const activeTab = window._activeTerrainCoachTab || 'habits';
+
+            const stonesHtml = Array.from({ length: 16 }, (_, i) => {
+                const sNum = i + 1;
+                const isDone = sNum < curStep;
+                const isCurrent = sNum === curStep;
+                return `
+                    <div class="hh-stone-pill ${isDone ? 'done' : (isCurrent ? 'active' : '')}">
+                        ${isDone ? `✓ Step ${sNum}` : (isCurrent ? `📍 Step ${sNum} (You Are Here!)` : `🔒 Step ${sNum}`)}
+                    </div>
+                `;
+            }).join('');
+
+            coachMasterHeader.innerHTML = `
+                <!-- 16-STEP VISUAL STEPPING-STONE MAP & HOW THIS WORKS COACH GUIDE -->
+                <div class="hh-coach-step-map-wrap">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:8px;">
+                        <div>
+                            <span style="background:#FEF5D8; color:#9A5B0A; padding:4px 12px; border-radius:999px; font-size:0.72rem; font-weight:800; text-transform:uppercase;">
+                                🗺️ YOUR 16-STEP HEALING ROADMAP • ${escapeSafeHtml(phaseNames[phaseNum])}
+                            </span>
+                            <h3 style="font-family:var(--font-serif); font-size:1.4rem; color:#FEF5D8; margin:6px 0 2px 0;">
+                                Welcome to Step ${curStep} of 16 — Here Is Exactly How Your Coaching Works:
+                            </h3>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.12); border:1.5px solid #D9B36C; border-radius:12px; padding:8px 14px; text-align:center;">
+                            <span style="font-size:0.7rem; text-transform:uppercase; color:#FEF5D8; display:block; font-weight:700;">Today's Daily Win Meter (${escapeSafeHtml(activeDayKey)})</span>
+                            <strong style="font-size:1.25rem; color:${completedTodayCount === 5 ? '#86EFAC' : '#FEF5D8'};">${completedTodayCount} of 5 Daily Habits Done ⭐</strong>
+                        </div>
+                    </div>
+
+                    <!-- Visual 16 Stepping Stones -->
+                    <div class="hh-stepping-stones-row">
+                        ${stonesHtml}
+                    </div>
+
+                    <!-- 3-Rule Hand-Holding Explanation Box -->
+                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(230px, 1fr)); gap:10px; margin-top:10px; background:rgba(255,253,248,0.1); border-radius:14px; padding:12px 14px; font-size:0.8rem; color:#E8F2EC;">
+                        <div>
+                            <strong style="color:#FEF5D8; display:block;">1️⃣ Focus ONLY on Step ${curStep} Right Now:</strong>
+                            Don't worry about Steps ${Math.min(16, curStep + 1)}–16 yet! You only lay one gentle layer of habits at a time so your body never gets overwhelmed.
+                        </div>
+                        <div>
+                            <strong style="color:#FEF5D8; display:block;">2️⃣ Check Off Your 5 Daily Habits Below:</strong>
+                            Each day (${escapeSafeHtml(activeDayKey)}), check off your 5 color-coded Micro-Habits below as you complete them.
+                        </div>
+                        <div>
+                            <strong style="color:#FEF5D8; display:block;">3️⃣ Hit 85% Mastery to Unlock Step ${Math.min(16, curStep + 1)}:</strong>
+                            Practice Step ${curStep} for 7 days. Once your 7-Day Mastery Bar hits <strong>85%</strong>, click <em>"Weekly Check-In & Next Step Gate"</em> above to unlock your next step!
+                        </div>
+                    </div>
+
+                    <!-- Daily Coach Affirmation -->
+                    <div style="margin-top:10px; font-size:0.82rem; color:#FEF5D8; font-style:italic; text-align:center; padding-top:8px; border-top:1px dashed rgba(254,245,216,0.25);">
+                        💬 <strong>Coach Ashton's Daily Note for You:</strong> "${escapeSafeHtml(affirmationToday)}"
+                    </div>
+                </div>
+
+                <!-- 🎉 DAILY VICTORY CELEBRATION BANNER (WHEN ALL 5 HABITS ARE CHECKED!) -->
+                ${completedTodayCount >= 5 ? `
+                    <div class="hh-victory-banner" style="background:linear-gradient(135deg, #059669 0%, #047857 100%); color:#ffffff; border:3px solid #A7F3D0; border-radius:20px; padding:18px 22px; margin-bottom:18px; text-align:center; box-shadow:0 14px 32px rgba(5, 150, 105, 0.3);">
+                        <div style="font-size:2rem; margin-bottom:4px;">🎉🌟🌿🏆</div>
+                        <h3 style="font-family:var(--font-serif); font-size:1.5rem; color:#ffffff; margin:0 0 4px 0;">
+                            Amazing Job! You Completed All 5 of ${escapeSafeHtml(activeDayKey)}'s Healing Habits!
+                        </h3>
+                        <p style="font-size:0.88rem; color:#ECFDF5; margin:0;">
+                            You just laid another powerful brick in your foundation. Rest easy tonight—your nervous system, gut, and hormones are thanking you!
+                        </p>
+                    </div>
+                ` : ''}
+
+                <!-- 🧭 4-STEP GUIDED COACHING TABS (ELIMINATES MULTI-COLUMN OVERWHELM!) -->
+                <div class="hh-coach-nav-tabs">
+                    <button type="button" class="hh-coach-tab-btn ${activeTab === 'habits' ? 'active' : ''}" onclick="switchTerrainCoachTab('habits')">
+                        <span class="tab-step-num">☀️ PRIORITY #1 TODAY</span>
+                        <span class="tab-main-title">1. My 5 Daily Habits (${completedTodayCount}/5)</span>
+                        <span style="font-size:0.74rem; opacity:0.85;">Check off your 5 color-coded habits</span>
+                    </button>
+
+                    <button type="button" class="hh-coach-tab-btn ${activeTab === 'workout' ? 'active' : ''}" onclick="switchTerrainCoachTab('workout')">
+                        <span class="tab-step-num">💪 PRIORITY #2 TODAY</span>
+                        <span class="tab-main-title">2. Guided Workout & Timer</span>
+                        <span style="font-size:0.74rem; opacity:0.85;">Phase ${phaseNum} WOD Studio & Rest Timer</span>
+                    </button>
+
+                    <button type="button" class="hh-coach-tab-btn ${activeTab === 'meals' ? 'active' : ''}" onclick="switchTerrainCoachTab('meals')">
+                        <span class="tab-step-num">🍽️ PRIORITY #3 TODAY</span>
+                        <span class="tab-main-title">3. Step ${curStep} Meal Blueprint</span>
+                        <span style="font-size:0.74rem; opacity:0.85;">30g+ Protein Meals & Bonus Recipes</span>
+                    </button>
+
+                    <button type="button" class="hh-coach-tab-btn ${activeTab === 'supplements' ? 'active' : ''}" onclick="switchTerrainCoachTab('supplements')">
+                        <span class="tab-step-num">🌿 RESOURCES & ROADMAP</span>
+                        <span class="tab-main-title">4. Dispensary & Full 16 Steps</span>
+                        <span style="font-size:0.74rem; opacity:0.85;">Minerals, Fullscript & All 16 Steps</span>
+                    </button>
+                </div>
+            `;
+
+            // 4. Switch the 2-Column Grid into a Clean, Full-Width Single-Column Coaching View based on the selected tab!
+            twoColGrid.style.cssText = 'display: block; width: 100%; max-width: 960px; margin: 0 auto;';
+
+            // Ensure WOD card is inside leftCol so we can toggle it cleanly against habitsPanel
+            if (wodCard && wodCard.parentElement !== leftCol) {
+                leftCol.appendChild(wodCard);
+            }
+
+            if (activeTab === 'habits') {
+                leftCol.style.display = 'block';
+                rightCol.style.display = 'none';
+                if (wodCard) wodCard.style.display = 'none';
+                if (habitsPanel) habitsPanel.style.display = 'block';
+            } else if (activeTab === 'workout') {
+                leftCol.style.display = 'block';
+                rightCol.style.display = 'none';
+                if (wodCard) wodCard.style.display = 'block';
+                if (habitsPanel && habitsPanel !== leftCol) habitsPanel.style.display = 'none';
+            } else if (activeTab === 'meals') {
+                leftCol.style.display = 'none';
+                rightCol.style.display = 'block';
+                Array.from(rightCol.children).forEach(ch => {
+                    const t = (ch.textContent || '').toUpperCase();
+                    ch.style.display = t.includes('MEAL BLUEPRINT') ? 'block' : 'none';
+                });
+            } else if (activeTab === 'supplements') {
+                leftCol.style.display = 'none';
+                rightCol.style.display = 'block';
+                Array.from(rightCol.children).forEach(ch => {
+                    const t = (ch.textContent || '').toUpperCase();
+                    ch.style.display = !t.includes('MEAL BLUEPRINT') ? 'block' : 'none';
+                });
+            }
+        } finally {
+            isEnhancingTerrainCoach = false;
+        }
+    }
+
+    const _prevRenderTerrain = window.renderReclaimTerrainPillar;
+    if (typeof _prevRenderTerrain === 'function') {
+        window.renderReclaimTerrainPillar = function() {
+            _prevRenderTerrain();
+            setTimeout(applyTerrainCoachLayout, 40);
+        };
+    }
+
+    [350, 950, 1800].forEach(ms => setTimeout(applyTerrainCoachLayout, ms));
+    document.addEventListener('click', (e) => {
+        if (e.target.closest('select, option')) return;
+        if (e.target.closest('#view-reclaim-terrain') || (e.target.textContent || '').includes('Reclaim Your Terrain')) {
+            setTimeout(applyTerrainCoachLayout, 100);
+        }
+    });
+})();
+</script>
 
 </body>
 </html>
