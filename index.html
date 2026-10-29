@@ -21397,7 +21397,8 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
     });
 })();
 </script>
-<!-- ================= BLOCK 5: RECLAIM YOUR TERRAIN — GUIDED HAND-HOLDING COACH LAYOUT, COLOR PSYCHOLOGY & DOPAMINE CELEBRATION ENGINE ================= -->
+
+<!-- ================= BLOCK 5 (FIXED): RECLAIM YOUR TERRAIN — GUIDED HAND-HOLDING COACH LAYOUT, COLOR PSYCHOLOGY & DOPAMINE CELEBRATION ENGINE ================= -->
 <script>
 (function() {
     const FOUNDER_EMAIL = 'contacthoneysuckleandco@gmail.com';
@@ -21420,7 +21421,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         "✨ Your energy, hormones, and digestion are rebuilding from the roots up—one peaceful day at a time."
     ];
 
-    // Inject Coaching & Color Psychology Styles
     if (!document.getElementById('hh-terrain-coach-ux-styles')) {
         const st = document.createElement('style');
         st.id = 'hh-terrain-coach-ux-styles';
@@ -21516,11 +21516,14 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             }
             .hh-habit-card-upgraded {
                 border-radius: 18px !important;
-                padding: 18px 20px !important;
+                padding: 16px 18px !important;
                 margin-bottom: 14px !important;
                 transition: all 0.25s ease !important;
                 box-shadow: 0 6px 18px rgba(0,0,0,0.04) !important;
                 cursor: pointer;
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: stretch !important;
             }
             .hh-habit-card-upgraded:hover {
                 transform: translateY(-1px);
@@ -21583,11 +21586,11 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         if (!tState || (!tState.unlocked && !isStrictFounderAdmin())) return;
         if (!tState.consultCompleted && !isStrictFounderAdmin()) return;
 
-        // Locate the core sections inside #view-reclaim-terrain
-        const wodCard = document.getElementById('hh-terrain-ai-wod-studio-card');
+        // FIX #1: Case-Insensitive search for the 2-column grid containing Micro-Habits and Meal Blueprint!
         const twoColGrid = Array.from(container.querySelectorAll('div')).find(el => {
-            const st = el.getAttribute('style') || '';
-            return st.includes('grid-template-columns') && (el.textContent || '').includes('Micro-Habits') && (el.textContent || '').includes('MEAL BLUEPRINT');
+            const st = (el.getAttribute('style') || '').toLowerCase();
+            const txtUpper = (el.textContent || '').toUpperCase();
+            return st.includes('grid-template-columns') && txtUpper.includes('MICRO-HABITS') && txtUpper.includes('MEAL BLUEPRINT');
         });
 
         if (!twoColGrid) return;
@@ -21607,7 +21610,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             const todayDayIdx = (new Date().getDay() + 6) % 7;
             const activeDayKey = tState.selectedViewDay || daysOfWeek[todayDayIdx];
 
-            // 1. Tidy up Ashton's Admin Portal at the top into a clean collapsible drawer so it never overwhelms the screen
+            // 1. Tidy up Ashton's Admin Portal at the top into a clean collapsible drawer
             if (isStrictFounderAdmin()) {
                 const adminSumBar = document.getElementById('btn-admin-clinical-summarizer');
                 const adminClientBox = Array.from(container.children).find(ch => ch.querySelector && ch.querySelector('button[onclick^="openAdminClientConsultViewer("]'));
@@ -21636,15 +21639,32 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                 }
             }
 
-            // 2. Identify the Left Column (Micro-Habits + WOD Card) and Right Column (Meal Blueprint + Dispensary)
             const leftCol = twoColGrid.children[0];
             const rightCol = twoColGrid.children[1];
             if (!leftCol || !rightCol) return;
 
-            // Find the native Micro-Habits panel inside leftCol
-            const habitsPanel = Array.from(leftCol.children).find(ch => ch.id !== 'hh-terrain-ai-wod-studio-card' && (ch.textContent || '').includes('Micro-Habits')) || leftCol;
+            // FIX #3: Locate the Workout of the Day (WOD) Studio card wherever it was injected and move it into its own clean Tab 2 stage!
+            let wodStage = document.getElementById('hh-terrain-dedicated-wod-stage');
+            if (!wodStage) {
+                wodStage = document.createElement('div');
+                wodStage.id = 'hh-terrain-dedicated-wod-stage';
+                wodStage.style.cssText = 'width: 100%; max-width: 960px; margin: 0 auto 20px auto; display: none;';
+                twoColGrid.insertAdjacentElement('beforebegin', wodStage);
+            }
 
-            // Style and color-code the 5 individual Micro-Habit Cards inside habitsPanel!
+            const foundWodCard = document.getElementById('hh-terrain-ai-wod-studio-card') ||
+                document.getElementById('hh-terrain-wod-container') ||
+                Array.from(container.querySelectorAll('div')).find(d => {
+                    if (d === container || d === twoColGrid || d === leftCol || d === rightCol || d === wodStage) return false;
+                    const txt = (d.textContent || '');
+                    return txt.includes('WORKOUT OF THE DAY (WOD) STUDIO') && txt.includes('Generate My Workout of the Day') && d.children.length >= 2 && d.offsetHeight > 50;
+                });
+
+            if (foundWodCard && foundWodCard.parentElement !== wodStage) {
+                wodStage.appendChild(foundWodCard);
+            }
+
+            // FIX #2: Target each `<label class="checklist-item">` inside `leftCol` so each habit gets its own color-coded card!
             const habitColorThemes = [
                 {
                     match: 'SPIRIT',
@@ -21683,7 +21703,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                     match: 'MOVEMENT',
                     num: 4,
                     title: 'Habit 4 of 5 • Gentle Lymphatic & Hormone-Safe Movement',
-                    when: '💪 8–20 Minutes Today (Or Use the Guided Workout Tab!)',
+                    when: '💪 8–20 Minutes Today (Or Use Tab 2: Guided Workout!)',
                     why: 'Pumps your lymphatic drainage system and builds insulin-sensitive muscle without spiking adrenal exhaustion.',
                     bg: '#F0FDF4',
                     border: '#16A34A',
@@ -21701,20 +21721,31 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                     border: '#DB2777',
                     tagBg: '#FCE7F3',
                     tagColor: '#BE185D'
+                },
+                {
+                    match: 'SUPPLEMENT',
+                    num: 6,
+                    title: 'Bonus Habit • Foundational Cellular Nutrients & Minerals',
+                    when: '💊 Take Alongside Breakfast or Lunch',
+                    why: 'Provides bioavailable trace minerals, whole-food vitamins, and clean omegas to rebuild cellular reserves.',
+                    bg: '#FFFBEB',
+                    border: '#B45309',
+                    tagBg: '#FEF3C7',
+                    tagColor: '#92400E'
                 }
             ];
 
             let completedTodayCount = 0;
-            const habitCheckboxes = Array.from(habitsPanel.querySelectorAll('input[type="checkbox"]'));
+            const habitLabels = Array.from(leftCol.querySelectorAll('label.checklist-item'));
 
-            habitCheckboxes.forEach((chk, idx) => {
-                const cardBox = chk.closest('div[style*="border"]') || chk.parentElement?.parentElement;
-                if (!cardBox) return;
+            habitLabels.forEach((cardBox, idx) => {
+                const chk = cardBox.querySelector('input[type="checkbox"]');
+                if (!chk) return;
 
                 const cardTxt = (cardBox.textContent || '').toUpperCase();
                 const theme = habitColorThemes.find(t => cardTxt.includes(t.match)) || habitColorThemes[idx] || habitColorThemes[0];
                 const isDone = chk.checked;
-                if (isDone) completedTodayCount++;
+                if (isDone && idx < 5) completedTodayCount++;
 
                 cardBox.classList.add('hh-habit-card-upgraded');
                 if (isDone) {
@@ -21726,20 +21757,18 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                     cardBox.style.borderLeft = `8px solid ${theme.border}`;
                 }
 
-                // Make the checkbox larger and add a reward chime when checked
-                chk.style.cssText = 'width: 26px; height: 26px; accent-color: #059669; cursor: pointer; flex-shrink: 0;';
+                chk.style.cssText = 'width: 24px; height: 24px; accent-color: #059669; cursor: pointer; flex-shrink: 0;';
                 if (!chk.dataset.hhChimeWired) {
                     chk.dataset.hhChimeWired = 'true';
                     chk.addEventListener('change', () => {
                         if (chk.checked) {
-                            const nowChecked = Array.from(habitsPanel.querySelectorAll('input[type="checkbox"]')).filter(c => c.checked).length;
+                            const nowChecked = Array.from(leftCol.querySelectorAll('label.checklist-item input[type="checkbox"]')).slice(0, 5).filter(c => c.checked).length;
                             playHabitRewardChime(nowChecked >= 5);
                         }
                         setTimeout(applyTerrainCoachLayout, 60);
                     });
                 }
 
-                // Inject a clear Step Number Header, Timing Cue & "Why This Matters" Coach Note inside each habit card
                 let coachMeta = cardBox.querySelector('.hh-habit-coach-meta');
                 if (!coachMeta) {
                     coachMeta = document.createElement('div');
@@ -21758,12 +21787,11 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                             </span>
                         </div>
                         <span style="font-size:0.75rem; font-weight:800; color:${isDone ? '#059669' : theme.tagColor};">
-                            ${isDone ? '🌟 Great job! Brick laid for today' : 'Tap box on right when done ➔'}
+                            ${isDone ? '🌟 Great job! Brick laid for today' : 'Tap checkbox below when done ➔'}
                         </span>
                     </div>
                 `;
 
-                // Inject "Why Coach Ashton Prescribes This" + Workout Studio Quick-Jump button at the bottom of the habit card
                 let whyFooter = cardBox.querySelector('.hh-habit-why-footer');
                 if (!whyFooter) {
                     whyFooter = document.createElement('div');
@@ -21774,20 +21802,20 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                     <div style="margin-top:8px; padding-top:8px; border-top:1px dashed rgba(0,0,0,0.1); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; font-size:0.77rem; color:#4A3728;">
                         <span>💡 <strong>Why This Heals Your Terrain:</strong> <em>${theme.why}</em></span>
                         ${theme.hasWorkoutBtn ? `
-                            <button type="button" onclick="event.stopPropagation(); switchTerrainCoachTab('workout');" style="background:#16A34A; color:#fff; border:none; border-radius:999px; padding:5px 12px; font-size:0.74rem; font-weight:800; cursor:pointer;">
-                                💪 Open Today's Workout Generator & Timer &rarr;
+                            <button type="button" onclick="event.preventDefault(); event.stopPropagation(); switchTerrainCoachTab('workout');" style="background:#16A34A; color:#fff; border:none; border-radius:999px; padding:6px 14px; font-size:0.75rem; font-weight:800; cursor:pointer;">
+                                💪 Open Tab 2: Today's Workout Studio & Timer &rarr;
                             </button>
                         ` : ''}
                     </div>
                 `;
             });
 
-            // 3. Build the Top "16-Step Journey Map & Hand-Holding Coach Guide" + "4-Tab Guided Navigation" right above twoColGrid!
+            // 3. Build the Top "16-Step Journey Map & Hand-Holding Coach Guide" + "4-Tab Guided Navigation"
             let coachMasterHeader = document.getElementById('hh-terrain-guided-coach-header');
             if (!coachMasterHeader) {
                 coachMasterHeader = document.createElement('div');
                 coachMasterHeader.id = 'hh-terrain-guided-coach-header';
-                twoColGrid.insertAdjacentElement('beforebegin', coachMasterHeader);
+                wodStage.insertAdjacentElement('beforebegin', coachMasterHeader);
             }
 
             const affirmationToday = COACH_AFFIRMATIONS[(curStep + todayDayIdx) % COACH_AFFIRMATIONS.length];
@@ -21805,7 +21833,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             }).join('');
 
             coachMasterHeader.innerHTML = `
-                <!-- 16-STEP VISUAL STEPPING-STONE MAP & HOW THIS WORKS COACH GUIDE -->
                 <div class="hh-coach-step-map-wrap">
                     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:8px;">
                         <div>
@@ -21818,16 +21845,14 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                         </div>
                         <div style="background:rgba(255,255,255,0.12); border:1.5px solid #D9B36C; border-radius:12px; padding:8px 14px; text-align:center;">
                             <span style="font-size:0.7rem; text-transform:uppercase; color:#FEF5D8; display:block; font-weight:700;">Today's Daily Win Meter (${escapeSafeHtml(activeDayKey)})</span>
-                            <strong style="font-size:1.25rem; color:${completedTodayCount === 5 ? '#86EFAC' : '#FEF5D8'};">${completedTodayCount} of 5 Daily Habits Done ⭐</strong>
+                            <strong style="font-size:1.25rem; color:${completedTodayCount >= 5 ? '#86EFAC' : '#FEF5D8'};">${completedTodayCount} of 5 Daily Habits Done ⭐</strong>
                         </div>
                     </div>
 
-                    <!-- Visual 16 Stepping Stones -->
                     <div class="hh-stepping-stones-row">
                         ${stonesHtml}
                     </div>
 
-                    <!-- 3-Rule Hand-Holding Explanation Box -->
                     <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(230px, 1fr)); gap:10px; margin-top:10px; background:rgba(255,253,248,0.1); border-radius:14px; padding:12px 14px; font-size:0.8rem; color:#E8F2EC;">
                         <div>
                             <strong style="color:#FEF5D8; display:block;">1️⃣ Focus ONLY on Step ${curStep} Right Now:</strong>
@@ -21843,13 +21868,11 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                         </div>
                     </div>
 
-                    <!-- Daily Coach Affirmation -->
                     <div style="margin-top:10px; font-size:0.82rem; color:#FEF5D8; font-style:italic; text-align:center; padding-top:8px; border-top:1px dashed rgba(254,245,216,0.25);">
                         💬 <strong>Coach Ashton's Daily Note for You:</strong> "${escapeSafeHtml(affirmationToday)}"
                     </div>
                 </div>
 
-                <!-- 🎉 DAILY VICTORY CELEBRATION BANNER (WHEN ALL 5 HABITS ARE CHECKED!) -->
                 ${completedTodayCount >= 5 ? `
                     <div class="hh-victory-banner" style="background:linear-gradient(135deg, #059669 0%, #047857 100%); color:#ffffff; border:3px solid #A7F3D0; border-radius:20px; padding:18px 22px; margin-bottom:18px; text-align:center; box-shadow:0 14px 32px rgba(5, 150, 105, 0.3);">
                         <div style="font-size:2rem; margin-bottom:4px;">🎉🌟🌿🏆</div>
@@ -21862,7 +21885,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                     </div>
                 ` : ''}
 
-                <!-- 🧭 4-STEP GUIDED COACHING TABS (ELIMINATES MULTI-COLUMN OVERWHELM!) -->
                 <div class="hh-coach-nav-tabs">
                     <button type="button" class="hh-coach-tab-btn ${activeTab === 'habits' ? 'active' : ''}" onclick="switchTerrainCoachTab('habits')">
                         <span class="tab-step-num">☀️ PRIORITY #1 TODAY</span>
@@ -21890,25 +21912,31 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                 </div>
             `;
 
-            // 4. Switch the 2-Column Grid into a Clean, Full-Width Single-Column Coaching View based on the selected tab!
+            // 4. Switch between the 4 Guided Tabs cleanly!
             twoColGrid.style.cssText = 'display: block; width: 100%; max-width: 960px; margin: 0 auto;';
 
-            // Ensure WOD card is inside leftCol so we can toggle it cleanly against habitsPanel
-            if (wodCard && wodCard.parentElement !== leftCol) {
-                leftCol.appendChild(wodCard);
-            }
-
             if (activeTab === 'habits') {
+                wodStage.style.display = 'none';
+                twoColGrid.style.display = 'block';
                 leftCol.style.display = 'block';
                 rightCol.style.display = 'none';
-                if (wodCard) wodCard.style.display = 'none';
-                if (habitsPanel) habitsPanel.style.display = 'block';
             } else if (activeTab === 'workout') {
-                leftCol.style.display = 'block';
-                rightCol.style.display = 'none';
-                if (wodCard) wodCard.style.display = 'block';
-                if (habitsPanel && habitsPanel !== leftCol) habitsPanel.style.display = 'none';
+                wodStage.style.display = 'block';
+                twoColGrid.style.display = 'none';
+                // If no external WOD card was injected yet, show a helpful fallback button inside wodStage
+                if (wodStage.children.length === 0) {
+                    wodStage.innerHTML = `
+                        <div class="clinical-panel" style="border:2px solid var(--sage); text-align:center; padding:28px;">
+                            <span class="card-tag" style="background:var(--sage); color:#fff;">💪 Phase ${phaseNum} Guided Movement</span>
+                            <h3 style="font-size:1.5rem; margin:8px 0;">Step ${curStep} Prescribed Movement</h3>
+                            <p style="max-width:620px; margin:0 auto 16px auto;">Click below to open your step-by-step guided movement & breathing instructions for Step ${curStep}:</p>
+                            <button type="button" class="btn-primary" onclick="openTerrainGuidedWorkoutModal(${curStep})">💪 ▶ Open Step ${curStep} Guided Workout</button>
+                        </div>
+                    `;
+                }
             } else if (activeTab === 'meals') {
+                wodStage.style.display = 'none';
+                twoColGrid.style.display = 'block';
                 leftCol.style.display = 'none';
                 rightCol.style.display = 'block';
                 Array.from(rightCol.children).forEach(ch => {
@@ -21916,12 +21944,36 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                     ch.style.display = t.includes('MEAL BLUEPRINT') ? 'block' : 'none';
                 });
             } else if (activeTab === 'supplements') {
+                wodStage.style.display = 'none';
+                twoColGrid.style.display = 'block';
                 leftCol.style.display = 'none';
                 rightCol.style.display = 'block';
                 Array.from(rightCol.children).forEach(ch => {
                     const t = (ch.textContent || '').toUpperCase();
                     ch.style.display = !t.includes('MEAL BLUEPRINT') ? 'block' : 'none';
                 });
+
+                // Also append a 16-Step Full Roadmap overview card inside the Supplements & Roadmap tab!
+                if (!document.getElementById('hh-terrain-tab4-roadmap-card') && typeof RECLAIM_TERRAIN_16_STEPS !== 'undefined') {
+                    const rmCard = document.createElement('div');
+                    rmCard.id = 'hh-terrain-tab4-roadmap-card';
+                    rmCard.className = 'clinical-panel';
+                    rmCard.style.marginTop = '18px';
+                    rmCard.innerHTML = `
+                        <span class="card-tag">🗺️ Complete 16-Step Master Pathway</span>
+                        <h3 style="font-size:1.35rem; margin:4px 0 12px 0;">All 16 Sequential Steps in Reclaim Your Terrain</h3>
+                        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:10px;">
+                            ${RECLAIM_TERRAIN_16_STEPS.map(s => `
+                                <div style="background:${s.step === curStep ? '#FEF5D8' : 'var(--bg-warm-cream)'}; border:${s.step === curStep ? '2px solid var(--primary)' : '1px solid var(--border)'}; border-radius:12px; padding:12px;">
+                                    <span style="font-size:0.7rem; font-weight:800; color:var(--sage); text-transform:uppercase;">${s.step < curStep ? '✓ Completed' : s.step === curStep ? '📍 Active Now' : '🔒 Upcoming'} • ${escapeSafeHtml(s.phase.split('•')[0])}</span>
+                                    <strong style="display:block; font-size:0.9rem; color:var(--primary); margin:3px 0;">${escapeSafeHtml(s.title)}</strong>
+                                    <div style="font-size:0.76rem; color:var(--text-muted);">${escapeSafeHtml(s.movementHabit)}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                    rightCol.appendChild(rmCard);
+                }
             }
         } finally {
             isEnhancingTerrainCoach = false;
@@ -21932,11 +21984,11 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
     if (typeof _prevRenderTerrain === 'function') {
         window.renderReclaimTerrainPillar = function() {
             _prevRenderTerrain();
-            setTimeout(applyTerrainCoachLayout, 40);
+            setTimeout(applyTerrainCoachLayout, 50);
         };
     }
 
-    [350, 950, 1800].forEach(ms => setTimeout(applyTerrainCoachLayout, ms));
+    [350, 950, 1800, 3000].forEach(ms => setTimeout(applyTerrainCoachLayout, ms));
     document.addEventListener('click', (e) => {
         if (e.target.closest('select, option')) return;
         if (e.target.closest('#view-reclaim-terrain') || (e.target.textContent || '').includes('Reclaim Your Terrain')) {
