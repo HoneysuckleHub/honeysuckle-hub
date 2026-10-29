@@ -21398,7 +21398,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
 })();
 </script>
 
-<!-- ================= BLOCK 5 (FIXED): RECLAIM YOUR TERRAIN — GUIDED HAND-HOLDING COACH LAYOUT, COLOR PSYCHOLOGY & DOPAMINE CELEBRATION ENGINE ================= -->
+<!-- ================= BLOCK 5 (FINAL FIXED): RECLAIM YOUR TERRAIN — ZERO FLICKER, WORKING TABS & CELEBRATION ENGINE ================= -->
 <script>
 (function() {
     const FOUNDER_EMAIL = 'contacthoneysuckleandco@gmail.com';
@@ -21411,6 +21411,19 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         if (window.isDemoMode || window._isLiveDemoModeActive) return false;
         const email = (typeof currentUser !== 'undefined' && currentUser?.email) ? currentUser.email.trim().toLowerCase() : '';
         return email === FOUNDER_EMAIL;
+    }
+
+    function lockConsultCompletedFlags() {
+        localStorage.setItem('hh_terrain_consult_done_flag', 'true');
+        try {
+            const paid = JSON.parse(localStorage.getItem('hh_terrain_paid_unlock') || '{}');
+            if (!paid.consultCompleted || !paid.unlocked) {
+                paid.unlocked = true;
+                paid.consultCompleted = true;
+                paid.consultDone = true;
+                localStorage.setItem('hh_terrain_paid_unlock', JSON.stringify(paid));
+            }
+        } catch (e) {}
     }
 
     const COACH_AFFIRMATIONS = [
@@ -21473,61 +21486,58 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                 gap: 10px;
                 margin-bottom: 18px;
             }
-            .hh-coach-tab-btn {
+            .hh-coach-tab-card {
                 background: #FFFDF8;
                 border: 2px solid #EADBC0;
                 border-radius: 16px;
                 padding: 13px 14px;
                 text-align: left;
                 cursor: pointer;
-                transition: all 0.18s;
+                user-select: none;
+                transition: transform 0.15s ease, border-color 0.15s ease;
                 display: flex;
                 flex-direction: column;
                 gap: 3px;
                 box-shadow: 0 4px 12px rgba(0,0,0,0.03);
             }
-            .hh-coach-tab-btn:hover {
+            .hh-coach-tab-card:hover {
                 border-color: #2E5A44;
                 transform: translateY(-1px);
             }
-            .hh-coach-tab-btn.active {
+            .hh-coach-tab-card.active {
                 background: linear-gradient(135deg, #2E5A44 0%, #1F4230 100%);
                 border-color: #173325;
                 color: #ffffff;
                 box-shadow: 0 10px 22px rgba(46, 90, 68, 0.25);
             }
-            .hh-coach-tab-btn .tab-step-num {
+            .hh-coach-tab-card .tab-step-num {
                 font-size: 0.68rem;
                 font-weight: 800;
                 text-transform: uppercase;
                 letter-spacing: 0.04em;
                 color: #B87612;
             }
-            .hh-coach-tab-btn.active .tab-step-num {
+            .hh-coach-tab-card.active .tab-step-num {
                 color: #FEF5D8;
             }
-            .hh-coach-tab-btn .tab-main-title {
+            .hh-coach-tab-card .tab-main-title {
                 font-size: 0.92rem;
                 font-weight: 800;
                 color: #2A1E14;
             }
-            .hh-coach-tab-btn.active .tab-main-title {
+            .hh-coach-tab-card.active .tab-main-title {
                 color: #ffffff;
             }
             .hh-habit-card-upgraded {
                 border-radius: 18px !important;
                 padding: 16px 18px !important;
                 margin-bottom: 14px !important;
-                transition: all 0.25s ease !important;
+                transition: background 0.2s ease, border-color 0.2s ease !important;
                 box-shadow: 0 6px 18px rgba(0,0,0,0.04) !important;
                 cursor: pointer;
                 display: flex !important;
                 flex-direction: column !important;
                 align-items: stretch !important;
-            }
-            .hh-habit-card-upgraded:hover {
-                transform: translateY(-1px);
-                box-shadow: 0 10px 24px rgba(0,0,0,0.08) !important;
             }
             .hh-habit-card-done {
                 background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%) !important;
@@ -21535,12 +21545,11 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                 border-left: 8px solid #059669 !important;
             }
             @keyframes hhConfettiPop {
-                0% { transform: scale(0.92); opacity: 0; }
-                60% { transform: scale(1.02); opacity: 1; }
+                0% { transform: scale(0.96); opacity: 0; }
                 100% { transform: scale(1); opacity: 1; }
             }
             .hh-victory-banner {
-                animation: hhConfettiPop 0.35s ease-out forwards;
+                animation: hhConfettiPop 0.25s ease-out forwards;
             }
         `;
         document.head.appendChild(st);
@@ -21586,14 +21595,25 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         if (!tState || (!tState.unlocked && !isStrictFounderAdmin())) return;
         if (!tState.consultCompleted && !isStrictFounderAdmin()) return;
 
-        // FIX #1: Case-Insensitive search for the 2-column grid containing Micro-Habits and Meal Blueprint!
         const twoColGrid = Array.from(container.querySelectorAll('div')).find(el => {
             const st = (el.getAttribute('style') || '').toLowerCase();
             const txtUpper = (el.textContent || '').toUpperCase();
-            return st.includes('grid-template-columns') && txtUpper.includes('MICRO-HABITS') && txtUpper.includes('MEAL BLUEPRINT');
+            return (st.includes('grid-template-columns') || el.dataset.hhCoachGrid === 'true') &&
+                   txtUpper.includes('MICRO-HABITS') &&
+                   (txtUpper.includes('MEAL BLUEPRINT') || txtUpper.includes('PRACTITIONER DISPENSARY'));
         });
 
         if (!twoColGrid) return;
+        twoColGrid.dataset.hhCoachGrid = 'true';
+
+        lockConsultCompletedFlags();
+
+        container.querySelectorAll('button, a').forEach(btn => {
+            const bTxt = (btn.textContent || '').trim();
+            if (bTxt.includes('Start My 20-Question Functional Consult')) {
+                btn.remove();
+            }
+        });
 
         isEnhancingTerrainCoach = true;
         try {
@@ -21610,7 +21630,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             const todayDayIdx = (new Date().getDay() + 6) % 7;
             const activeDayKey = tState.selectedViewDay || daysOfWeek[todayDayIdx];
 
-            // 1. Tidy up Ashton's Admin Portal at the top into a clean collapsible drawer
+            // 1. Collapsible Admin Drawer (Admin Only)
             if (isStrictFounderAdmin()) {
                 const adminSumBar = document.getElementById('btn-admin-clinical-summarizer');
                 const adminClientBox = Array.from(container.children).find(ch => ch.querySelector && ch.querySelector('button[onclick^="openAdminClientConsultViewer("]'));
@@ -21630,9 +21650,9 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                             <span class="card-tag" style="background:#B87612; color:#fff; margin:0;">👑 ADMIN TOOLS</span>
                             <strong style="font-size:0.88rem; color:var(--primary);">Ashton's Client Roster & Clinical Summarizer</strong>
                         </div>
-                        <button type="button" class="btn-secondary" style="padding:5px 12px; font-size:0.76rem; pointer-events:none;">
+                        <span class="btn-secondary" style="padding:5px 12px; font-size:0.76rem; pointer-events:none;">
                             ${window._adminDrawerExpanded ? '▲ Hide Admin Client Roster (Preview Clean Member View)' : '▼ Expand Admin Client Roster & Summarizer'}
-                        </button>
+                        </span>
                     `;
                     if (adminSumBar) adminSumBar.style.display = window._adminDrawerExpanded ? 'flex' : 'none';
                     if (adminClientBox) adminClientBox.style.display = window._adminDrawerExpanded ? 'block' : 'none';
@@ -21643,7 +21663,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             const rightCol = twoColGrid.children[1];
             if (!leftCol || !rightCol) return;
 
-            // FIX #3: Locate the Workout of the Day (WOD) Studio card wherever it was injected and move it into its own clean Tab 2 stage!
+            // 2. Move Workout of the Day Studio into its own dedicated Tab 2 stage
             let wodStage = document.getElementById('hh-terrain-dedicated-wod-stage');
             if (!wodStage) {
                 wodStage = document.createElement('div');
@@ -21657,14 +21677,14 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                 Array.from(container.querySelectorAll('div')).find(d => {
                     if (d === container || d === twoColGrid || d === leftCol || d === rightCol || d === wodStage) return false;
                     const txt = (d.textContent || '');
-                    return txt.includes('WORKOUT OF THE DAY (WOD) STUDIO') && txt.includes('Generate My Workout of the Day') && d.children.length >= 2 && d.offsetHeight > 50;
+                    return txt.includes('WORKOUT OF THE DAY (WOD) STUDIO') && txt.includes('Generate My Workout of the Day') && d.children.length >= 2;
                 });
 
             if (foundWodCard && foundWodCard.parentElement !== wodStage) {
                 wodStage.appendChild(foundWodCard);
             }
 
-            // FIX #2: Target each `<label class="checklist-item">` inside `leftCol` so each habit gets its own color-coded card!
+            // 3. Style each of the 5 Daily Habits in descending order
             const habitColorThemes = [
                 {
                     match: 'SPIRIT',
@@ -21758,16 +21778,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                 }
 
                 chk.style.cssText = 'width: 24px; height: 24px; accent-color: #059669; cursor: pointer; flex-shrink: 0;';
-                if (!chk.dataset.hhChimeWired) {
-                    chk.dataset.hhChimeWired = 'true';
-                    chk.addEventListener('change', () => {
-                        if (chk.checked) {
-                            const nowChecked = Array.from(leftCol.querySelectorAll('label.checklist-item input[type="checkbox"]')).slice(0, 5).filter(c => c.checked).length;
-                            playHabitRewardChime(nowChecked >= 5);
-                        }
-                        setTimeout(applyTerrainCoachLayout, 60);
-                    });
-                }
 
                 let coachMeta = cardBox.querySelector('.hh-habit-coach-meta');
                 if (!coachMeta) {
@@ -21802,15 +21812,15 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                     <div style="margin-top:8px; padding-top:8px; border-top:1px dashed rgba(0,0,0,0.1); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; font-size:0.77rem; color:#4A3728;">
                         <span>💡 <strong>Why This Heals Your Terrain:</strong> <em>${theme.why}</em></span>
                         ${theme.hasWorkoutBtn ? `
-                            <button type="button" onclick="event.preventDefault(); event.stopPropagation(); switchTerrainCoachTab('workout');" style="background:#16A34A; color:#fff; border:none; border-radius:999px; padding:6px 14px; font-size:0.75rem; font-weight:800; cursor:pointer;">
+                            <span role="button" tabindex="0" onclick="event.preventDefault(); event.stopPropagation(); switchTerrainCoachTab('workout');" style="background:#16A34A; color:#fff; border-radius:999px; padding:6px 14px; font-size:0.75rem; font-weight:800; cursor:pointer; display:inline-block;">
                                 💪 Open Tab 2: Today's Workout Studio & Timer &rarr;
-                            </button>
+                            </span>
                         ` : ''}
                     </div>
                 `;
             });
 
-            // 3. Build the Top "16-Step Journey Map & Hand-Holding Coach Guide" + "4-Tab Guided Navigation"
+            // 4. Render the 16-Step Map + 4 Immune `<div role="tab">` Navigation Cards
             let coachMasterHeader = document.getElementById('hh-terrain-guided-coach-header');
             if (!coachMasterHeader) {
                 coachMasterHeader = document.createElement('div');
@@ -21885,34 +21895,35 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                     </div>
                 ` : ''}
 
+                <!-- IMMUNE DIV-BASED TABS -->
                 <div class="hh-coach-nav-tabs">
-                    <button type="button" class="hh-coach-tab-btn ${activeTab === 'habits' ? 'active' : ''}" onclick="switchTerrainCoachTab('habits')">
+                    <div role="tab" tabindex="0" class="hh-coach-tab-card ${activeTab === 'habits' ? 'active' : ''}" onclick="switchTerrainCoachTab('habits')">
                         <span class="tab-step-num">☀️ PRIORITY #1 TODAY</span>
                         <span class="tab-main-title">1. My 5 Daily Habits (${completedTodayCount}/5)</span>
                         <span style="font-size:0.74rem; opacity:0.85;">Check off your 5 color-coded habits</span>
-                    </button>
+                    </div>
 
-                    <button type="button" class="hh-coach-tab-btn ${activeTab === 'workout' ? 'active' : ''}" onclick="switchTerrainCoachTab('workout')">
+                    <div role="tab" tabindex="0" class="hh-coach-tab-card ${activeTab === 'workout' ? 'active' : ''}" onclick="switchTerrainCoachTab('workout')">
                         <span class="tab-step-num">💪 PRIORITY #2 TODAY</span>
                         <span class="tab-main-title">2. Guided Workout & Timer</span>
                         <span style="font-size:0.74rem; opacity:0.85;">Phase ${phaseNum} WOD Studio & Rest Timer</span>
-                    </button>
+                    </div>
 
-                    <button type="button" class="hh-coach-tab-btn ${activeTab === 'meals' ? 'active' : ''}" onclick="switchTerrainCoachTab('meals')">
+                    <div role="tab" tabindex="0" class="hh-coach-tab-card ${activeTab === 'meals' ? 'active' : ''}" onclick="switchTerrainCoachTab('meals')">
                         <span class="tab-step-num">🍽️ PRIORITY #3 TODAY</span>
                         <span class="tab-main-title">3. Step ${curStep} Meal Blueprint</span>
                         <span style="font-size:0.74rem; opacity:0.85;">30g+ Protein Meals & Bonus Recipes</span>
-                    </button>
+                    </div>
 
-                    <button type="button" class="hh-coach-tab-btn ${activeTab === 'supplements' ? 'active' : ''}" onclick="switchTerrainCoachTab('supplements')">
+                    <div role="tab" tabindex="0" class="hh-coach-tab-card ${activeTab === 'supplements' ? 'active' : ''}" onclick="switchTerrainCoachTab('supplements')">
                         <span class="tab-step-num">🌿 RESOURCES & ROADMAP</span>
                         <span class="tab-main-title">4. Dispensary & Full 16 Steps</span>
                         <span style="font-size:0.74rem; opacity:0.85;">Minerals, Fullscript & All 16 Steps</span>
-                    </button>
+                    </div>
                 </div>
             `;
 
-            // 4. Switch between the 4 Guided Tabs cleanly!
+            // 5. Switch between the 4 Guided Tabs cleanly (FIXED TAB #4 DISPLAY LOGIC)
             twoColGrid.style.cssText = 'display: block; width: 100%; max-width: 960px; margin: 0 auto;';
 
             if (activeTab === 'habits') {
@@ -21923,7 +21934,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             } else if (activeTab === 'workout') {
                 wodStage.style.display = 'block';
                 twoColGrid.style.display = 'none';
-                // If no external WOD card was injected yet, show a helpful fallback button inside wodStage
                 if (wodStage.children.length === 0) {
                     wodStage.innerHTML = `
                         <div class="clinical-panel" style="border:2px solid var(--sage); text-align:center; padding:28px;">
@@ -21941,7 +21951,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                 rightCol.style.display = 'block';
                 Array.from(rightCol.children).forEach(ch => {
                     const t = (ch.textContent || '').toUpperCase();
-                    ch.style.display = t.includes('MEAL BLUEPRINT') ? 'block' : 'none';
+                    ch.style.display = (t.includes('MEAL BLUEPRINT') || t.includes('DONE-FOR-YOU MEAL')) ? 'block' : 'none';
                 });
             } else if (activeTab === 'supplements') {
                 wodStage.style.display = 'none';
@@ -21950,10 +21960,10 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                 rightCol.style.display = 'block';
                 Array.from(rightCol.children).forEach(ch => {
                     const t = (ch.textContent || '').toUpperCase();
-                    ch.style.display = !t.includes('MEAL BLUEPRINT') ? 'block' : 'none';
+                    // Show Dispensary card (and hide Meal Blueprint card)
+                    ch.style.display = (t.includes('MEAL BLUEPRINT') || t.includes('DONE-FOR-YOU MEAL')) ? 'none' : 'block';
                 });
 
-                // Also append a 16-Step Full Roadmap overview card inside the Supplements & Roadmap tab!
                 if (!document.getElementById('hh-terrain-tab4-roadmap-card') && typeof RECLAIM_TERRAIN_16_STEPS !== 'undefined') {
                     const rmCard = document.createElement('div');
                     rmCard.id = 'hh-terrain-tab4-roadmap-card';
@@ -21984,17 +21994,44 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
     if (typeof _prevRenderTerrain === 'function') {
         window.renderReclaimTerrainPillar = function() {
             _prevRenderTerrain();
-            setTimeout(applyTerrainCoachLayout, 50);
+            applyTerrainCoachLayout();
         };
     }
 
-    [350, 950, 1800, 3000].forEach(ms => setTimeout(applyTerrainCoachLayout, ms));
-    document.addEventListener('click', (e) => {
-        if (e.target.closest('select, option')) return;
-        if (e.target.closest('#view-reclaim-terrain') || (e.target.textContent || '').includes('Reclaim Your Terrain')) {
-            setTimeout(applyTerrainCoachLayout, 100);
+    window.toggleTerrainHabitCheck = function(chkKey, isChecked) {
+        const tState = window.getTerrainState();
+        if (!tState.weeklyChecks) tState.weeklyChecks = {};
+        tState.weeklyChecks[chkKey] = !!isChecked;
+        window.saveTerrainState(tState);
+        window.renderReclaimTerrainPillar();
+        if (isChecked) {
+            const container = document.getElementById('view-reclaim-terrain');
+            const nowChecked = container ? Array.from(container.querySelectorAll('label.checklist-item input[type="checkbox"]')).slice(0, 5).filter(c => c.checked).length : 1;
+            playHabitRewardChime(nowChecked >= 5);
+        }
+        if (typeof loadSubscriberDashboardForUser === 'function') loadSubscriberDashboardForUser();
+    };
+
+    const shieldObserver = new MutationObserver(() => {
+        const container = document.getElementById('view-reclaim-terrain');
+        if (!container) return;
+        const hasStepDashboard = (container.textContent || '').includes('Micro-Habits');
+        if (hasStepDashboard) {
+            container.querySelectorAll('button, a').forEach(btn => {
+                if ((btn.textContent || '').includes('Start My 20-Question Functional Consult')) {
+                    btn.remove();
+                }
+            });
         }
     });
+
+    setTimeout(() => {
+        applyTerrainCoachLayout();
+        const container = document.getElementById('view-reclaim-terrain');
+        if (container) {
+            shieldObserver.observe(container, { childList: true, subtree: true, characterData: true });
+        }
+    }, 250);
 })();
 </script>
 
