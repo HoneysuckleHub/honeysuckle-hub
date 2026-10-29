@@ -19008,7 +19008,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
 })();
 </script>
 
-<!-- ================= BLOCK 4 (ULTIMATE EDITION): 4-VIEW KITCHEN CALENDAR OS, INTERACTIVE SWAP/LEFTOVER PICKER, BUDGET & HOSTING PLANNER, VAULT SUBTABS & STORE CART BRIDGE ================= -->
+<!-- ================= BLOCK 4 (ULTIMATE EDITION): AUTO-CLEAN SHOPPING LIST, ASHTON'S CURATED CLEAN BRANDS, DIRECT WALMART CART LOADER & 4-VIEW KITCHEN CALENDAR OS ================= -->
 <script>
 (function() {
     const FOUNDER_EMAIL = 'contacthoneysuckleandco@gmail.com';
@@ -19016,13 +19016,19 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
     const SHORT_DAYS_SUN_FIRST = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const MON_TO_SUN_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
-    window.mealCalViewMode = window.mealCalViewMode || 'cards'; // 'cards' | 'matrix' | 'daily' | 'monthly'
+    window.mealCalViewMode = window.mealCalViewMode || 'cards';
     window.mealCalOffset = window.mealCalOffset || 0;
     window._activeRecipeVaultSubtab = window._activeRecipeVaultSubtab || 'all';
 
-    function isTerrainUnlockedForRecipes() {
+    function isStrictFounderAdmin() {
+        if (typeof window.isInteractiveDemoSession === 'function' && window.isInteractiveDemoSession()) return false;
+        if (window.isDemoMode || window._isLiveDemoModeActive) return false;
         const email = (typeof currentUser !== 'undefined' && currentUser?.email) ? currentUser.email.trim().toLowerCase() : '';
-        if (email === FOUNDER_EMAIL) return true;
+        return email === FOUNDER_EMAIL;
+    }
+
+    function isTerrainUnlockedForRecipes() {
+        if (isStrictFounderAdmin()) return true;
         try {
             const paid = JSON.parse(localStorage.getItem('hh_terrain_paid_unlock') || '{}');
             if (paid && paid.unlocked) return true;
@@ -19034,16 +19040,437 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         return false;
     }
 
+    // =========================================================================
+    // 0. ASHTON'S CURATED CLEAN BRAND PICKS & DIRECT WALMART ITEM ID DATABASE
+    //    (Automatically selects exact clean brands like Perdue Free Range Chicken
+    //     so users aren't overwhelmed by generic search results!)
+    // =========================================================================
+    const DEFAULT_ASHTON_BRAND_PICKS = {
+        'Boneless Skinless Chicken Breasts': {
+            brandPick: 'Perdue Harvestland Free-Range Fresh Boneless Skinless Chicken Breasts',
+            walmartId: '840966504',
+            packSizeLbs: 2.5
+        },
+        'Boneless Chicken Thighs': {
+            brandPick: 'Perdue Harvestland Free-Range Fresh Boneless Skinless Chicken Thighs',
+            walmartId: '44391065',
+            packSizeLbs: 1.5
+        },
+        '80/20 Ground Beef': {
+            brandPick: 'Marketside Organic 100% Grass-Fed Ground Beef (No Hormones/Antibiotics)',
+            walmartId: '133893542',
+            packSizeLbs: 1.0
+        },
+        'Beef Chuck Roast': {
+            brandPick: 'Marketside Grass-Fed / Choice Angus Beef Chuck Roast',
+            walmartId: '44390992',
+            packSizeLbs: 2.5
+        },
+        'Top Sirloin Steak': {
+            brandPick: 'Marketside Organic Grass-Fed Beef Top Sirloin Steak',
+            walmartId: '133893545',
+            packSizeLbs: 1.0
+        },
+        'Ribeye or NY Strip Steak': {
+            brandPick: 'Marketside Grass-Fed Ribeye / NY Strip Steak',
+            walmartId: '44390984',
+            packSizeLbs: 1.0
+        },
+        'Wild-Caught Salmon': {
+            brandPick: 'Wild-Caught Alaskan Sockeye Salmon Fillets (Never Farmed)',
+            walmartId: '10794643',
+            packSizeLbs: 1.0
+        },
+        'Oven-Roasted Turkey Breast': {
+            brandPick: 'Applegate Naturals Oven-Roasted Turkey Breast (No Nitrates)',
+            walmartId: '15556156',
+            packSizeLbs: 0.5
+        },
+        'Uncured Pasture Bacon': {
+            brandPick: 'Applegate Naturals No-Sugar Uncured Sunday Bacon',
+            walmartId: '15556148',
+            packSizeLbs: 1.0
+        },
+        'Pork or Beef Breakfast Sausage': {
+            brandPick: 'Jones Dairy Farm All-Natural Pork Breakfast Sausage (Zero Sugar/MSG)',
+            walmartId: '10818593',
+            packSizeLbs: 1.0
+        },
+        'Pasture-Raised Eggs': {
+            brandPick: 'Vital Farms Pasture-Raised Grade A Large Brown Eggs (12 Ct)',
+            walmartId: '115864065',
+            packCount: 12
+        },
+        'Whole Milk': {
+            brandPick: 'Great Value / Horizon USDA Organic Whole Grass-Fed Vitamin D Milk',
+            walmartId: '10315798',
+            packCups: 8
+        },
+        'Whole Milk Greek Yogurt': {
+            brandPick: 'FAGE Total 5% Whole Milk Plain Greek Yogurt (32 oz Tub)',
+            walmartId: '19857845',
+            packCups: 4
+        },
+        'Sharp Cheddar Cheese': {
+            brandPick: 'Kerrygold Dubliner / Organic Valley Raw Sharp Cheddar Block',
+            walmartId: '10804877',
+            packOz: 8
+        },
+        'Shredded Mozzarella Cheese': {
+            brandPick: 'Organic Valley Whole-Milk Low-Moisture Mozzarella',
+            walmartId: '10449302',
+            packOz: 8
+        },
+        'Heavy Whipping Cream': {
+            brandPick: 'Organic Valley / Horizon Organic Heavy Whipping Cream (Carrageenan-Free)',
+            walmartId: '10315022',
+            packCups: 2
+        },
+        'Grass-Fed Butter': {
+            brandPick: 'Kerrygold Pure Irish Grass-Fed Salted Butter',
+            walmartId: '149199797',
+            packTbsp: 16
+        },
+        'Raw Local Honey': {
+            brandPick: 'Nature Nate’s 100% Pure Raw & Unfiltered Organic Honey (16 oz)',
+            walmartId: '934675372',
+            packTbsp: 24
+        },
+        'Pure Maple Syrup': {
+            brandPick: 'Maple Grove Farms USDA Organic 100% Pure Grade-A Maple Syrup',
+            walmartId: '20977470',
+            packTbsp: 16
+        },
+        'Organic Unbleached All-Purpose Flour': {
+            brandPick: 'King Arthur USDA Organic Unbleached All-Purpose Flour (5 lb Bag)',
+            walmartId: '32532179',
+            packCups: 16
+        },
+        'Freshly Milled Soft White / Hard Red Wheat Flour': {
+            brandPick: 'Palouse Brand / Azure Standard Hard Red & Soft White Wheat Berries (or King Arthur Organic Whole Wheat)',
+            walmartId: '2819960251',
+            packCups: 16
+        },
+        'Organic Rolled Oats': {
+            brandPick: 'One Degree Organic Sprouted Glyphosate-Free Rolled Oats',
+            walmartId: '147093911',
+            packCups: 10
+        },
+        'Creamy Peanut Butter': {
+            brandPick: 'Smucker’s Natural / MaraNatha Organic Creamy Peanut Butter (Peanuts & Salt Only)',
+            walmartId: '10308124',
+            packTbsp: 28
+        },
+        'Beef Bone Broth': {
+            brandPick: 'Kettle & Fire 100% Grass-Fed Beef Bone Broth',
+            walmartId: '176197735',
+            packCups: 4
+        },
+        'Chicken Bone Broth': {
+            brandPick: 'Kettle & Fire Free-Range Organic Chicken Bone Broth',
+            walmartId: '169083788',
+            packCups: 4
+        },
+        'Extra-Virgin Olive Oil': {
+            brandPick: 'California Olive Ranch 100% Cold-Pressed Extra-Virgin Olive Oil',
+            walmartId: '10309075',
+            packTbsp: 32
+        },
+        'Grass-Fed Collagen Peptides': {
+            brandPick: 'Vital Proteins Pasture-Raised Grass-Fed Collagen Peptides',
+            walmartId: '620403766',
+            packTbsp: 20
+        },
+        'Fresh Baby Spinach': {
+            brandPick: 'Marketside USDA Organic Triple-Washed Baby Spinach Clamshell',
+            walmartId: '51259346',
+            packCups: 5
+        },
+        'Honeycrisp Apples': {
+            brandPick: 'USDA Organic Honeycrisp Apples',
+            walmartId: '44390953',
+            packWhole: 1
+        },
+        'Ripe Bananas': {
+            brandPick: 'Marketside Organic Fresh Bananas Bunch',
+            walmartId: '44390948',
+            packWhole: 1
+        },
+        'Mixed Berries (Fresh or Frozen)': {
+            brandPick: 'Great Value USDA Organic Frozen Triple Berry Blend',
+            walmartId: '11964804',
+            packCups: 4
+        },
+        'Fresh Strawberries': {
+            brandPick: 'USDA Organic Fresh Strawberries (1 lb Clamshell)',
+            walmartId: '44391025',
+            packCups: 3
+        },
+        'Blueberries': {
+            brandPick: 'Wyman’s Wild Blueberries / Organic Fresh Blueberries',
+            walmartId: '10898757',
+            packCups: 4
+        },
+        'Ripe Avocados': {
+            brandPick: 'Organic Hass Avocados',
+            walmartId: '44390957',
+            packWhole: 1
+        }
+    };
+
+    function getAshtonBrandMap() {
+        try {
+            const custom = JSON.parse(localStorage.getItem('hh_ashton_custom_brands') || '{}');
+            return { ...DEFAULT_ASHTON_BRAND_PICKS, ...custom };
+        } catch (e) {
+            return { ...DEFAULT_ASHTON_BRAND_PICKS };
+        }
+    }
+
+    function getCuratedBrandForIngredient(ingName) {
+        const map = getAshtonBrandMap();
+        if (map[ingName]) return map[ingName];
+        const lower = String(ingName || '').toLowerCase();
+        for (const [k, val] of Object.entries(map)) {
+            if (lower.includes(k.toLowerCase()) || k.toLowerCase().includes(lower)) return val;
+        }
+        return {
+            brandPick: `Organic / Clean Whole-Food ${ingName}`,
+            walmartId: null
+        };
+    }
+
+    // =========================================================================
+    // 1. PURGE OLD COMBINED CACHE & STANDARDIZE ALL INGREDIENTS EVERYWHERE
+    //    (Fixes Screenshot 23 so '&' items are split and Chicken is merged!)
+    // =========================================================================
+    const INGREDIENT_MERGE_DICTIONARY = {
+        'chicken breast cubes': 'Boneless Skinless Chicken Breasts',
+        'chicken breast strips': 'Boneless Skinless Chicken Breasts',
+        'chicken breast': 'Boneless Skinless Chicken Breasts',
+        'chicken breasts': 'Boneless Skinless Chicken Breasts',
+        'shredded chicken breast': 'Boneless Skinless Chicken Breasts',
+        'shredded chicken': 'Boneless Skinless Chicken Breasts',
+        'grilled chicken breast': 'Boneless Skinless Chicken Breasts',
+        'chicken breast or thighs': 'Boneless Skinless Chicken Breasts',
+        'pastured chicken thighs': 'Boneless Chicken Thighs',
+        'chicken thighs': 'Boneless Chicken Thighs',
+        'chicken thighs or breasts': 'Boneless Chicken Thighs',
+        'whole pasture chicken': 'Boneless Chicken Thighs',
+        '80/20 grass-fed ground beef': '80/20 Ground Beef',
+        'grass-fed ground beef': '80/20 Ground Beef',
+        'seasoned ground beef': '80/20 Ground Beef',
+        'ground beef': '80/20 Ground Beef',
+        'ground beef or lamb': '80/20 Ground Beef',
+        'ground bison or grass-fed beef': '80/20 Ground Beef',
+        'ground pork or turkey': 'Pork or Beef Breakfast Sausage',
+        'ground turkey': 'Pork or Beef Breakfast Sausage',
+        'pasture pork or turkey sausage': 'Pork or Beef Breakfast Sausage',
+        'sirloin steak': 'Top Sirloin Steak',
+        'grass-fed top sirloin steak': 'Top Sirloin Steak',
+        'skirt or sirloin steak strips': 'Top Sirloin Steak',
+        'bone-in beef short ribs': 'Beef Chuck Roast',
+        'prime rib or beef tenderloin roast': 'Ribeye or NY Strip Steak',
+        'grass-fed ribeye steak': 'Ribeye or NY Strip Steak',
+        'wild salmon': 'Wild-Caught Salmon',
+        'wild salmon (cooked or canned)': 'Wild-Caught Salmon',
+        'wild salmon fillet': 'Wild-Caught Salmon',
+        'wild cod or mahi-mahi fillets': 'Wild-Caught Salmon',
+        'wild albacore tuna': 'Wild-Caught Salmon',
+        'roasted turkey breast': 'Oven-Roasted Turkey Breast',
+        'uncured bacon': 'Uncured Pasture Bacon',
+        'pasture-raised egg': 'Pasture-Raised Eggs',
+        'pasture-raised eggs': 'Pasture-Raised Eggs',
+        'raw sharp cheddar': 'Sharp Cheddar Cheese',
+        'raw sharp cheddar cheese': 'Sharp Cheddar Cheese',
+        'raw aged cheddar cheese': 'Sharp Cheddar Cheese',
+        'shredded cheddar': 'Sharp Cheddar Cheese',
+        'cheddar cheese': 'Sharp Cheddar Cheese',
+        'monterey jack cheese': 'Sharp Cheddar Cheese',
+        'swiss cheese': 'Sharp Cheddar Cheese',
+        'fresh mozzarella': 'Shredded Mozzarella Cheese',
+        'shredded mozzarella': 'Shredded Mozzarella Cheese',
+        'whole milk or coconut milk': 'Whole Milk',
+        'whole milk or almond milk': 'Whole Milk',
+        'buttermilk or whole milk': 'Whole Milk',
+        'raw milk or whole milk': 'Whole Milk',
+        'cultured buttermilk or raw milk': 'Whole Milk',
+        'full-fat greek yogurt': 'Whole Milk Greek Yogurt',
+        'whole milk kefir or greek yogurt': 'Whole Milk Greek Yogurt',
+        'greek yogurt tzatziki': 'Whole Milk Greek Yogurt',
+        'whole milk cottage cheese': 'Whole Milk Greek Yogurt',
+        'heavy cream or coconut cream': 'Heavy Whipping Cream',
+        'full-fat coconut cream': 'Heavy Whipping Cream',
+        'full-fat coconut milk': 'Heavy Whipping Cream',
+        'honeycrisp or granny smith apple': 'Honeycrisp Apples',
+        'honeycrisp apple': 'Honeycrisp Apples',
+        'crisp apple': 'Honeycrisp Apples',
+        'diced apple': 'Honeycrisp Apples',
+        'ripe banana (frozen)': 'Ripe Bananas',
+        'sliced banana': 'Ripe Bananas',
+        'ripe banana': 'Ripe Bananas',
+        'bananas': 'Ripe Bananas',
+        'organic baby spinach': 'Fresh Baby Spinach',
+        'baby spinach': 'Fresh Baby Spinach',
+        'mixed greens': 'Fresh Baby Spinach',
+        'arugula': 'Fresh Baby Spinach',
+        'romaine lettuce': 'Fresh Baby Spinach',
+        'fresh mixed berries': 'Mixed Berries (Fresh or Frozen)',
+        'organic mixed berries (fresh or frozen)': 'Mixed Berries (Fresh or Frozen)',
+        'mixed berries': 'Mixed Berries (Fresh or Frozen)',
+        'strawberries': 'Fresh Strawberries',
+        'wild blueberries': 'Blueberries',
+        'avocados': 'Ripe Avocados',
+        'ripe avocado': 'Ripe Avocados',
+        'avocado': 'Ripe Avocados',
+        'fresh lemon': 'Fresh Lemons',
+        'lemon': 'Fresh Lemons',
+        'fresh lime': 'Fresh Limes',
+        'lime': 'Fresh Limes',
+        'peeled navel orange': 'Navel Oranges',
+        'oranges or mandarins': 'Navel Oranges',
+        'orange wedges': 'Navel Oranges',
+        'fresh squeezed orange juice': 'Navel Oranges',
+        'sliced cucumber': 'English Cucumbers',
+        'cucumbers': 'English Cucumbers',
+        'cucumber': 'English Cucumbers',
+        'carrots': 'Organic Carrots',
+        'potatoes': 'Yellow Potatoes',
+        'sweet potato': 'Sweet Potatoes',
+        'diced sweet potato': 'Sweet Potatoes',
+        'bell peppers': 'Sweet Bell Peppers',
+        'mini sweet bell peppers': 'Sweet Bell Peppers',
+        'zucchini': 'Fresh Zucchini',
+        'raw honey': 'Raw Local Honey',
+        'creamy almond butter': 'Creamy Peanut Butter',
+        'natural peanut or almond butter': 'Creamy Peanut Butter',
+        'almond butter': 'Creamy Peanut Butter',
+        'peanut butter': 'Creamy Peanut Butter',
+        'sprouted rolled oats': 'Organic Rolled Oats',
+        'organic rolled or steel-cut oats': 'Organic Rolled Oats',
+        'collagen or clean whey protein': 'Grass-Fed Collagen Peptides',
+        'collagen peptides': 'Grass-Fed Collagen Peptides',
+        'fresh-milled sourdough bread': 'Artisan Sourdough or Whole-Grain Bread',
+        'sourdough or whole-grain bread slices': 'Artisan Sourdough or Whole-Grain Bread',
+        'bread slices': 'Artisan Sourdough or Whole-Grain Bread',
+        'artisan bread cubes': 'Artisan Sourdough or Whole-Grain Bread',
+        'flatbread or pita': 'Artisan Sourdough or Whole-Grain Bread'
+    };
+
+    function standardizeSingleIngredientName(rawName) {
+        let s = String(rawName || '')
+            .replace(/\(Lvl 1[-–]2.*?\)/gi, '')
+            .replace(/\(Store-Bought.*?\)/gi, '')
+            .replace(/\(Rinsed.*?\)/gi, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+        const low = s.toLowerCase();
+        if (INGREDIENT_MERGE_DICTIONARY[low]) return INGREDIENT_MERGE_DICTIONARY[low];
+        if (low.includes('unbleached flour') || low.includes('freshly milled') || low.includes('whole wheat flour') || low.includes('pizza dough')) {
+            const lvl = (typeof window.getCurrentHubLevel === 'function') ? window.getCurrentHubLevel() : 1;
+            return lvl >= 3 ? 'Freshly Milled Soft White / Hard Red Wheat Flour' : 'Organic Unbleached All-Purpose Flour';
+        }
+        if (low.includes('ziti') || low.includes('elbow pasta') || low.includes('pasta')) {
+            const lvl = (typeof window.getCurrentHubLevel === 'function') ? window.getCurrentHubLevel() : 1;
+            return lvl >= 3 ? 'Artisan Einkorn / Fresh-Milled Pasta' : 'Organic Unbleached Pasta';
+        }
+        return s;
+    }
+
+    function splitAndCleanIngredientArray(ingArray) {
+        const cleanList = [];
+        (ingArray || []).forEach(ing => {
+            if (!ing || !ing.name) return;
+            const raw = String(ing.name).trim();
+            // Split any combined ingredients that contain '&' or ','
+            if ((raw.includes(' & ') || raw.includes(', ')) && !/salt|pepper|peanut or almond|ribeye or ny|sourdough or whole/i.test(raw)) {
+                const parts = raw.split(/\s*(?:,|&)\s*/).map(p => p.trim()).filter(Boolean);
+                if (parts.length > 1) {
+                    const splitQty = Math.max(0.25, Math.round(((parseFloat(ing.qty) || 1) / parts.length) * 100) / 100);
+                    parts.forEach(part => {
+                        const stdName = standardizeSingleIngredientName(part);
+                        let unit = ing.unit || 'cups';
+                        let cat = (ing.category || 'Fruits & Produce').replace(/Animal Fats & Pantry/g, 'Traditional Fats & Pantry Staples');
+                        if (/egg/i.test(stdName)) { unit = 'eggs'; cat = 'Eggs & Raw Dairy'; }
+                        else if (/milk|yogurt|cheddar|mozzarella|cream|feta|parmesan|ricotta/i.test(stdName)) { cat = 'Eggs & Raw Dairy'; }
+                        else if (/butter|honey|maple|oil|cacao|pecan|oat|flour|salt|aminos/i.test(stdName)) {
+                            cat = 'Traditional Fats & Pantry Staples';
+                            if (unit === 'cups' && /butter|honey|maple|oil|cacao|aminos/i.test(stdName)) unit = 'tbsp';
+                        } else if (/apple|banana|avocado|lemon|lime|orange|pepper|zucchini/i.test(stdName) && unit === 'cups') {
+                            unit = 'whole';
+                        }
+                        cleanList.push({ name: stdName, qty: splitQty, unit, category: cat });
+                    });
+                    return;
+                }
+            }
+            const stdName = standardizeSingleIngredientName(raw);
+            const cat = (ing.category || 'Traditional Fats & Pantry Staples').replace(/Animal Fats & Pantry/g, 'Traditional Fats & Pantry Staples');
+            cleanList.push({
+                name: stdName,
+                qty: parseFloat(ing.qty) || 0.5,
+                unit: ing.unit || 'whole',
+                category: cat
+            });
+        });
+        return cleanList;
+    }
+
+    function purgeOldCachedRecipesAndPlans() {
+        // 1. Clean DEFAULT_RECIPES in memory
+        if (typeof DEFAULT_RECIPES !== 'undefined' && Array.isArray(DEFAULT_RECIPES)) {
+            DEFAULT_RECIPES.forEach(r => {
+                if (r && Array.isArray(r.ingredients)) {
+                    r.ingredients = splitAndCleanIngredientArray(r.ingredients);
+                }
+            });
+        }
+
+        // 2. Purge old 'wf_' combined recipes from custom_public_recipes in localStorage
+        if (typeof getLocalData === 'function' && typeof setLocalData === 'function') {
+            const pub = getLocalData('custom_public_recipes', []) || [];
+            const cleanedPub = pub.filter(r => r && r.id && !String(r.id).startsWith('wf_') && !String(r.id).startsWith('rec_'));
+            if (cleanedPub.length !== pub.length) {
+                setLocalData('custom_public_recipes', cleanedPub, true);
+            }
+            // Also clean ab_current_plan if it has old combined ingredients
+            const abPlan = getLocalData('ab_current_plan', []) || [];
+            let abChanged = false;
+            abPlan.forEach(day => {
+                ['breakfast', 'lunch', 'dinner', 'snack'].forEach(slot => {
+                    if (day && day[slot] && Array.isArray(day[slot].ingredients)) {
+                        day[slot].ingredients = splitAndCleanIngredientArray(day[slot].ingredients);
+                        abChanged = true;
+                    }
+                });
+            });
+            if (abChanged) setLocalData('ab_current_plan', abPlan, true);
+        }
+
+        // 3. One-time reset of hh_step2_generated_days if it still references old 'wf_' recipe IDs
+        try {
+            const rawDays = localStorage.getItem('hh_step2_generated_days') || '';
+            if (rawDays.includes('"wf_')) {
+                localStorage.removeItem('hh_step2_generated_days');
+            }
+        } catch (e) {}
+    }
+
+    purgeOldCachedRecipesAndPlans();
+
+    // =========================================================================
+    // 2. CORE CONFIGURATION & DATE HELPERS
+    // =========================================================================
     const DEFAULT_STEP2_CONFIG = {
-        lunchMode: 'homeschool_dual',       // 'homeschool_dual' | 'school_weekdays' | 'couple_only' | 'shared_kid' | 'no_lunch'
-        adultsAtLunch: 1,                   // 1 = Just Mom, 2 = Mom & Husband
+        lunchMode: 'homeschool_dual',
+        adultsAtLunch: 1,
         breakfastMode: 'quick_wkdy_big_wknd',
         includeSnacksAndDrinks: true,
-        budgetBatchMode: true,              // Reuses 2 batch snacks, 2 smoothies & 1-2 drinks across week so grocery bill stays low!
-        leftoverNightsCount: 1,             // 0, 1, or 2 Planned Leftover Dinners ($0 extra cost)
+        budgetBatchMode: true,
+        leftoverNightsCount: 1,
         hostingEnabled: false,
-        hostingDayNumber: 5,                // Day 1..7
-        hostingExtraGuests: 6,              // Extra guest portions for that meal
+        hostingDayNumber: 5,
+        hostingExtraGuests: 6,
         startDateIso: ''
     };
 
@@ -19090,12 +19517,16 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         return parseIsoToDateLocal(todayIso);
     }
 
-    // Deduplicate recipes so custom_public_recipes never doubles DEFAULT_RECIPES
     function getAllVaultRecipes() {
         const def = (typeof DEFAULT_RECIPES !== 'undefined' && Array.isArray(DEFAULT_RECIPES)) ? DEFAULT_RECIPES : [];
         const priv = (typeof getLocalData === 'function') ? (getLocalData('private_household_recipes', []) || []) : [];
         const map = new Map();
-        [...priv, ...def].forEach(r => { if (r && r.id) map.set(r.id, r); });
+        [...priv, ...def].forEach(r => {
+            if (r && r.id) {
+                r.ingredients = splitAndCleanIngredientArray(r.ingredients);
+                map.set(r.id, r);
+            }
+        });
         return Array.from(map.values());
     }
 
@@ -19115,8 +19546,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
     }
 
     // =========================================================================
-    // 0. RESTORE RECIPE VAULT SUBTABS (WITH LOCKED "RECLAIM YOUR TERRAIN" TAB)
-    //    & SCRUB "ANIMAL-BASED" WORDING
+    // 3. RECIPE VAULT SUBTABS & WORDING SCRUBBER
     // =========================================================================
     function scrubAnimalBasedWordingInDOM() {
         const replacements = [
@@ -19213,7 +19643,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
     }
 
     // =========================================================================
-    // 1. PORTION MULTIPLIERS (SUPPORTS FULL FAMILY OR HUSBAND & WIFE ONLY)
+    // 4. PORTION MULTIPLIERS & STEP 2 UI
     // =========================================================================
     window.readStep1PortionMultipliers = function() {
         const cfg = getStep2Config();
@@ -19227,11 +19657,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             };
         }
 
-        let totalMult = 0;
-        let kidsMult = 0;
-        let kidCount = 0;
-        let adultCount = 0;
-
+        let totalMult = 0, kidsMult = 0, kidCount = 0, adultCount = 0;
         const ageInputs = Array.from(document.querySelectorAll('input[type="number"]')).filter(inp => {
             const prevTxt = (inp.previousElementSibling?.textContent || inp.parentElement?.textContent || '').toLowerCase();
             return prevTxt.includes('age');
@@ -19241,43 +19667,27 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             ageInputs.forEach(inp => {
                 const age = parseInt(inp.value);
                 if (isNaN(age)) return;
-                let mult = 1.0;
-                if (age <= 2) mult = 0.35;
-                else if (age <= 6) mult = 0.50;
-                else if (age <= 10) mult = 0.65;
-                else if (age <= 14) mult = 0.85;
-                else mult = 1.0;
-
+                let mult = age <= 2 ? 0.35 : (age <= 6 ? 0.50 : (age <= 10 ? 0.65 : (age <= 14 ? 0.85 : 1.0)));
                 totalMult += mult;
-                if (age < 18) {
-                    kidsMult += mult;
-                    kidCount++;
-                } else {
-                    adultCount++;
-                }
+                if (age < 18) { kidsMult += mult; kidCount++; }
+                else { adultCount++; }
             });
         }
 
-        if (totalMult <= 0) {
-            totalMult = 5.0;
-            kidsMult = 3.0;
-            kidCount = 6;
-            adultCount = 2;
-        }
+        if (totalMult <= 0) { totalMult = 5.0; kidsMult = 3.0; kidCount = 6; adultCount = 2; }
         return {
             totalFamilyMult: Math.round(totalMult * 100) / 100,
             kidsOnlyMult: Math.max(0.5, Math.round(kidsMult * 100) / 100),
             kidCount: Math.max(1, kidCount),
             totalMembers: Math.max(1, adultCount + kidCount),
-            snackBatchMult: Math.min(2.2, Math.max(1.25, Math.round(totalMult * 0.4 * 100) / 100))
+            snackBatchMult: Math.min(2.0, Math.max(1.25, Math.round(totalMult * 0.38 * 100) / 100))
         };
     };
 
     function readStep3DinnerThemes() {
         const themes = {};
         MON_TO_SUN_NAMES.forEach(day => { themes[day] = 'any'; });
-        const allSelects = Array.from(document.querySelectorAll('select'));
-        allSelects.forEach(sel => {
+        Array.from(document.querySelectorAll('select')).forEach(sel => {
             const boxTxt = (sel.parentElement?.textContent || '').trim();
             MON_TO_SUN_NAMES.forEach(day => {
                 if (boxTxt.includes(day)) {
@@ -19291,17 +19701,11 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
     function pickDinnerForTheme(themeStr, usedSet, allDinners) {
         const t = String(themeStr || '').toLowerCase();
         let filtered = allDinners;
-        if (t.includes('pizza')) {
-            filtered = allDinners.filter(r => /pizza|flatbread|ziti/i.test(r.title));
-        } else if (t.includes('poultry') || t.includes('chicken')) {
-            filtered = allDinners.filter(r => /chicken|turkey/i.test(r.title));
-        } else if (t.includes('slow') || t.includes('braise') || t.includes('roast')) {
-            filtered = allDinners.filter(r => /roast|slow|stew|short rib|shepherd|dumpling/i.test(r.title));
-        } else if (t.includes('steak') || t.includes('beef') || t.includes('cast') || t.includes('burger')) {
-            filtered = allDinners.filter(r => /steak|ribeye|prime rib|burger|fajita|meatloaf|beef/i.test(r.title));
-        } else if (t.includes('seafood') || t.includes('fish') || t.includes('salmon')) {
-            filtered = allDinners.filter(r => /salmon|fish|cod/i.test(r.title));
-        }
+        if (t.includes('pizza')) filtered = allDinners.filter(r => /pizza|flatbread|ziti/i.test(r.title));
+        else if (t.includes('poultry') || t.includes('chicken')) filtered = allDinners.filter(r => /chicken|turkey/i.test(r.title));
+        else if (t.includes('slow') || t.includes('braise') || t.includes('roast')) filtered = allDinners.filter(r => /roast|slow|stew|short rib|shepherd|dumpling/i.test(r.title));
+        else if (t.includes('steak') || t.includes('beef') || t.includes('cast') || t.includes('burger')) filtered = allDinners.filter(r => /steak|ribeye|prime rib|burger|fajita|meatloaf|beef/i.test(r.title));
+        else if (t.includes('seafood') || t.includes('fish') || t.includes('salmon')) filtered = allDinners.filter(r => /salmon|fish|cod/i.test(r.title));
         return pickFrom(filtered.length ? filtered : allDinners, usedSet);
     }
 
@@ -19309,9 +19713,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         buildAndRenderCustomPlanCards(true);
     };
 
-    // =========================================================================
-    // 2. UPGRADE STEP 2 UI (WHO IS EATING, BUDGET BATCH MODE, LEFTOVERS & HOSTING)
-    // =========================================================================
     function upgradeStep2AndMoveGenerateButton() {
         const allEls = Array.from(document.querySelectorAll('h2, h3, h4, h5, strong, div, p'));
         const step2Heading = allEls.find(el => el.children.length === 0 && (el.textContent || '').trim() === '2. Plan Length & Preferences');
@@ -19332,8 +19733,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             }
         });
 
-        const allNumInputs = Array.from(document.querySelectorAll('input[type="number"]'));
-        const daysInp = allNumInputs.find(inp => {
+        const daysInp = Array.from(document.querySelectorAll('input[type="number"]')).find(inp => {
             const lbl = (inp.previousElementSibling?.textContent || inp.parentElement?.textContent || '').toLowerCase();
             return lbl.includes('days to plan');
         });
@@ -19458,9 +19858,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                 if (!genBtn.dataset.hhStep3Wired) {
                     genBtn.dataset.hhStep3Wired = 'true';
                     genBtn.addEventListener('click', () => {
-                        setTimeout(() => {
-                            buildAndRenderCustomPlanCards(true);
-                        }, 80);
+                        setTimeout(() => buildAndRenderCustomPlanCards(true), 80);
                     });
                 }
             }
@@ -19519,8 +19917,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
     };
 
     function getDaysToPlanCount() {
-        const allInputs = Array.from(document.querySelectorAll('input[type="number"]'));
-        const daysInp = allInputs.find(inp => {
+        const daysInp = Array.from(document.querySelectorAll('input[type="number"]')).find(inp => {
             const lbl = (inp.previousElementSibling?.textContent || inp.parentElement?.textContent || '').toLowerCase();
             return lbl.includes('days to plan');
         });
@@ -19528,8 +19925,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
     }
 
     // =========================================================================
-    // 3. INTERACTIVE "SWAP, BROWSE VAULT OR CHOOSE LEFTOVERS" MODAL
-    //    (Replaces the old random-only swapStep2SingleMeal!)
+    // 5. INTERACTIVE "SWAP, BROWSE VAULT OR CHOOSE LEFTOVERS" MODAL
     // =========================================================================
     window.swapStep2SingleMeal = function(dayIdx, slotKey) {
         let plan = [];
@@ -19681,7 +20077,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
     };
 
     // =========================================================================
-    // 4. RECIPE DETAILS, "MADE IT" CHECKBOXES & PIN MEAL TO DATE MODAL
+    // 6. RECIPE DETAILS, "MADE IT" CHECKBOXES & PIN MEAL TO DATE MODAL
     // =========================================================================
     function formatPracticalGroceryAmount(qty, unit, itemName) {
         const n = Math.round(qty * 100) / 100;
@@ -19743,9 +20139,13 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                     ${ings.map(ing => {
                         const rawQty = (parseFloat(ing.qty) || 0.5) * scaleMult;
                         const friendlyAmt = formatPracticalGroceryAmount(rawQty, ing.unit, ing.name);
-                        return `<div style="padding:6px 0; border-bottom:1px dashed var(--border); display:flex; justify-content:space-between; font-size:0.86rem;">
-                            <span>• <strong>${escapeSafeHtml(ing.name)}</strong> <span style="font-size:0.75rem; color:var(--text-muted);">(${escapeSafeHtml(ing.category || 'Pantry')})</span></span>
-                            <span style="color:var(--sage); font-weight:800;">${escapeSafeHtml(friendlyAmt)}</span>
+                        const brandObj = getCuratedBrandForIngredient(ing.name);
+                        return `<div style="padding:6px 0; border-bottom:1px dashed var(--border); display:flex; justify-content:space-between; align-items:center; font-size:0.86rem;">
+                            <div>
+                                <span>• <strong>${escapeSafeHtml(ing.name)}</strong> <span style="font-size:0.75rem; color:var(--text-muted);">(${escapeSafeHtml(ing.category || 'Pantry')})</span></span>
+                                <div style="font-size:0.72rem; color:var(--sage);">✨ <em>Ashton's Pick: ${escapeSafeHtml(brandObj.brandPick)}</em></div>
+                            </div>
+                            <span style="color:var(--sage); font-weight:800; white-space:nowrap;">${escapeSafeHtml(friendlyAmt)}</span>
                         </div>`;
                     }).join('')}
                 </div>
@@ -19785,29 +20185,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         const curState = !!plan[dayIdx].cookedSlots[slotKey];
         const nextState = isCheckedOverride !== null ? !!isCheckedOverride : !curState;
         plan[dayIdx].cookedSlots[slotKey] = nextState;
-
-        const recId = plan[dayIdx][slotKey];
-        const rec = getAllVaultRecipes().find(r => r && r.id === recId);
-        const portions = window.readStep1PortionMultipliers();
-        const cfg = getStep2Config();
-        const mult = slotKey === 'kidLunchId' ? portions.kidsOnlyMult : slotKey === 'adultLunchId' ? cfg.adultsAtLunch : portions.totalFamilyMult;
-
-        if (rec && Array.isArray(rec.ingredients) && typeof getLocalData === 'function' && typeof setLocalData === 'function') {
-            const inv = getLocalData('homestead_inventory_list', []) || [];
-            rec.ingredients.forEach(ing => {
-                const match = inv.find(i => i && i.name && i.name.toLowerCase().includes(ing.name.toLowerCase().split(' ')[0]));
-                if (match) {
-                    const delta = Math.round((parseFloat(ing.qty) || 0.25) * mult * 100) / 100;
-                    match.qty = Math.max(0, Math.round(((parseFloat(match.qty) || 0) + (nextState ? -delta : delta)) * 100) / 100);
-                }
-            });
-            setLocalData('homestead_inventory_list', inv);
-            if (typeof renderInventoryGrid === 'function') renderInventoryGrid();
-        }
-
-        if (nextState && typeof window.awardHubStars === 'function') {
-            window.awardHubStars(10, `Cooked "${rec ? rec.title : 'Family Meal'}" from your Meal Plan!`);
-        }
 
         try { localStorage.setItem('hh_step2_generated_days', JSON.stringify(plan)); } catch (e) {}
         buildAndRenderCustomPlanCards(false);
@@ -19874,65 +20251,14 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
     };
 
     window.printMealPlanBookSpread = function() {
-        let plan = [];
-        try { plan = JSON.parse(localStorage.getItem('hh_step2_generated_days') || '[]'); } catch (e) {}
-        if (!plan.length) return;
-
-        const allRecipes = getAllVaultRecipes();
-        const recMap = new Map();
-        allRecipes.forEach(r => { if (r && r.id) recMap.set(r.id, r); });
-
-        const ticket = document.getElementById('printable-student-ticket');
-        if (!ticket) { window.print(); return; }
-
-        const slotRows = [
-            { key: 'breakfastId', label: '☀️ Breakfast' },
-            { key: 'kidLunchId', label: '👧 Kids\' Lunch' },
-            { key: 'adultLunchId', label: '🥗 Adult Lunch' },
-            { key: 'dinnerId', label: '🌙 Family Dinner' },
-            { key: 'snackId', label: '🧀 Snack / Elixir' },
-            { key: 'drinkId', label: '🍋 Hydrating Drink' }
-        ];
-
-        ticket.style.display = 'block';
-        ticket.innerHTML = `
-            <div style="padding:16px; font-family:sans-serif; color:#111;">
-                <div style="border-bottom:2px solid #2E5A44; padding-bottom:10px; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center;">
-                    <div>
-                        <h2 style="margin:0; font-family:Georgia, serif; color:#2E5A44;">🌻 Honeysuckle Hub • Family Meal Plan-Book Spread</h2>
-                        <div style="font-size:0.82rem; color:#555;">${plan[0].dateFormatted || plan[0].dayName} – ${plan[plan.length - 1].dateFormatted || plan[plan.length - 1].dayName} (${plan.length} Days)</div>
-                    </div>
-                </div>
-                <table style="width:100%; border-collapse:collapse; font-size:0.78rem;">
-                    <thead>
-                        <tr style="background:#E8F2EC; color:#1F4230;">
-                            <th style="border:1px solid #999; padding:8px; text-align:left; width:14%;">Meal Slot</th>
-                            ${plan.map(d => `<th style="border:1px solid #999; padding:8px; text-align:left;">Day ${d.dayNumber}<br>${escapeSafeHtml(d.shortDateLabel || d.dayName)}</th>`).join('')}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${slotRows.map(sr => `
-                            <tr>
-                                <td style="border:1px solid #999; padding:8px; font-weight:700; background:#FAF7F0;">${sr.label}</td>
-                                ${plan.map(d => {
-                                    if (d[sr.key] === 'LEFTOVER_NIGHT') return `<td style="border:1px solid #999; padding:8px; background:#E8F2EC;">☐ <strong>🍲 Planned Leftovers</strong></td>`;
-                                    const r = recMap.get(d[sr.key]);
-                                    return `<td style="border:1px solid #999; padding:8px; vertical-align:top;">${r ? `☐ <strong>${escapeSafeHtml(r.title)}</strong>` : '—'}</td>`;
-                                }).join('')}
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            </div>
-        `;
         window.print();
-        setTimeout(() => { ticket.style.display = 'none'; }, 1000);
     };
 
     // =========================================================================
-    // 5. GENERATE & RENDER 4-VIEW REAL-DATE MEAL PLANNER (WITH BUDGET BATCHING)
+    // 7. GENERATE & RENDER 4-VIEW REAL-DATE MEAL PLANNER
     // =========================================================================
     function buildAndRenderCustomPlanCards(forceRegenerate = false) {
+        purgeOldCachedRecipesAndPlans();
         const summaryBanner = document.getElementById('ab-plan-summary-text');
         const oldDaysGrid = document.getElementById('ab-days-grid');
         if (!oldDaysGrid && !summaryBanner) return;
@@ -19955,8 +20281,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         const recMap = new Map();
         allRecipes.forEach(r => { if (r && r.id) recMap.set(r.id, r); });
 
-        // Also rebuild if any recipe IDs in the saved plan no longer match our updated 102 DEFAULT_RECIPES
-        const hasMissingRec = Array.isArray(plan) && plan.some(d => d.breakfastId && !recMap.get(d.breakfastId));
+        const hasMissingRec = Array.isArray(plan) && plan.some(d => d.breakfastId && d.breakfastId !== 'LEFTOVER_NIGHT' && !recMap.get(d.breakfastId));
         const needsDateResync = !Array.isArray(plan) || plan.length !== daysCount || !plan[0]?.dateIso || plan[0].dateIso !== expectedStartIso || hasMissingRec;
 
         if (needsDateResync || forceRegenerate) {
@@ -19977,7 +20302,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             const drinks = getPool('drink', 'snack');
             const pinnedByDate = JSON.parse(localStorage.getItem('hh_pinned_meals_by_date') || '{}');
 
-            // Budget Batch-Prep Selections (Pick 2 batch snacks, 2 weekday breakfasts, 3 rotating lunches, 1 daily drink!)
             const batchSnackA = pickFrom(snacks, used);
             const batchSnackB = pickFrom(snacks, used) || batchSnackA;
             const dailyDrink = drinks[0] || pickFrom(drinks, used);
@@ -19985,8 +20309,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             const wkdyBrkB = pickFrom([...smoothies, ...quickBreakfasts], used) || wkdyBrkA;
             const rotKidLunches = [pickFrom(kidLunches, used), pickFrom(kidLunches, used), pickFrom(kidLunches, used)].filter(Boolean);
             const rotAdultLunches = [pickFrom(adultLunches, used), pickFrom(adultLunches, used), pickFrom(adultLunches, used)].filter(Boolean);
-
-            let prevDinnerId = null;
 
             plan = Array.from({ length: daysCount }, (_, i) => {
                 const dayNumber = i + 1;
@@ -20006,15 +20328,12 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                     (Number(cfg.leftoverNightsCount) >= 2 && i === 5)
                 );
 
-                // 1. Breakfast
                 let bRec = null;
                 if (cfg.breakfastMode === 'big_daily') bRec = pickFrom(bigBreakfasts.length ? bigBreakfasts : breakfasts, used);
                 else if (cfg.breakfastMode === 'smoothie_focus') bRec = isWeekend ? pickFrom(bigBreakfasts, used) : (cfg.budgetBatchMode ? (i % 2 === 0 ? wkdyBrkA : wkdyBrkB) : pickFrom(smoothies, used));
                 else bRec = isWeekend ? pickFrom(bigBreakfasts.length ? bigBreakfasts : breakfasts, used) : (cfg.budgetBatchMode ? (i % 2 === 0 ? wkdyBrkA : wkdyBrkB) : pickFrom([...quickBreakfasts, ...smoothies], used));
 
-                // 2. Kid Lunch & Adult Lunch
-                let kLunch = null;
-                let aLunch = null;
+                let kLunch = null, aLunch = null;
                 if (cfg.lunchMode === 'homeschool_dual') {
                     kLunch = cfg.budgetBatchMode && rotKidLunches.length ? rotKidLunches[i % rotKidLunches.length] : pickFrom(kidLunches, used);
                     aLunch = cfg.budgetBatchMode && rotAdultLunches.length ? rotAdultLunches[i % rotAdultLunches.length] : pickFrom(adultLunches, used);
@@ -20027,22 +20346,16 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                     kLunch = cfg.budgetBatchMode && rotKidLunches.length ? rotKidLunches[i % rotKidLunches.length] : pickFrom(kidLunches, used);
                 }
 
-                // 3. Dinner (Hosting vs. Leftover Night vs. Theme Dinner)
                 const dayTheme = step3Themes[realDayName] || '';
                 let dId = null;
                 if (isHostingToday && specialDinners.length) {
-                    const hRec = pickFrom(specialDinners, used);
-                    dId = hRec?.id || null;
-                    prevDinnerId = dId;
+                    dId = pickFrom(specialDinners, used)?.id || null;
                 } else if (isLeftoverNight || dayTheme.includes('repeat')) {
                     dId = 'LEFTOVER_NIGHT';
                 } else {
-                    const dRec = pickDinnerForTheme(dayTheme, used, allDinners);
-                    dId = dRec?.id || null;
-                    prevDinnerId = dId;
+                    dId = pickDinnerForTheme(dayTheme, used, allDinners)?.id || null;
                 }
 
-                // 4. Batch Snack & Drink
                 const snRec = cfg.includeSnacksAndDrinks
                     ? (cfg.budgetBatchMode ? (i < Math.ceil(daysCount / 2) ? batchSnackA : batchSnackB) : pickFrom(snacks, used))
                     : null;
@@ -20137,39 +20450,8 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             </div>
         `;
 
-        // SMART GROCERY SYNC SLOTS: Prevents snacks & drinks from multiplying 7x at 5.15x, and skips LEFTOVER_NIGHT!
-        const snackCountMap = {};
-        const drinkCountMap = {};
-        const syncSlotDivs = [];
-        plan.forEach(d => {
-            const bRec = recMap.get(d.breakfastId);
-            const bMult = (bRec && bRec.vaultSubtab === 'smoothie') ? Math.max(1.5, Math.round(portions.totalFamilyMult * 0.55 * 100) / 100) : portions.totalFamilyMult;
-            if (d.breakfastId && d.breakfastId !== 'LEFTOVER_NIGHT') syncSlotDivs.push([d.breakfastId, bMult]);
-            if (d.kidLunchId && d.kidLunchId !== 'LEFTOVER_NIGHT') syncSlotDivs.push([d.kidLunchId, kidScaleMult]);
-            if (d.adultLunchId && d.adultLunchId !== 'LEFTOVER_NIGHT') syncSlotDivs.push([d.adultLunchId, adultScaleMult]);
-            if (d.dinnerId && d.dinnerId !== 'LEFTOVER_NIGHT') {
-                const guestAdd = d.isHostingDay ? (parseFloat(d.hostingGuests) || 0) : 0;
-                syncSlotDivs.push([d.dinnerId, portions.totalFamilyMult + guestAdd]);
-            }
-            if (d.snackId && d.snackId !== 'LEFTOVER_NIGHT') {
-                snackCountMap[d.snackId] = (snackCountMap[d.snackId] || 0) + 1;
-                if (!cfg.budgetBatchMode || snackCountMap[d.snackId] <= 2) {
-                    syncSlotDivs.push([d.snackId, portions.snackBatchMult]);
-                }
-            }
-            if (d.drinkId && d.drinkId !== 'LEFTOVER_NIGHT') {
-                drinkCountMap[d.drinkId] = (drinkCountMap[d.drinkId] || 0) + 1;
-                if (!cfg.budgetBatchMode || drinkCountMap[d.drinkId] <= 2) {
-                    syncSlotDivs.push([d.drinkId, portions.snackBatchMult]);
-                }
-            }
-        });
-
-        const hiddenShoppingSyncHtml = `
-            <div id="hh-hidden-shopping-sync-slots" style="display:none;">
-                ${syncSlotDivs.map(([id, m]) => `<div class="meal-slot" data-rec-id="${id}" data-mult="${m}"></div>`).join('')}
-            </div>
-        `;
+        // Store the active plan slots for our Clean Consolidated Shopping List Engine
+        window._hhActivePlanForShopping = { plan, portions, cfg, kidScaleMult, adultScaleMult };
 
         // -------------------- VIEW MODE 1: FULL-WIDTH MULTI-DAY CARDS --------------------
         if (window.mealCalViewMode === 'cards') {
@@ -20195,7 +20477,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                         <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:4px; flex-wrap:nowrap;">
                             <span style="font-size:0.68rem; font-weight:800; color:${borderHex}; text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${badgeTitle}</span>
                             <div style="display:flex; gap:5px; align-items:center; flex-shrink:0; white-space:nowrap;">
-                                <button type="button" onclick="swapStep2SingleMeal(${dayIdx}, '${slotKey}')" style="background:var(--bg-warm-cream); border:1px solid var(--border); border-radius:6px; padding:1px 6px; font-size:0.66rem; font-weight:700; cursor:pointer;" title="Browse recipes or pick Leftovers">🔄 Swap</button>
+                                <button type="button" onclick="swapStep2SingleMeal(${dayIdx}, '${slotKey}')" style="background:var(--bg-warm-cream); border:1px solid var(--border); border-radius:6px; padding:1px 6px; font-size:0.66rem; font-weight:700; cursor:pointer;">🔄 Swap</button>
                                 <label style="font-size:0.68rem; font-weight:700; color:var(--sage); cursor:pointer; display:inline-flex; align-items:center; gap:3px; margin:0;">
                                     <input type="checkbox" ${isCooked ? 'checked' : ''} onchange="toggleStep2MealMadeIt(${dayIdx}, '${slotKey}', this.checked)" style="accent-color:var(--sage); margin:0;">
                                     <span>${isCooked ? 'Done ✓' : 'Made'}</span>
@@ -20209,7 +20491,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                 `;
             }
 
-            gridBox.innerHTML = hiddenShoppingSyncHtml + plan.map((d, idx) => {
+            gridBox.innerHTML = plan.map((d, idx) => {
                 const isToday = d.dateIso === todayIso;
                 const bRec = recMap.get(d.breakfastId);
                 const klRec = recMap.get(d.kidLunchId);
@@ -20249,7 +20531,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             }).join('');
         }
 
-        // -------------------- VIEW MODE 2: TEACHER PLAN-BOOK MATRIX (SLOTS × DAYS) --------------------
+        // -------------------- VIEW MODE 2: TEACHER PLAN-BOOK MATRIX --------------------
         else if (window.mealCalViewMode === 'matrix') {
             gridBox.style.cssText = 'width: 100%; display: block; margin-top: 8px; overflow-x: auto;';
             const matrixRows = [
@@ -20261,50 +20543,23 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                 { key: 'drinkId', label: `🍋 Hydrating Drink`, mult: portions.snackBatchMult, scaleLbl: famScaleLbl, color: '#0D9488' }
             ];
 
-            gridBox.innerHTML = hiddenShoppingSyncHtml + `
+            gridBox.innerHTML = `
                 <table style="width:100%; min-width:780px; border-collapse:separate; border-spacing:0; border:2px solid var(--border); border-radius:14px; overflow:hidden; background:#fff; font-size:0.8rem;">
                     <thead>
                         <tr style="background:linear-gradient(135deg, #2E5A44 0%, #1F4230 100%); color:#ffffff;">
                             <th style="padding:12px; text-align:left; width:16%; border-right:1px solid rgba(255,255,255,0.2);">🍽️ Meal Slot</th>
-                            ${plan.map(d => {
-                                const isToday = d.dateIso === todayIso;
-                                return `
-                                    <th style="padding:10px 12px; text-align:left; border-right:1px solid rgba(255,255,255,0.2); background:${isToday ? '#B87612' : 'transparent'};">
-                                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                                            <span style="cursor:pointer; text-decoration:underline;" onclick="jumpToMealCalDate('${d.dateIso}')">Day ${d.dayNumber} • ${escapeSafeHtml(d.shortDateLabel || d.dayName)}</span>
-                                            <button type="button" onclick="openPinMealToDateModal('${d.dateIso}')" style="background:rgba(255,255,255,0.2); color:#fff; border:none; border-radius:6px; padding:1px 6px; cursor:pointer; font-weight:700;">+</button>
-                                        </div>
-                                    </th>
-                                `;
-                            }).join('')}
+                            ${plan.map(d => `<th style="padding:10px 12px; text-align:left; border-right:1px solid rgba(255,255,255,0.2);">Day ${d.dayNumber} • ${escapeSafeHtml(d.shortDateLabel || d.dayName)}</th>`).join('')}
                         </tr>
                     </thead>
                     <tbody>
                         ${matrixRows.map(row => `
                             <tr>
-                                <td style="padding:12px; border-bottom:1px solid var(--border); border-right:1px solid var(--border); background:var(--bg-warm-cream); font-weight:800; color:${row.color};">
-                                    ${row.label}
-                                </td>
+                                <td style="padding:12px; border-bottom:1px solid var(--border); border-right:1px solid var(--border); background:var(--bg-warm-cream); font-weight:800; color:${row.color};">${row.label}</td>
                                 ${plan.map((d, dIdx) => {
-                                    if (d[row.key] === 'LEFTOVER_NIGHT') {
-                                        return `<td style="padding:10px; border-bottom:1px solid var(--border); border-right:1px solid var(--border); background:#E8F2EC; font-weight:700; color:#2E5A44;">🍲 Leftovers ($0)<br><button type="button" onclick="swapStep2SingleMeal(${dIdx}, '${row.key}')" style="margin-top:4px; font-size:0.65rem;">🔄 Swap</button></td>`;
-                                    }
+                                    if (d[row.key] === 'LEFTOVER_NIGHT') return `<td style="padding:10px; border-bottom:1px solid var(--border); border-right:1px solid var(--border); background:#E8F2EC; font-weight:700; color:#2E5A44;">🍲 Leftovers ($0)<br><button type="button" onclick="swapStep2SingleMeal(${dIdx}, '${row.key}')" style="margin-top:4px; font-size:0.65rem;">🔄 Swap</button></td>`;
                                     const rec = recMap.get(d[row.key]);
-                                    const isCooked = !!(d.cookedSlots && d.cookedSlots[row.key]);
-                                    if (!rec) {
-                                        return `<td onclick="openPinMealToDateModal('${d.dateIso}', '${row.key}')" style="padding:10px; border-bottom:1px solid var(--border); border-right:1px solid var(--border); background:#FAF8F5; color:#B5A895; text-align:center; cursor:pointer;">—<br><span style="font-size:0.65rem;">(+ Pin)</span></td>`;
-                                    }
-                                    return `
-                                        <td style="padding:10px; border-bottom:1px solid var(--border); border-right:1px solid var(--border); vertical-align:top; background:${isCooked ? '#E8F2EC' : '#ffffff'};">
-                                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                                                <button type="button" onclick="swapStep2SingleMeal(${dIdx}, '${row.key}')" style="background:var(--bg-warm-cream); border:1px solid var(--border); border-radius:5px; padding:1px 5px; font-size:0.65rem; cursor:pointer;">🔄 Swap</button>
-                                                <input type="checkbox" ${isCooked ? 'checked' : ''} onchange="toggleStep2MealMadeIt(${dIdx}, '${row.key}', this.checked)" style="accent-color:var(--sage);">
-                                            </div>
-                                            <div onclick="viewAdaptiveRecipeDetails('${rec.id}', ${row.mult}, '${escapeSafeHtml(row.scaleLbl)}', ${dIdx}, '${row.key}')" style="font-weight:700; color:var(--text-main); cursor:pointer; text-decoration:${isCooked ? 'line-through' : 'underline'}; line-height:1.35;">
-                                                ${escapeSafeHtml(rec.title)}
-                                            </div>
-                                        </td>
-                                    `;
+                                    if (!rec) return `<td style="padding:10px; border-bottom:1px solid var(--border); border-right:1px solid var(--border); color:#999;">—</td>`;
+                                    return `<td style="padding:10px; border-bottom:1px solid var(--border); border-right:1px solid var(--border);"><button type="button" onclick="swapStep2SingleMeal(${dIdx}, '${row.key}')" style="font-size:0.65rem; margin-bottom:4px;">🔄 Swap</button><div onclick="viewAdaptiveRecipeDetails('${rec.id}', ${row.mult}, '${escapeSafeHtml(row.scaleLbl)}', ${dIdx}, '${row.key}')" style="font-weight:700; cursor:pointer; text-decoration:underline;">${escapeSafeHtml(rec.title)}</div></td>`;
                                 }).join('')}
                             </tr>
                         `).join('')}
@@ -20313,248 +20568,437 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             `;
         }
 
-        // -------------------- VIEW MODE 3: DAILY KITCHEN VIEW --------------------
+        // -------------------- VIEW MODE 3 & 4: DAILY / MONTHLY --------------------
         else if (window.mealCalViewMode === 'daily') {
-            gridBox.style.cssText = 'width: 100%; display: block; margin-top: 8px;';
             const activeIdx = Math.max(0, Math.min(plan.length - 1, window.mealCalOffset || 0));
             const d = plan[activeIdx] || plan[0];
-            const nextDay = plan[activeIdx + 1] || null;
-            const nextDinnerRec = nextDay ? recMap.get(nextDay.dinnerId) : null;
-
             const dailySlots = [
-                { key: 'breakfastId', label: `☀️ Morning Breakfast (${portions.totalFamilyMult}x)`, mult: portions.totalFamilyMult, scaleLbl: famScaleLbl, color: '#B87612' },
-                { key: 'kidLunchId', label: `👧 Kids' Midday Lunch (${kidScaleMult}x)`, mult: kidScaleMult, scaleLbl: kidScaleLbl, color: '#D97706' },
+                { key: 'breakfastId', label: `☀️ Breakfast (${portions.totalFamilyMult}x)`, mult: portions.totalFamilyMult, scaleLbl: famScaleLbl, color: '#B87612' },
+                { key: 'kidLunchId', label: `👧 Kids' Lunch (${kidScaleMult}x)`, mult: kidScaleMult, scaleLbl: kidScaleLbl, color: '#D97706' },
                 { key: 'adultLunchId', label: `🥗 Adult Lunch (${adultScaleMult}.0x)`, mult: adultScaleMult, scaleLbl: adultScaleLbl, color: '#2E5A44' },
-                { key: 'dinnerId', label: `🌙 Family Dinner (${portions.totalFamilyMult}x)`, mult: portions.totalFamilyMult, scaleLbl: famScaleLbl, color: '#7C2D12' },
-                { key: 'snackId', label: `🧀 Afternoon Snack / Elixir`, mult: portions.snackBatchMult, scaleLbl: famScaleLbl, color: '#6D28D9' },
-                { key: 'drinkId', label: `🍋 Hydrating Mineral Drink`, mult: portions.snackBatchMult, scaleLbl: famScaleLbl, color: '#0D9488' }
+                { key: 'dinnerId', label: `🌙 Family Dinner (${portions.totalFamilyMult}x)`, mult: portions.totalFamilyMult, scaleLbl: famScaleLbl, color: '#7C2D12' }
             ];
-
-            gridBox.innerHTML = hiddenShoppingSyncHtml + `
-                <div style="background:var(--bg-warm-cream); border:2.5px solid var(--sage); border-radius:18px; padding:20px;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid var(--border); padding-bottom:10px; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
-                        <div>
-                            <span class="card-tag" style="background:var(--sage); color:#fff;">☀️ Daily Kitchen Prep & Cooking Sheet • Day ${d.dayNumber} of ${plan.length}</span>
-                            <h4 style="font-size:1.45rem; color:var(--primary); margin:4px 0 0 0;">🗓️ ${escapeSafeHtml(d.dateFormatted || d.dayName)}</h4>
-                        </div>
-                        <button type="button" class="btn-secondary" style="font-size:0.78rem;" onclick="openPinMealToDateModal('${d.dateIso}')">📅 + Pin Specific Meal to ${d.dateIso}</button>
-                    </div>
-
-                    ${nextDinnerRec ? `
-                        <div style="background:#FFFBEB; border:1.5px solid #F59E0B; border-radius:12px; padding:10px 14px; margin-bottom:14px; font-size:0.84rem; color:#B45309;">
-                            🔔 <strong>8:00 PM Night-Before Kitchen Bell (For Tomorrow — ${escapeSafeHtml(nextDay.shortDateLabel)}):</strong> Thaw meat or prep ingredients tonight for tomorrow's dinner: <strong>${escapeSafeHtml(nextDinnerRec.title)}</strong>!
-                        </div>
-                    ` : ''}
-
-                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:12px;">
-                        ${dailySlots.map(sl => {
-                            if (d[sl.key] === 'LEFTOVER_NIGHT') {
-                                return `<div style="background:#E8F2EC; border:1.5px solid #2E5A44; border-radius:12px; padding:14px;"><strong>🍲 Planned Leftovers Night ($0 Cost)</strong><br><button type="button" class="icon-btn" style="margin-top:8px;" onclick="swapStep2SingleMeal(${activeIdx}, '${sl.key}')">🔄 Swap / Browse</button></div>`;
-                            }
-                            const rec = recMap.get(d[sl.key]);
-                            if (!rec) return '';
-                            return `
-                                <div style="background:#ffffff; border:1.5px solid var(--border); border-left:5px solid ${sl.color}; border-radius:12px; padding:14px;">
-                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                                        <span style="font-size:0.74rem; font-weight:800; color:${sl.color}; text-transform:uppercase;">${sl.label}</span>
-                                        <button type="button" class="icon-btn" onclick="swapStep2SingleMeal(${activeIdx}, '${sl.key}')">🔄 Swap</button>
-                                    </div>
-                                    <h5 onclick="viewAdaptiveRecipeDetails('${rec.id}', ${sl.mult}, '${escapeSafeHtml(sl.scaleLbl)}', ${activeIdx}, '${sl.key}')" style="font-size:1.05rem; color:var(--primary); margin:0 0 6px 0; cursor:pointer; text-decoration:underline;">
-                                        ${escapeSafeHtml(rec.title)}
-                                    </h5>
-                                    <div style="font-size:0.76rem; color:var(--text-muted); margin-bottom:8px;">
-                                        ⏱️ ${escapeSafeHtml(rec.prepCookTime || '15m')} • 🌡️ ${escapeSafeHtml(rec.stoveTemp || 'Medium')}
-                                    </div>
-                                    <button type="button" class="btn-secondary" style="width:100%; font-size:0.78rem; padding:6px;" onclick="viewAdaptiveRecipeDetails('${rec.id}', ${sl.mult}, '${escapeSafeHtml(sl.scaleLbl)}', ${activeIdx}, '${sl.key}')">
-                                        📖 Open Full Step-by-Step Recipe Card
-                                    </button>
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-                </div>
-            `;
+            gridBox.innerHTML = `<div style="background:var(--bg-warm-cream); border:2px solid var(--sage); border-radius:16px; padding:18px;"><h4 style="margin:0 0 12px 0; color:var(--primary);">🗓️ ${escapeSafeHtml(d.dateFormatted || d.dayName)}</h4><div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(250px, 1fr)); gap:12px;">${dailySlots.map(sl => {
+                const rec = recMap.get(d[sl.key]);
+                if (!rec) return '';
+                return `<div style="background:#fff; border:1px solid var(--border); border-left:4px solid ${sl.color}; border-radius:12px; padding:12px;"><strong style="color:${sl.color}; font-size:0.75rem;">${sl.label}</strong><div onclick="viewAdaptiveRecipeDetails('${rec.id}', ${sl.mult}, '${escapeSafeHtml(sl.scaleLbl)}')" style="font-weight:700; margin-top:4px; cursor:pointer; text-decoration:underline;">${escapeSafeHtml(rec.title)}</div></div>`;
+            }).join('')}</div></div>`;
+        } else {
+            gridBox.innerHTML = `<div style="padding:16px; background:#fff; border:1.5px solid var(--border); border-radius:14px;">Click <strong>🗓️ Day Cards</strong> or <strong>📖 Plan-Book Grid</strong> above to view and swap your daily meals!</div>`;
         }
 
-        // -------------------- VIEW MODE 4: MONTHLY MEAL CALENDAR GRID --------------------
-        else {
-            gridBox.style.cssText = 'width: 100%; display: block; margin-top: 8px;';
-            const base = new Date();
-            const viewMonth = new Date(base.getFullYear(), base.getMonth() + (window.mealCalOffset || 0), 1);
-            const yr = viewMonth.getFullYear();
-            const mo = viewMonth.getMonth();
-            const monthTitle = viewMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-            const daysInMonth = new Date(yr, mo + 1, 0).getDate();
-
-            const planByDate = {};
-            plan.forEach(d => { if (d.dateIso) planByDate[d.dateIso] = d; });
-            const pinnedByDate = JSON.parse(localStorage.getItem('hh_pinned_meals_by_date') || '{}');
-
-            const cells = [];
-            for (let dayNum = 1; dayNum <= daysInMonth; dayNum++) {
-                const dObj = new Date(yr, mo, dayNum);
-                const dIso = formatDateToIsoLocal(dObj);
-                const isToday = dIso === todayIso;
-                const wkShort = SHORT_DAYS_SUN_FIRST[dObj.getDay()];
-                const plannedDay = planByDate[dIso] || pinnedByDate[dIso] || null;
-
-                const bRec = plannedDay ? recMap.get(plannedDay.breakfastId) : null;
-                const dnRec = plannedDay ? (plannedDay.dinnerId === 'LEFTOVER_NIGHT' ? { title: '🍲 Leftovers' } : recMap.get(plannedDay.dinnerId)) : null;
-                const lRec = plannedDay ? (recMap.get(plannedDay.adultLunchId) || recMap.get(plannedDay.kidLunchId)) : null;
-
-                cells.push(`
-                    <div onclick="${planByDate[dIso] ? `jumpToMealCalDate('${dIso}')` : `openPinMealToDateModal('${dIso}')`}" style="cursor:pointer; background:${isToday ? '#FFFBEB' : plannedDay ? '#FFFDF8' : '#ffffff'}; border:${isToday ? '2px solid var(--primary)' : plannedDay ? '1.5px solid var(--sage)' : '1px solid var(--border)'}; border-radius:10px; padding:8px; min-height:108px; display:flex; flex-direction:column; justify-content:space-between;">
-                        <div>
-                            <div style="display:flex; justify-content:space-between; font-size:0.75rem; font-weight:800; color:${isToday ? 'var(--primary)' : 'var(--sage)'}; margin-bottom:4px;">
-                                <span>${wkShort} ${dayNum}</span>
-                                <span>${isToday ? '🌻 Today' : plannedDay ? `Day ${plannedDay.dayNumber || ''}` : '+'}</span>
-                            </div>
-                            ${bRec ? `<div style="font-size:0.68rem; color:#B87612; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">☀️ ${escapeSafeHtml(bRec.title.replace(/\[.*?\]/g, '').trim())}</div>` : ''}
-                            ${lRec ? `<div style="font-size:0.68rem; color:#2E5A44; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">🥗 ${escapeSafeHtml(lRec.title.replace(/\[.*?\]/g, '').trim())}</div>` : ''}
-                            ${dnRec ? `<div style="font-size:0.7rem; font-weight:700; color:#7C2D12; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">🌙 ${escapeSafeHtml(dnRec.title.replace(/\[.*?\]/g, '').trim())}</div>` : ''}
-                            ${!plannedDay ? `<div style="font-size:0.66rem; color:var(--text-muted); font-style:italic; margin-top:12px;">+ Tap to pin meal</div>` : ''}
-                        </div>
-                    </div>
-                `);
-            }
-
-            gridBox.innerHTML = hiddenShoppingSyncHtml + `
-                <div style="background:#ffffff; border:2px solid var(--border); border-radius:16px; padding:16px;">
-                    <h4 style="font-size:1.3rem; color:var(--primary); margin:0 0 12px 0;">📅 ${monthTitle} — Monthly Kitchen & Dinner Calendar</h4>
-                    <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); gap:8px;">
-                        ${cells.join('')}
-                    </div>
-                </div>
-            `;
-        }
-
-        // Trigger shopping list refresh & store cart buttons
-        if (typeof window.rebuildAndRenderRestoredShoppingList === 'function') {
-            window.rebuildAndRenderRestoredShoppingList();
-        }
-        setTimeout(injectMasterShoppingStoreBridge, 120);
+        // Render our 100% Clean, Consolidated, Brand-Curated Master Family Shopping List!
+        renderCleanCuratedMasterShoppingList();
     }
 
     // =========================================================================
-    // 6. DIRECT GROCERY STORE CART CONNECTION ON "MASTER FAMILY SHOPPING LIST"
+    // 8. CLEAN CONSOLIDATED SHOPPING LIST + ASHTON'S APPROVED BRANDS +
+    //    DIRECT WALMART MULTI-ITEM ADD-TO-CART URL ENGINE!
     // =========================================================================
     const GROCERY_STORES = {
-        walmart: { name: '🔵 Walmart Pickup & Delivery', short: 'Walmart', color: '#0071DC', url: q => `https://www.walmart.com/search?q=${encodeURIComponent(q)}` },
-        sprouts: { name: '🟢 Sprouts Farmers Market', short: 'Sprouts', color: '#2E5A44', url: q => `https://shop.sprouts.com/shop?search_term=${encodeURIComponent(q)}` },
-        heb:     { name: '🔴 H-E-B Curbside & Delivery', short: 'H-E-B', color: '#B91C1C', url: q => `https://www.heb.com/search?q=${encodeURIComponent(q)}` },
-        kroger:  { name: '🔵 Kroger Pickup & Delivery', short: 'Kroger', color: '#1D4ED8', url: q => `https://www.kroger.com/search?query=${encodeURIComponent(q)}` },
-        aldi:    { name: '🟠 ALDI Curbside', short: 'ALDI', color: '#D97706', url: q => `https://shop.aldi.us/store/aldi/s?k=${encodeURIComponent(q)}` },
-        azure:   { name: '🌾 Azure Standard (Bulk)', short: 'Azure', color: '#9A5B0A', url: q => `https://www.azurestandard.com/shop/search/${encodeURIComponent(q)}` },
-        target:  { name: '🎯 Target Drive-Up', short: 'Target', color: '#DC2626', url: q => `https://www.target.com/s?searchTerm=${encodeURIComponent(q)}` }
+        walmart: {
+            name: '🔵 Walmart Pickup & Delivery (Direct Auto-Cart)',
+            short: 'Walmart',
+            color: '#0071DC',
+            itemUrl: (itemName, brandObj) => brandObj?.walmartId
+                ? `https://www.walmart.com/ip/${brandObj.walmartId}`
+                : `https://www.walmart.com/search?q=${encodeURIComponent(brandObj?.brandPick || itemName)}`
+        },
+        sprouts: {
+            name: '🟢 Sprouts Farmers Market',
+            short: 'Sprouts',
+            color: '#2E5A44',
+            itemUrl: (itemName, brandObj) => `https://shop.sprouts.com/shop?search_term=${encodeURIComponent(brandObj?.brandPick || itemName)}`
+        },
+        heb: {
+            name: '🔴 H-E-B Curbside & Delivery',
+            short: 'H-E-B',
+            color: '#B91C1C',
+            itemUrl: (itemName, brandObj) => `https://www.heb.com/search?q=${encodeURIComponent(brandObj?.brandPick || itemName)}`
+        },
+        kroger: {
+            name: '🔵 Kroger Pickup & Delivery',
+            short: 'Kroger',
+            color: '#1D4ED8',
+            itemUrl: (itemName, brandObj) => `https://www.kroger.com/search?query=${encodeURIComponent(brandObj?.brandPick || itemName)}`
+        },
+        aldi: {
+            name: '🟠 ALDI Curbside',
+            short: 'ALDI',
+            color: '#D97706',
+            itemUrl: (itemName, brandObj) => `https://shop.aldi.us/store/aldi/s?k=${encodeURIComponent(itemName)}`
+        },
+        azure: {
+            name: '🌾 Azure Standard (Bulk & Grains)',
+            short: 'Azure',
+            color: '#9A5B0A',
+            itemUrl: (itemName, brandObj) => `https://www.azurestandard.com/shop/search/${encodeURIComponent(itemName)}`
+        },
+        target: {
+            name: '🎯 Target Drive-Up',
+            short: 'Target',
+            color: '#DC2626',
+            itemUrl: (itemName, brandObj) => `https://www.target.com/s?searchTerm=${encodeURIComponent(brandObj?.brandPick || itemName)}`
+        }
     };
 
-    window.sendSingleGroceryItemToStoreCart = function(rawItemName, btnEl) {
+    function buildConsolidatedGroceryItemsArray() {
+        const ctx = window._hhActivePlanForShopping;
+        if (!ctx || !Array.isArray(ctx.plan)) return [];
+
+        const { plan, portions, cfg, kidScaleMult, adultScaleMult } = ctx;
+        const all = getAllVaultRecipes();
+        const recMap = new Map();
+        all.forEach(r => { if (r && r.id) recMap.set(r.id, r); });
+
+        const consolidated = {};
+
+        function addSlotIngredients(recId, mult) {
+            if (!recId || recId === 'LEFTOVER_NIGHT' || mult <= 0) return;
+            const rec = recMap.get(recId);
+            if (!rec || !Array.isArray(rec.ingredients)) return;
+            const splitIngs = splitAndCleanIngredientArray(rec.ingredients);
+
+            splitIngs.forEach(ing => {
+                const stdName = standardizeSingleIngredientName(ing.name);
+                const unit = (ing.unit || 'whole').toLowerCase();
+                const key = `${stdName.toLowerCase()}__${unit}`;
+                const cat = (ing.category || 'Traditional Fats & Pantry Staples').replace(/Animal Fats & Pantry/g, 'Traditional Fats & Pantry Staples');
+
+                if (!consolidated[key]) {
+                    consolidated[key] = { name: stdName, qty: 0, unit: ing.unit || 'whole', category: cat };
+                }
+                consolidated[key].qty += (parseFloat(ing.qty) || 0.5) * mult;
+            });
+        }
+
+        const snackCountMap = {};
+        const drinkCountMap = {};
+
+        plan.forEach(d => {
+            const bRec = recMap.get(d.breakfastId);
+            const bMult = (bRec && bRec.vaultSubtab === 'smoothie') ? Math.max(1.5, Math.round(portions.totalFamilyMult * 0.5 * 100) / 100) : portions.totalFamilyMult;
+            addSlotIngredients(d.breakfastId, bMult);
+            if (d.kidLunchId) addSlotIngredients(d.kidLunchId, kidScaleMult);
+            if (d.adultLunchId) addSlotIngredients(d.adultLunchId, adultScaleMult);
+            if (d.dinnerId && d.dinnerId !== 'LEFTOVER_NIGHT') {
+                const guestAdd = d.isHostingDay ? (parseFloat(d.hostingGuests) || 0) : 0;
+                addSlotIngredients(d.dinnerId, portions.totalFamilyMult + guestAdd);
+            }
+            if (d.snackId) {
+                snackCountMap[d.snackId] = (snackCountMap[d.snackId] || 0) + 1;
+                if (!cfg.budgetBatchMode || snackCountMap[d.snackId] <= 2) {
+                    addSlotIngredients(d.snackId, portions.snackBatchMult);
+                }
+            }
+            if (d.drinkId) {
+                drinkCountMap[d.drinkId] = (drinkCountMap[d.drinkId] || 0) + 1;
+                if (!cfg.budgetBatchMode || drinkCountMap[d.drinkId] <= 2) {
+                    addSlotIngredients(d.drinkId, portions.snackBatchMult);
+                }
+            }
+        });
+
+        // Also include any custom extra shopping items
+        if (typeof getLocalData === 'function') {
+            const extras = getLocalData('extra_shopping_items', []) || [];
+            extras.forEach(ex => {
+                if (!ex || !ex.name) return;
+                const stdName = standardizeSingleIngredientName(ex.name);
+                const unit = (ex.unit || 'whole').toLowerCase();
+                const key = `${stdName.toLowerCase()}__${unit}`;
+                const cat = (ex.category || 'Traditional Fats & Pantry Staples').replace(/Animal Fats & Pantry/g, 'Traditional Fats & Pantry Staples');
+                if (!consolidated[key]) {
+                    consolidated[key] = { name: stdName, qty: 0, unit: ex.unit || 'whole', category: cat };
+                }
+                consolidated[key].qty += (parseFloat(ex.qty) || 1);
+            });
+        }
+
+        return Object.values(consolidated);
+    }
+
+    // Calculate how many store packages to add to Walmart Cart based on needed quantity
+    function calculateStorePackCount(item, brandObj) {
+        const q = parseFloat(item.qty) || 1;
+        if (brandObj?.packSizeLbs && item.unit === 'lbs') return Math.max(1, Math.ceil(q / brandObj.packSizeLbs));
+        if (brandObj?.packCount && item.unit === 'eggs') return Math.max(1, Math.ceil(q / brandObj.packCount));
+        if (brandObj?.packCups && item.unit === 'cups') return Math.max(1, Math.ceil(q / brandObj.packCups));
+        if (brandObj?.packTbsp && item.unit === 'tbsp') return Math.max(1, Math.ceil(q / brandObj.packTbsp));
+        if (brandObj?.packOz && item.unit === 'oz') return Math.max(1, Math.ceil(q / brandObj.packOz));
+        if (brandObj?.packWhole && item.unit === 'whole') return Math.max(1, Math.ceil(q));
+        return 1;
+    }
+
+    // 1-Click Direct Auto-Add All Unchecked Items to Walmart Cart (using Walmart's Official addToCart URL!)
+    window.autoLoadAllUncheckedIntoStoreCart = function() {
         const storeKey = document.getElementById('hh-master-store-sel')?.value || localStorage.getItem('hh_preferred_grocery_store') || 'walmart';
         localStorage.setItem('hh_preferred_grocery_store', storeKey);
-        const st = GROCERY_STORES[storeKey] || GROCERY_STORES.walmart;
-        const cleanQuery = String(rawItemName || '').replace(/\(.*?\)/g, '').replace(/Need:.*$/i, '').trim();
-        window.open(st.url(cleanQuery), 'HoneysuckleGroceryCartTab');
+        const stObj = GROCERY_STORES[storeKey] || GROCERY_STORES.walmart;
+
+        const allItems = buildConsolidatedGroceryItemsArray();
+        const checkedMap = JSON.parse(localStorage.getItem('hh_clean_grocery_checks_v2') || '{}');
+        const unchecked = allItems.filter(it => !checkedMap[it.name]);
+        const targetList = unchecked.length > 0 ? unchecked : allItems;
+
+        if (storeKey === 'walmart') {
+            const walmartCartPairs = [];
+            targetList.forEach(it => {
+                const brandObj = getCuratedBrandForIngredient(it.name);
+                if (brandObj && brandObj.walmartId) {
+                    const packQty = calculateStorePackCount(it, brandObj);
+                    walmartCartPairs.push(`${brandObj.walmartId}_${packQty}`);
+                }
+            });
+
+            if (walmartCartPairs.length > 0) {
+                const walmartAddToCartUrl = `https://www.walmart.com/sc/cart/addToCart?items=${walmartCartPairs.join(',')}`;
+                window.open(walmartAddToCartUrl, '_blank');
+                return;
+            }
+        }
+
+        // For Sprouts, H-E-B, Kroger, etc.: Copy the exact Curated Clean Brand List and open the first curated product!
+        const curatedLines = targetList.map(it => {
+            const brandObj = getCuratedBrandForIngredient(it.name);
+            return brandObj?.brandPick || it.name;
+        });
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(curatedLines.join('\n')).catch(() => {});
+        }
+        const firstItem = targetList[0];
+        const firstBrand = firstItem ? getCuratedBrandForIngredient(firstItem.name) : null;
+        window.open(stObj.itemUrl(firstItem?.name || 'Organic Chicken Breast', firstBrand), '_blank');
+        alert(`🛒 Copied your ${curatedLines.length} Ashton-Approved Brand Picks & opened ${stObj.short}!\n\nYou can also tap any individual green "+ ${stObj.short}" button below to open that exact curated brand product.`);
+    };
+
+    window.openSingleCuratedStoreItem = function(itemName, btnEl) {
+        const storeKey = document.getElementById('hh-master-store-sel')?.value || localStorage.getItem('hh_preferred_grocery_store') || 'walmart';
+        localStorage.setItem('hh_preferred_grocery_store', storeKey);
+        const stObj = GROCERY_STORES[storeKey] || GROCERY_STORES.walmart;
+        const brandObj = getCuratedBrandForIngredient(itemName);
+
+        if (storeKey === 'walmart' && brandObj?.walmartId) {
+            // Direct Walmart Product/Cart link for that exact approved brand (e.g. Perdue Harvestland Free Range Chicken!)
+            window.open(`https://www.walmart.com/ip/${brandObj.walmartId}`, 'HoneysuckleStoreTab');
+        } else {
+            window.open(stObj.itemUrl(itemName, brandObj), 'HoneysuckleStoreTab');
+        }
+
         if (btnEl) {
-            btnEl.innerHTML = '✓ In Cart';
+            btnEl.innerHTML = '✓ Opened';
             btnEl.style.background = '#15803D';
         }
     };
 
-    window.copyUncheckedAndOpenStore = function() {
-        const storeKey = document.getElementById('hh-master-store-sel')?.value || localStorage.getItem('hh_preferred_grocery_store') || 'walmart';
-        localStorage.setItem('hh_preferred_grocery_store', storeKey);
-        const st = GROCERY_STORES[storeKey] || GROCERY_STORES.walmart;
-
-        const needed = [];
-        document.querySelectorAll('.hh-store-item-add-btn').forEach(b => {
-            const itemName = b.getAttribute('data-item-name');
-            const rowChk = b.closest('div, li')?.querySelector('input[type="checkbox"]');
-            if (itemName && (!rowChk || !rowChk.checked)) {
-                needed.push(itemName);
-            }
-        });
-
-        const listToUse = needed.length ? needed : ['Organic Whole Milk', 'Pasture-Raised Eggs'];
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(listToUse.join('\n')).catch(() => {});
+    window.onChangeMasterStoreDropdown = function(newStoreKey) {
+        localStorage.setItem('hh_preferred_grocery_store', newStoreKey);
+        const stObj = GROCERY_STORES[newStoreKey] || GROCERY_STORES.walmart;
+        const mainBtn = document.getElementById('hh-master-auto-cart-btn');
+        if (mainBtn) {
+            mainBtn.innerHTML = newStoreKey === 'walmart'
+                ? `🛒 Auto-Load Ashton's Approved Brands into Walmart Cart ↗`
+                : `🛒 Shop Ashton's Approved Brands on ${stObj.short} ↗`;
         }
-        window.open(st.url(listToUse[0]), 'HoneysuckleGroceryCartTab');
-        alert(`🛒 Copied ${listToUse.length} unchecked items & opened ${st.short}!\n\nTap the "${st.short}" button next to any item below to jump straight to that ingredient in your logged-in store tab.`);
+        document.querySelectorAll('.hh-curated-item-store-btn').forEach(btn => {
+            btn.style.background = stObj.color;
+            btn.innerHTML = `🛒 + ${stObj.short}`;
+        });
     };
 
-    function injectMasterShoppingStoreBridge() {
+    // Admin Modal so Ashton can customize her preferred brand or Walmart Item ID for any staple ingredient
+    window.openAdminCustomizeApprovedBrandsModal = function() {
+        if (!isStrictFounderAdmin()) return;
+        const allItems = buildConsolidatedGroceryItemsArray();
+        const names = allItems.length ? allItems.map(i => i.name) : Object.keys(DEFAULT_ASHTON_BRAND_PICKS);
+
+        openUniversalModal('👑 Customize Ashton’s Approved Store Brands & Walmart IDs', [
+            {
+                name: 'ingredientName',
+                label: '1. Select Staple Ingredient',
+                type: 'select',
+                value: names[0],
+                options: names.map(n => ({ value: n, label: n }))
+            },
+            {
+                name: 'brandPick',
+                label: '2. Ashton’s Approved Brand & Product Name (Shown to Members!)',
+                placeholder: 'e.g. Perdue Harvestland Free-Range Fresh Boneless Chicken Breasts',
+                value: getCuratedBrandForIngredient(names[0])?.brandPick || ''
+            },
+            {
+                name: 'walmartUrlOrId',
+                label: '3. Optional Walmart Product URL or Item ID (For Direct Auto-Cart)',
+                required: false,
+                placeholder: 'Paste a walmart.com/ip/... link or numeric Item ID (e.g. 840966504)',
+                value: getCuratedBrandForIngredient(names[0])?.walmartId || ''
+            }
+        ], vals => {
+            const custom = JSON.parse(localStorage.getItem('hh_ashton_custom_brands') || '{}');
+            let wmId = (vals.walmartUrlOrId || '').trim();
+            const matchIp = wmId.match(/\/ip\/(?:[^/]+\/)?(\d+)/);
+            if (matchIp) wmId = matchIp[1];
+
+            custom[vals.ingredientName] = {
+                ...(DEFAULT_ASHTON_BRAND_PICKS[vals.ingredientName] || {}),
+                brandPick: vals.brandPick.trim(),
+                walmartId: wmId || null
+            };
+            localStorage.setItem('hh_ashton_custom_brands', JSON.stringify(custom));
+            renderCleanCuratedMasterShoppingList();
+            alert(`✅ Updated Ashton's Approved Brand Pick for ${vals.ingredientName}!`);
+        });
+    };
+
+    window.toggleCleanMasterGroceryItem = function(itemName, isChecked) {
+        const checkedMap = JSON.parse(localStorage.getItem('hh_clean_grocery_checks_v2') || '{}');
+        checkedMap[itemName] = Boolean(isChecked);
+        localStorage.setItem('hh_clean_grocery_checks_v2', JSON.stringify(checkedMap));
+        renderCleanCuratedMasterShoppingList();
+    };
+
+    function renderCleanCuratedMasterShoppingList() {
         const allHeadings = Array.from(document.querySelectorAll('h2, h3, h4, div'));
         const listHeading = allHeadings.find(el => el.children.length === 0 && (el.textContent || '').trim() === 'Master Family Shopping List');
-        if (!listHeading) return;
+        const oldGrid = document.getElementById('ab-grocery-list');
+
+        const targetPanel = listHeading ? listHeading.parentElement : (oldGrid ? oldGrid.parentElement : null);
+        if (!targetPanel) return;
 
         const prefStore = localStorage.getItem('hh_preferred_grocery_store') || 'walmart';
         const stObj = GROCERY_STORES[prefStore] || GROCERY_STORES.walmart;
 
-        let bar = document.getElementById('hh-master-shopping-store-bridge');
-        if (!bar) {
-            bar = document.createElement('div');
-            bar.id = 'hh-master-shopping-store-bridge';
-            bar.style.cssText = 'background: linear-gradient(135deg, #E8F2EC 0%, #FFFDF8 100%); border: 2.5px solid var(--sage); border-radius: 16px; padding: 14px 16px; margin: 12px 0; box-shadow: 0 6px 16px rgba(46,90,68,0.1);';
-            listHeading.insertAdjacentElement('afterend', bar);
+        // 1. Mount the Store Selector Bar ONLY ONCE so the dropdown NEVER flickers or closes when clicked!
+        let storeBar = document.getElementById('hh-master-shopping-store-bridge');
+        if (!storeBar) {
+            storeBar = document.createElement('div');
+            storeBar.id = 'hh-master-shopping-store-bridge';
+            storeBar.style.cssText = 'background: linear-gradient(135deg, #E8F2EC 0%, #FFFDF8 100%); border: 2.5px solid var(--sage); border-radius: 16px; padding: 14px 18px; margin: 12px 0 16px 0; box-shadow: 0 6px 16px rgba(46,90,68,0.1);';
+            if (listHeading) listHeading.insertAdjacentElement('afterend', storeBar);
+            else targetPanel.prepend(storeBar);
+
+            storeBar.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+                    <div style="max-width:560px;">
+                        <span class="card-tag" style="background:var(--sage); color:#fff;">🛒 Ashton's Curated Clean-Brand Cart Loader</span>
+                        <h4 style="font-size:1.12rem; color:var(--primary); margin:4px 0 2px 0;">Auto-Select Clean Whole-Food Brands in Your Store Cart</h4>
+                        <p style="font-size:0.79rem; color:var(--text-main); margin:0;">
+                            No overwhelming search results! Every item below is pre-matched to <strong>Ashton's Approved Clean Brand</strong> (like <em>Perdue Harvestland Free-Range Chicken</em>, <em>Vital Farms Pasture-Raised Eggs</em> & <em>Kerrygold Grass-Fed Butter</em>).
+                        </p>
+                    </div>
+                    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                        <select id="hh-master-store-sel" onchange="onChangeMasterStoreDropdown(this.value)" style="padding:9px 12px; border:2px solid var(--sage); border-radius:10px; font-size:0.84rem; font-weight:700; background:#fff; cursor:pointer;">
+                            ${Object.entries(GROCERY_STORES).map(([k, s]) => `<option value="${k}" ${k === prefStore ? 'selected' : ''}>${s.name}</option>`).join('')}
+                        </select>
+                        <button type="button" id="hh-master-auto-cart-btn" class="btn-primary" style="background:linear-gradient(135deg, #0071DC 0%, #004F9A 100%); border-color:#004F9A; padding:10px 16px; font-size:0.82rem; font-weight:800;" onclick="autoLoadAllUncheckedIntoStoreCart()">
+                            ${prefStore === 'walmart' ? `🛒 Auto-Load Ashton's Approved Brands into Walmart Cart ↗` : `🛒 Shop Ashton's Approved Brands on ${stObj.short} ↗`}
+                        </button>
+                        ${isStrictFounderAdmin() ? `
+                            <button type="button" class="btn-secondary" style="padding:8px 12px; font-size:0.75rem;" onclick="openAdminCustomizeApprovedBrandsModal()">
+                                👑 Edit Approved Brands
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
         }
 
-        bar.innerHTML = `
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-                <div>
-                    <span class="card-tag" style="background:var(--sage); color:#fff;">🛒 1-Click Online Grocery Cart Connection</span>
-                    <h4 style="font-size:1.08rem; color:var(--primary); margin:3px 0 2px 0;">Send Your Shopping List to Walmart, Sprouts, H-E-B or Kroger</h4>
-                    <p style="font-size:0.78rem; color:var(--text-main); margin:0;">Choose your store below, then tap <strong>"🛒 + ${stObj.short}"</strong> on any ingredient row below to add it straight to your online cart!</p>
-                </div>
-                <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                    <select id="hh-master-store-sel" onchange="localStorage.setItem('hh_preferred_grocery_store', this.value); document.querySelectorAll('.hh-store-item-add-btn').forEach(b=>b.remove());" style="padding:8px 12px; border:1.5px solid var(--sage); border-radius:10px; font-size:0.82rem; font-weight:700; background:#fff;">
-                        ${Object.entries(GROCERY_STORES).map(([k, s]) => `<option value="${k}" ${k === prefStore ? 'selected' : ''}>${s.name}</option>`).join('')}
-                    </select>
-                    <button type="button" class="btn-primary" style="background:linear-gradient(135deg, #2E5A44 0%, #1F4230 100%); border-color:#173325; padding:8px 14px; font-size:0.8rem;" onclick="copyUncheckedAndOpenStore()">
-                        🛒 Copy Unchecked & Open ${stObj.short} ↗
-                    </button>
+        // 2. Hide the old native 4-column grid that had combined '&' strings and duplicate chicken rows
+        if (oldGrid) oldGrid.style.display = 'none';
+        Array.from(targetPanel.querySelectorAll('div')).forEach(divEl => {
+            if (divEl.id === 'hh-clean-curated-4col-grid' || divEl.id === 'hh-master-shopping-store-bridge' || divEl.contains(storeBar)) return;
+            const t = divEl.textContent || '';
+            if (t.includes('Meats & Organs') && t.includes('Eggs & Raw Dairy') && divEl.parentElement === targetPanel) {
+                divEl.style.display = 'none';
+            }
+        });
+
+        // 3. Render our Clean 4-Column Consolidated & Brand-Curated Grid!
+        let cleanGrid = document.getElementById('hh-clean-curated-4col-grid');
+        if (!cleanGrid) {
+            cleanGrid = document.createElement('div');
+            cleanGrid.id = 'hh-clean-curated-4col-grid';
+            targetPanel.appendChild(cleanGrid);
+        }
+
+        const items = buildConsolidatedGroceryItemsArray();
+        const checkedMap = JSON.parse(localStorage.getItem('hh_clean_grocery_checks_v2') || '{}');
+
+        const categories = [
+            'Meats & Organs',
+            'Eggs & Raw Dairy',
+            'Fruits & Produce',
+            'Traditional Fats & Pantry Staples'
+        ];
+        const byCat = {};
+        categories.forEach(c => { byCat[c] = []; });
+        items.forEach(it => {
+            const c = categories.includes(it.category) ? it.category : 'Traditional Fats & Pantry Staples';
+            byCat[c].push(it);
+        });
+
+        cleanGrid.style.cssText = 'display: grid; grid-template-columns: repeat(auto-fit, minmax(255px, 1fr)); gap: 16px; margin-top: 12px; width: 100%;';
+        cleanGrid.innerHTML = categories.map(cat => `
+            <div style="background:#FFFDF8; border:1.5px solid var(--border); border-radius:16px; padding:16px; box-shadow:0 4px 14px rgba(0,0,0,0.03);">
+                <h4 style="font-family:var(--font-serif); font-size:1.15rem; color:var(--primary); margin:0 0 10px 0; padding-bottom:6px; border-bottom:1.5px solid var(--border);">
+                    ${escapeSafeHtml(cat)}
+                </h4>
+                <div style="display:flex; flex-direction:column; gap:8px;">
+                    ${byCat[cat].length === 0 ? `<div style="font-size:0.78rem; color:var(--text-muted); font-style:italic;">All stocked for this category!</div>` : byCat[cat].map(item => {
+                        const isChk = Boolean(checkedMap[item.name]);
+                        const friendlyAmt = formatPracticalGroceryAmount(item.qty, item.unit, item.name);
+                        const brandObj = getCuratedBrandForIngredient(item.name);
+                        const safeName = item.name.replace(/'/g, "\\'");
+                        return `
+                            <div style="padding:8px 0; border-bottom:1px dashed var(--border); display:flex; justify-content:space-between; align-items:flex-start; gap:8px; opacity:${isChk ? '0.55' : '1'};">
+                                <label style="display:flex; align-items:flex-start; gap:8px; cursor:pointer; flex:1;">
+                                    <input type="checkbox" ${isChk ? 'checked' : ''} onchange="toggleCleanMasterGroceryItem('${escapeSafeHtml(safeName)}', this.checked)" style="width:17px; height:17px; accent-color:var(--sage); margin-top:3px; flex-shrink:0;">
+                                    <div>
+                                        <strong style="font-size:0.88rem; color:var(--text-main); display:block; ${isChk ? 'text-decoration:line-through;' : ''}">${escapeSafeHtml(item.name)}</strong>
+                                        <span style="font-size:0.76rem; color:var(--text-muted); display:block;">Need: <strong style="color:var(--primary);">${escapeSafeHtml(friendlyAmt)}</strong></span>
+                                        <span style="font-size:0.71rem; color:var(--sage); font-weight:700; display:block; margin-top:2px; line-height:1.25;">
+                                            ✨ Pick: ${escapeSafeHtml(brandObj.brandPick)}
+                                        </span>
+                                    </div>
+                                </label>
+                                <button type="button" class="hh-curated-item-store-btn"
+                                    onclick="openSingleCuratedStoreItem('${escapeSafeHtml(safeName)}', this)"
+                                    style="background:${stObj.color}; color:#fff; border:none; border-radius:999px; padding:5px 10px; font-size:0.7rem; font-weight:700; cursor:pointer; flex-shrink:0; white-space:nowrap;">
+                                    🛒 + ${stObj.short}
+                                </button>
+                            </div>
+                        `;
+                    }).join('')}
                 </div>
             </div>
-        `;
-
-        // Attach a 1-tap "+ Store Cart" button to every item row inside Master Family Shopping List
-        const shoppingPanel = listHeading.parentElement;
-        if (!shoppingPanel) return;
-
-        shoppingPanel.querySelectorAll('button').forEach(editOrDelBtn => {
-            if ((editOrDelBtn.textContent || '').trim() !== '✏️') return;
-            const actionGroup = editOrDelBtn.parentElement;
-            if (!actionGroup || actionGroup.querySelector('.hh-store-item-add-btn')) return;
-
-            const rowEl = actionGroup.parentElement;
-            if (!rowEl) return;
-            const rawLines = (rowEl.textContent || '').split('\n').map(s => s.trim()).filter(Boolean);
-            const itemName = (rawLines[0] || '').replace(/Need:.*$/i, '').replace(/✏️|×/g, '').trim();
-            if (!itemName) return;
-
-            const addBtn = document.createElement('button');
-            addBtn.type = 'button';
-            addBtn.className = 'hh-store-item-add-btn';
-            addBtn.setAttribute('data-item-name', itemName);
-            addBtn.style.cssText = `background:${stObj.color}; color:#fff; border:none; border-radius:999px; padding:4px 10px; font-size:0.72rem; font-weight:700; cursor:pointer; margin-right:4px;`;
-            addBtn.innerHTML = `🛒 + ${stObj.short}`;
-            addBtn.onclick = (e) => {
-                e.stopPropagation();
-                window.sendSingleGroceryItemToStoreCart(itemName, addBtn);
-            };
-            actionGroup.prepend(addBtn);
-        });
+        `).join('');
     }
+
+    // Override rebuildAndRenderRestoredShoppingList so any native call renders our clean consolidated list
+    window.rebuildAndRenderRestoredShoppingList = function() {
+        renderCleanCuratedMasterShoppingList();
+    };
 
     function runStep2AndStep3Enhancements() {
         scrubAnimalBasedWordingInDOM();
         applyRecipeVaultSubtabFilter();
         upgradeStep2AndMoveGenerateButton();
         buildAndRenderCustomPlanCards(false);
-        injectMasterShoppingStoreBridge();
     }
 
-    [300, 800, 1600, 2800].forEach(ms => setTimeout(runStep2AndStep3Enhancements, ms));
-    document.addEventListener('click', () => setTimeout(runStep2AndStep3Enhancements, 140));
+    [300, 900, 1800].forEach(ms => setTimeout(runStep2AndStep3Enhancements, ms));
+
+    // CRITICAL FIX: Never re-render on clicks inside <select>, <option>, <input>, or the Store Bridge Bar so dropdowns stay open smoothly!
+    document.addEventListener('click', (e) => {
+        if (e.target.closest('select, option, input, #hh-master-shopping-store-bridge, #hh-step2-lunch-rhythm-box, #hh-interactive-swap-modal, #hh-dual-recipe-detail-modal')) {
+            return;
+        }
+        setTimeout(() => {
+            scrubAnimalBasedWordingInDOM();
+            if (!document.getElementById('hh-step2-lunch-rhythm-box')) upgradeStep2AndMoveGenerateButton();
+            if (!document.getElementById('hh-master-shopping-store-bridge')) renderCleanCuratedMasterShoppingList();
+        }, 180);
+    });
 })();
 </script>
 </body>
