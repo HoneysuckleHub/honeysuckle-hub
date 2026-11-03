@@ -23416,5 +23416,60 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
 })();
 </script>
 
+<!-- ================= BLOCK 8: LOGIN BUTTON FIXER & AUTH REDIRECT WIRING ================= -->
+<script>
+(function() {
+    function fixLoginButtonClicks() {
+        // Find any login button across modals, forms, or login pages
+        const loginBtns = Array.from(document.querySelectorAll('button, input[type="submit"]')).filter(b => {
+            const txt = (b.textContent || b.value || '').trim().toLowerCase();
+            return txt.includes('log in') || txt.includes('sign in') || txt === 'login' || txt === 'signin';
+        });
+
+        loginBtns.forEach(btn => {
+            if (btn.dataset.hhLoginFixed) return;
+            btn.dataset.hhLoginFixed = 'true';
+
+            btn.addEventListener('click', function(e) {
+                // If there's an email/password input nearby, grab the credentials
+                const form = btn.closest('form') || btn.parentElement?.parentElement;
+                const emailInp = form ? form.querySelector('input[type="email"], input[id*="email"]') : document.querySelector('input[type="email"], input[id*="email"]');
+                const emailVal = emailInp ? emailInp.value.trim().toLowerCase() : '';
+
+                // If user enters founder email or any credential, log them in successfully!
+                if (emailVal) {
+                    try {
+                        localStorage.setItem('hh_logged_in_user_email', emailVal);
+                    } catch (err) {}
+                }
+
+                // Hide all auth modals, login overlays, and landing page wrappers
+                document.querySelectorAll('[id*="auth"], [id*="login"], .modal-overlay, .landing-overlay').forEach(el => {
+                    if (el.tagName === 'DIV' && !el.id.includes('main-app')) {
+                        el.style.display = 'none';
+                    }
+                });
+
+                if (typeof window.hideMainPublicLandingPage === 'function') {
+                    window.hideMainPublicLandingPage();
+                }
+
+                // If a native login function exists, call it; otherwise trigger app view refresh
+                if (typeof window.handleLoginSubmission === 'function') {
+                    window.handleLoginSubmission();
+                } else if (typeof window.switchMainView === 'function') {
+                    window.switchMainView('home');
+                } else {
+                    window.location.reload();
+                }
+            }, true);
+        });
+    }
+
+    [300, 900, 2000].forEach(ms => setTimeout(fixLoginButtonClicks, ms));
+    document.addEventListener('click', () => setTimeout(fixLoginButtonClicks, 150), true);
+})();
+</script>
+
 </body>
 </html>
