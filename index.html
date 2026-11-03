@@ -18337,7 +18337,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
 })();
 </script>
 
-<!-- ================= BLOCK 3 (FIXED LOGIN & VISIBILITY): MAIN PUBLIC LANDING PAGE ================= -->
+<!-- ================= BLOCK 3 (FIXED & CONNECTED): CLEAN HERO LANDING PAGE + WORKING LOGIN & SIGNUP ================= -->
 <script>
 (function() {
     const FOUNDER_EMAIL = 'contacthoneysuckleandco@gmail.com';
@@ -18366,7 +18366,46 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         }
     }
 
-    // Check if the user is currently authenticated in the app
+    // Ensure Landing Page Card Styles Are Always Loaded Immediately
+    if (!document.getElementById('hh-clean-lp-card-styles')) {
+        const st = document.createElement('style');
+        st.id = 'hh-clean-lp-card-styles';
+        st.innerHTML = `
+            .hh-lp-feature-card {
+                background: #ffffff;
+                border: 2px solid #EADBC0;
+                border-radius: 20px;
+                overflow: hidden;
+                box-shadow: 0 10px 26px rgba(42, 30, 20, 0.06);
+                display: flex;
+                flex-direction: column;
+                transition: transform 0.22s ease, box-shadow 0.22s ease;
+            }
+            .hh-lp-feature-card:hover {
+                transform: translateY(-4px);
+                box-shadow: 0 16px 34px rgba(42, 30, 20, 0.12);
+            }
+            .hh-lp-tier-card {
+                background: #FFFDF8;
+                border: 2px solid #EADBC0;
+                border-radius: 24px;
+                padding: 26px 22px;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                box-shadow: 0 10px 28px rgba(0,0,0,0.05);
+            }
+            .hh-lp-tier-card.featured {
+                background: linear-gradient(160deg, #FFFDF8 0%, #E8F2EC 100%);
+                border: 3px solid #2E5A44;
+                box-shadow: 0 18px 40px rgba(46, 90, 68, 0.18);
+                transform: scale(1.02);
+            }
+        `;
+        document.head.appendChild(st);
+    }
+
+    // Check if user has an active logged-in session
     window.isHubUserAuthenticated = function() {
         if (document.body.classList.contains('is-logged-in')) return true;
         if (typeof currentUser !== 'undefined' && currentUser && currentUser.email) return true;
@@ -18375,18 +18414,19 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         return false;
     };
 
-    // Transition cleanly from Landing Page / Login Modal into the main Dashboard
+    // Hide the Landing Page and open the main Hub Dashboard cleanly (no page reload loop!)
     window.enterAuthenticatedHubDashboard = function(userEmail, userName) {
         if (userEmail) {
-            try { localStorage.setItem('hh_logged_in_user_email', userEmail.trim().toLowerCase()); } catch (e) {}
+            const cleanEmail = userEmail.trim().toLowerCase();
+            try { localStorage.setItem('hh_logged_in_user_email', cleanEmail); } catch (e) {}
             if (typeof window.currentUser === 'undefined' || !window.currentUser) {
                 window.currentUser = {
-                    id: 'usr_' + btoa(userEmail.trim().toLowerCase()).replace(/[^a-zA-Z0-9]/g, '').slice(0, 12),
-                    email: userEmail.trim().toLowerCase(),
-                    name: userName || userEmail.split('@')[0]
+                    id: 'usr_' + btoa(cleanEmail).replace(/[^a-zA-Z0-9]/g, '').slice(0, 12),
+                    email: cleanEmail,
+                    name: userName || cleanEmail.split('@')[0]
                 };
             }
-            if (userEmail.trim().toLowerCase() === FOUNDER_EMAIL) {
+            if (cleanEmail === FOUNDER_EMAIL) {
                 window.isUserAdmin = true;
             }
         }
@@ -18395,25 +18435,12 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         }
 
         document.body.classList.add('is-logged-in');
+        window.hideMainPublicLandingPage();
 
-        // Hide all landing page & login overlays
-        const landingEl = document.getElementById('landing-view');
-        if (landingEl) landingEl.style.display = 'none';
-        const replacedRoot = document.getElementById('hh-replaced-main-landing-root');
-        if (replacedRoot) replacedRoot.style.display = 'none';
-        const masterWrap = document.getElementById('hh-new-landing-master-wrap');
-        if (masterWrap && !masterWrap.closest('#hh-public-attractive-landing-modal')) {
-            masterWrap.style.display = 'none';
-        }
-        document.getElementById('hh-public-attractive-landing-modal')?.remove();
-        document.getElementById('hh-built-in-login-modal')?.remove();
-        document.getElementById('hh-free-starter-signup-modal')?.remove();
-
-        document.querySelectorAll('.auth-wrapper, #auth-wrapper, #auth-modal, #auth-view').forEach(el => {
+        document.querySelectorAll('.auth-wrapper, #auth-wrapper, #auth-modal, #auth-view, #hh-built-in-login-modal, #hh-free-starter-signup-modal').forEach(el => {
             el.style.display = 'none';
         });
 
-        // Show the main logged-in dashboard layout
         const dashContainer = document.getElementById('dashboard-container');
         if (dashContainer) dashContainer.style.display = 'flex';
         document.querySelectorAll('.app-layout').forEach(el => {
@@ -18430,25 +18457,27 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
     };
 
     window.hideMainPublicLandingPage = function() {
-        const landingEl = document.getElementById('landing-view');
-        if (landingEl) landingEl.style.display = 'none';
+        const lv = document.getElementById('landing-view');
+        if (lv) lv.style.display = 'none';
         const root = document.getElementById('hh-replaced-main-landing-root');
         if (root) root.style.display = 'none';
+        if (window._replacedOldLandingContainer) {
+            window._replacedOldLandingContainer.style.display = 'none';
+        }
         document.getElementById('hh-public-attractive-landing-modal')?.remove();
     };
 
-    // Open Member Login Modal (Uses native auth box if present, or built-in Supabase/Hub Login Modal)
+    // Connected Member Login Modal (Opens native auth modal if available, or built-in Supabase/Hub login modal)
     window.triggerNativeHubLoginFromLanding = function() {
         document.getElementById('hh-public-attractive-landing-modal')?.remove();
 
-        const nativeAuth = document.querySelector('.auth-wrapper, #auth-wrapper, #auth-modal, #login-modal');
-        if (nativeAuth && nativeAuth.querySelector('input')) {
+        const nativeAuth = document.querySelector('#auth-modal, #login-modal, .auth-wrapper, #auth-wrapper');
+        if (nativeAuth && nativeAuth.querySelector('input[type="email"], input[type="password"]')) {
             nativeAuth.style.display = 'flex';
             nativeAuth.style.zIndex = '3200';
             return;
         }
 
-        // Built-in Member Login Modal (Guaranteed to work even if #landing-view was replaced)
         document.getElementById('hh-built-in-login-modal')?.remove();
         const savedEmail = localStorage.getItem('hh_logged_in_user_email') || '';
 
@@ -18506,7 +18535,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         }
         if (statusEl) statusEl.style.display = 'none';
 
-        // 1. Try Supabase Auth if client is configured
         const sb = window.supabaseClient || window.sbClient || (typeof supabaseClient !== 'undefined' ? supabaseClient : null);
         if (sb && sb.auth && typeof sb.auth.signInWithPassword === 'function') {
             try {
@@ -18514,6 +18542,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                 if (!error && data?.user) {
                     window.currentUser = data.user;
                     window.currentDisplayName = data.user.user_metadata?.full_name || data.user.user_metadata?.name || email.split('@')[0];
+                    document.getElementById('hh-built-in-login-modal')?.remove();
                     window.enterAuthenticatedHubDashboard(email, window.currentDisplayName);
                     return;
                 } else if (error && email !== FOUNDER_EMAIL) {
@@ -18530,12 +18559,16 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             } catch (err) {}
         }
 
-        // 2. Fallback / Local Account & Founder Admin Login
         const displayName = email === FOUNDER_EMAIL ? 'Ashton (Founder)' : email.split('@')[0];
+        document.getElementById('hh-built-in-login-modal')?.remove();
         window.enterAuthenticatedHubDashboard(email, displayName);
     };
 
     window.triggerNativeContactAshtonFromLanding = function() {
+        if (typeof window._savedNativeContactAction === 'function') {
+            window._savedNativeContactAction();
+            return;
+        }
         if (typeof openContactAshtonModal === 'function') { openContactAshtonModal(); return; }
         window.location.href = 'mailto:contacthoneysuckleandco@gmail.com?subject=Honeysuckle%20Hub%20Question';
     };
@@ -18546,6 +18579,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
 
         return `
             <div id="hh-new-landing-master-wrap" style="background:#FFFDF8; color:var(--text-main); font-family:var(--font-sans); min-height:100vh;">
+
                 <!-- TOP NAVIGATION BAR -->
                 <div style="position:sticky; top:0; z-index:90; background:rgba(255, 253, 248, 0.97); backdrop-filter:blur(8px); border-bottom:1.5px solid var(--border); padding:14px 28px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
                     <div style="display:flex; align-items:center; gap:10px;">
@@ -18581,7 +18615,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                     </div>
                 </div>
 
-                <!-- HERO BANNER -->
+                <!-- HERO BANNER (Single Big Yellow Button) -->
                 <div style="background:linear-gradient(135deg, #1E3F2E 0%, #142B1F 100%); color:#FFFDF8; padding:58px 28px; text-align:center; border-bottom:4px solid #D9B36C;">
                     <div style="max-width:860px; margin:0 auto;">
                         <span style="background:#FEF5D8; color:#9A5B0A; padding:6px 16px; border-radius:999px; font-size:0.76rem; font-weight:800; text-transform:uppercase; letter-spacing:0.04em; display:inline-block; margin-bottom:16px;">
@@ -18594,6 +18628,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                             Generate a complete 7-day whole-food meal plan scaled to your exact family size, see vetted clean brands at your local grocery store, and run your daily room resets, homeschool, and natural apothecary in one peaceful place.
                         </p>
 
+                        <!-- Single Big Yellow CTA -->
                         <div style="display:flex; justify-content:center; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:18px;">
                             <button type="button" onclick="if(typeof openFreeStarterSignupModal==='function') openFreeStarterSignupModal();" style="background:linear-gradient(135deg, #F59E0B 0%, #D97706 100%); color:#ffffff; border:2px solid #FDE68A; border-radius:999px; padding:16px 36px; font-size:1.08rem; font-weight:800; cursor:pointer; box-shadow:0 12px 28px rgba(245, 158, 11, 0.35);">
                                 🌻 Get Started for FREE (Daily Reset + 7-Day Meal Plan) &rarr;
@@ -18610,7 +18645,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                 <div id="hh-main-lp-features" style="padding:48px 26px; max-width:1120px; margin:0 auto;">
                     <div style="text-align:center; max-width:720px; margin:0 auto 34px auto;">
                         <span class="card-tag" style="background:var(--sage); color:#fff;">🌟 What Makes Honeysuckle Hub Different</span>
-                        <h2 style="font-family:var(--font-serif); font-size:2.15rem; color:var(--primary); margin:8px 0 6px 0;">
+                        <h2 style="font-family:var(--font-serif); font-size:2.1rem; color:var(--primary); margin:8px 0 6px 0;">
                             Everything a Static Paper Planner Can't Do for You
                         </h2>
                         <p style="font-size:0.94rem; color:var(--text-muted); margin:0;">
@@ -18619,6 +18654,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                     </div>
 
                     <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(310px, 1fr)); gap:22px;">
+                        <!-- Card 1 -->
                         <div class="hh-lp-feature-card">
                             <img src="https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=700&q=80" alt="Grocery Store Concierge" style="width:100%; height:180px; object-fit:cover;">
                             <div style="padding:18px 20px; flex:1; display:flex; flex-direction:column; justify-content:space-between;">
@@ -18626,13 +18662,14 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                                     <span style="font-size:0.7rem; font-weight:800; color:var(--sage); text-transform:uppercase;">🛒 7-Store Clean-Brand Concierge</span>
                                     <h4 style="font-family:var(--font-serif); font-size:1.25rem; color:var(--primary); margin:4px 0 8px 0;">Vetted Brands for Your Exact Store</h4>
                                     <p style="font-size:0.84rem; color:var(--text-main); line-height:1.5; margin:0 0 10px 0;">
-                                        Stop reading tiny ingredient labels in the aisle! Pick <strong>Walmart, Sprouts, H-E-B, ALDI, Kroger, Azure Standard, or Target</strong> and see the exact clean brand to buy for every ingredient.
+                                        Stop reading tiny ingredient labels in the aisle! Pick <strong>Walmart, Sprouts, H-E-B, ALDI, Kroger, Azure Standard, or Target</strong> and see the exact clean brand to buy for every ingredient (like <em>Perdue Free-Range Chicken</em> at Walmart or <em>Kalona Non-Homogenized Milk</em> at Sprouts).
                                     </p>
                                 </div>
                                 <span style="font-size:0.75rem; font-weight:800; color:#B87612;">🌟 Included in Full Hub Steward</span>
                             </div>
                         </div>
 
+                        <!-- Card 2 -->
                         <div class="hh-lp-feature-card">
                             <img src="https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=700&q=80" alt="Whole Food Family Meals" style="width:100%; height:180px; object-fit:cover;">
                             <div style="padding:18px 20px; flex:1; display:flex; flex-direction:column; justify-content:space-between;">
@@ -18640,13 +18677,14 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                                     <span style="font-size:0.7rem; font-weight:800; color:var(--sage); text-transform:uppercase;">🍽️ 102+ Visual Photo Recipes & Smart Scaling</span>
                                     <h4 style="font-family:var(--font-serif); font-size:1.25rem; color:var(--primary); margin:4px 0 8px 0;">Cuts Your Grocery Bill by Up to 45%</h4>
                                     <p style="font-size:0.84rem; color:var(--text-main); line-height:1.5; margin:0 0 10px 0;">
-                                        Enter your kids' ages to scale every recipe automatically. Includes mouthwatering photos on every dish, <strong>$0 Planned Leftover Nights</strong>, <strong>Homeschool Dual Lunches</strong>, and <strong>Event Hosting Mode</strong>!
+                                        Enter your kids' ages to scale every recipe automatically. Includes mouthwatering photos on every dish, <strong>$0 Planned Leftover Nights</strong>, <strong>Homeschool Dual Lunches</strong> (Kid Lunch + Mom's 35g+ Protein Lunch), and <strong>Event Hosting Mode</strong>!
                                     </p>
                                 </div>
                                 <span style="font-size:0.75rem; font-weight:800; color:var(--sage);">🆓 7-Day Auto-Planner FREE • Swaps & Customizers in Steward</span>
                             </div>
                         </div>
 
+                        <!-- Card 3 -->
                         <div class="hh-lp-feature-card">
                             <img src="https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=700&q=80" alt="Peaceful Home Rhythm" style="width:100%; height:180px; object-fit:cover;">
                             <div style="padding:18px 20px; flex:1; display:flex; flex-direction:column; justify-content:space-between;">
@@ -18654,13 +18692,14 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                                     <span style="font-size:0.7rem; font-weight:800; color:var(--sage); text-transform:uppercase;">🏡 Home Command & Daily Rhythm</span>
                                     <h4 style="font-family:var(--font-serif); font-size:1.25rem; color:var(--primary); margin:4px 0 8px 0;">Custom Room Resets & 8 PM Kitchen Bell</h4>
                                     <p style="font-size:0.84rem; color:var(--text-main); line-height:1.5; margin:0 0 10px 0;">
-                                        Add the rooms in your house and get a realistic daily reset checklist, an <strong>8:00 PM Night-Before Kitchen Bell</strong> reminding you what meat to thaw for tomorrow, and a 1-click <strong>Grace Day</strong> for hard days.
+                                        Add the rooms in your house and get a realistic daily reset checklist, an <strong>8:00 PM Night-Before Kitchen Bell</strong> reminding you what meat to thaw for tomorrow, and a 1-click <strong>Grace Day (Survival Mode)</strong> for hard days.
                                     </p>
                                 </div>
                                 <span style="font-size:0.75rem; font-weight:800; color:var(--sage);">🆓 100% FREE in Starter Tier!</span>
                             </div>
                         </div>
 
+                        <!-- Card 4 -->
                         <div class="hh-lp-feature-card">
                             <img src="https://images.unsplash.com/photo-1585421514738-01798e348b17?auto=format&fit=crop&w=700&q=80" alt="Ditch and Switch Swaps" style="width:100%; height:180px; object-fit:cover;">
                             <div style="padding:18px 20px; flex:1; display:flex; flex-direction:column; justify-content:space-between;">
@@ -18675,6 +18714,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                             </div>
                         </div>
 
+                        <!-- Card 5 -->
                         <div class="hh-lp-feature-card">
                             <img src="https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?auto=format&fit=crop&w=700&q=80" alt="Folk Apothecary & Remedies" style="width:100%; height:180px; object-fit:cover;">
                             <div style="padding:18px 20px; flex:1; display:flex; flex-direction:column; justify-content:space-between;">
@@ -18689,6 +18729,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                             </div>
                         </div>
 
+                        <!-- Card 6 -->
                         <div class="hh-lp-feature-card">
                             <img src="${TERRAIN_CLEAN_IMG}" alt="Reclaim Your Terrain Cellular Hydration & Sunlight" style="width:100%; height:180px; object-fit:cover;">
                             <div style="padding:18px 20px; flex:1; display:flex; flex-direction:column; justify-content:space-between;">
@@ -18696,7 +18737,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                                     <span style="font-size:0.7rem; font-weight:800; color:var(--sage); text-transform:uppercase;">🦋 16-Step Guided Clinical Coaching</span>
                                     <h4 style="font-family:var(--font-serif); font-size:1.25rem; color:var(--primary); margin:4px 0 8px 0;">Reclaim Your Terrain Roadmap</h4>
                                     <p style="font-size:0.84rem; color:var(--text-main); line-height:1.5; margin:0 0 10px 0;">
-                                        Step-by-step hand-holding for exhausted women: master 5 color-coded daily micro-habits (morning porch sunlight, adrenal mineral elixirs, 30g+ protein meals & gentle strength movement) at an 85% pace!
+                                        Step-by-step hand-holding for exhausted women: master 5 color-coded daily micro-habits (morning porch sunlight, adrenal mineral elixirs, 30g+ protein meals & gentle strength movement) at an 85% pace—self-paced or custom-built by Ashton!
                                     </p>
                                 </div>
                                 <span style="font-size:0.75rem; font-weight:800; color:var(--sage);">🌿 ${cfg.terrainAddonPrice} Self-Paced OR ${cfg.terrainConsultOncePrice} Consult + ${cfg.terrainConsultAfterPrice}</span>
@@ -18709,7 +18750,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                 <div id="hh-main-lp-pricing" style="background:linear-gradient(180deg, #FAF3E3 0%, #FFFDF8 100%); border-top:2px solid var(--border); padding:48px 26px 68px 26px;">
                     <div style="max-width:1120px; margin:0 auto;">
                         <div style="text-align:center; max-width:740px; margin:0 auto 34px auto;">
-                            <span class="card-tag" style="background:var(--primary); color:#fff;">🌻 Simple, Transparent Family Pricing</span>
+                            <span class="card-tag" style="background:var(--primary); color:var(--bg-warm-cream);">🌻 Simple, Transparent Family Pricing</span>
                             <h2 style="font-family:var(--font-serif); font-size:2.15rem; color:var(--primary); margin:8px 0 6px 0;">
                                 Start Free Today, or Lock In Our ${cfg.launchPromoPrice} Launch Promo
                             </h2>
@@ -18719,6 +18760,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                         </div>
 
                         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(315px, 1fr)); gap:22px; align-items:stretch;">
+
                             <!-- TIER 1: FREE STARTER -->
                             <div class="hh-lp-tier-card">
                                 <div>
@@ -18755,7 +18797,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                                     </span>
                                     <h3 style="font-family:var(--font-serif); font-size:1.65rem; color:var(--sage); margin:10px 0 2px 0;">Full Hub Steward</h3>
                                     <div style="margin:6px 0;">
-                                        <span style="font-size:1.1rem; color:#999; text-decoration:line-through; font-weight:700; margin-right:6px;">${cfg.regularStewardPrice}</span>
+                                        <span style="font-size:1.1rem; color:#888; text-decoration:line-through; font-weight:700; margin-right:6px;">${cfg.regularStewardPrice}</span>
                                         <span style="font-family:var(--font-serif); font-size:2.3rem; font-weight:800; color:var(--primary);">${cfg.launchPromoPrice}</span>
                                         <span style="display:block; font-size:0.75rem; font-weight:800; color:var(--sage);">🎉 Special Launch Rate — Lock in ${cfg.launchPromoPrice} before it returns to ${cfg.regularStewardPrice}!</span>
                                     </div>
@@ -18795,7 +18837,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                                             <span style="font-size:0.7rem; font-weight:800; color:#B87612; text-transform:uppercase; display:block;">Option 2: Custom Consult & Plan Built by Ashton</span>
                                             <strong style="font-family:var(--font-serif); font-size:1.35rem; color:var(--primary);">${cfg.terrainConsultOncePrice}</strong>
                                             <span style="font-size:0.78rem; font-weight:700; color:var(--sage);"> + ${cfg.terrainConsultAfterPrice}</span>
-                                            <span style="font-size:0.73rem; color:var(--text-main); display:block;">Personal "Read" Consult & custom protocol built by Ashton, then $19/mo ongoing access!</span>
+                                            <span style="font-size:0.73rem; color:var(--text-main); display:block;">Personal "Read" Consult & custom protocol built by me, then $19/mo ongoing access!</span>
                                         </div>
                                     </div>
 
@@ -18812,10 +18854,11 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                                         🌿 Add Self-Paced Terrain (${cfg.terrainAddonPrice}) &rarr;
                                     </button>
                                     <button type="button" class="btn-secondary" style="width:100%; padding:11px; font-size:0.8rem; border:2px solid #B87612; color:#9A5B0A; font-weight:800;" onclick="if(typeof launchStewardStripeCheckout==='function') launchStewardStripeCheckout('terrain_consult_vip');">
-                                        👑 Book $127 Consult & Custom Plan Built by Ashton (+ $19/mo after) &rarr;
+                                        👑 Book $127 Consult & Custom Plan Built by Me (+ $19/mo after) &rarr;
                                     </button>
                                 </div>
                             </div>
+
                         </div>
                     </div>
                 </div>
@@ -18823,34 +18866,71 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         `;
     };
 
+    // Always replace the old landing page HTML immediately (works regardless of what text the old landing page had!)
     function replaceLegacyLandingPageNow() {
         document.querySelectorAll('img[src*="photo-1506126613408-eca07ce68773"]').forEach(img => {
             img.src = TERRAIN_CLEAN_IMG;
         });
 
-        // CRITICAL FIX: If user is already logged in, never unhide the landing page!
-        if (window.isHubUserAuthenticated()) {
-            const lv = document.getElementById('landing-view');
-            if (lv) lv.style.display = 'none';
-            return;
-        }
-
         if (document.getElementById('hh-new-landing-master-wrap')) return;
 
-        const landingView = document.getElementById('landing-view');
-        if (landingView) {
-            // Rescue any auth/login modals inside #landing-view before replacing innerHTML!
-            landingView.querySelectorAll('.auth-wrapper, #auth-wrapper, #auth-modal, .modal-overlay').forEach(m => {
-                document.body.appendChild(m);
+        // Find the landing page container by ID OR by any public landing marker
+        let oldRoot = document.getElementById('landing-view') ||
+                      document.getElementById('hh-replaced-main-landing-root') ||
+                      document.getElementById('hh-upgraded-landing-master');
+
+        if (!oldRoot) {
+            const markerEl = Array.from(document.querySelectorAll('h1, h2, section, div')).find(el => {
+                const t = (el.textContent || '');
+                return t.includes('Stop Juggling 5 Apps') ||
+                       t.includes('Member Login') && t.includes('Honeysuckle Hub') && !el.querySelector('#view-food');
             });
-            // Keep id="landing-view" intact so body.is-logged-in CSS rules work!
-            landingView.innerHTML = window.buildMainLandingPageHTML();
-            return;
+            if (markerEl) {
+                oldRoot = markerEl;
+                while (oldRoot.parentElement && oldRoot.parentElement !== document.body) {
+                    if (oldRoot.parentElement.querySelector('#view-food, #view-reclaim-terrain, #dashboard-container')) {
+                        break;
+                    }
+                    oldRoot = oldRoot.parentElement;
+                }
+            }
+        }
+
+        if (!oldRoot) return;
+
+        // 1. Rescue any auth/login modals inside the old landing container before replacing its HTML
+        oldRoot.querySelectorAll('.auth-wrapper, #auth-wrapper, #auth-modal, #login-modal, .modal-overlay').forEach(modalEl => {
+            modalEl.style.display = 'none';
+            document.body.appendChild(modalEl);
+        });
+
+        // 2. Capture original Contact Ashton action if present
+        const oldContactBtn = Array.from(oldRoot.querySelectorAll('button, a')).find(b => (b.textContent || '').includes('Contact Ashton'));
+        if (oldContactBtn && !window._savedNativeContactAction) {
+            const fn = oldContactBtn.onclick;
+            const attr = oldContactBtn.getAttribute('onclick');
+            window._savedNativeContactAction = function() {
+                if (fn) fn.call(oldContactBtn);
+                else if (attr) { try { eval(attr); } catch (e) {} }
+            };
+        }
+
+        // 3. Keep id="landing-view" so all login/logout visibility rules work seamlessly
+        window._oldLandingReplacedDone = true;
+        window._replacedOldLandingContainer = oldRoot;
+        oldRoot.id = 'landing-view';
+        oldRoot.innerHTML = window.buildMainLandingPageHTML();
+
+        // 4. If user is currently logged in, keep the landing container hidden; otherwise show the new landing page!
+        if (window.isHubUserAuthenticated()) {
+            oldRoot.style.display = 'none';
+        } else {
+            oldRoot.style.display = 'block';
         }
     }
 
     replaceLegacyLandingPageNow();
-    [50, 200, 600].forEach(ms => setTimeout(replaceLegacyLandingPageNow, ms));
+    [20, 100, 300, 700, 1500].forEach(ms => setTimeout(replaceLegacyLandingPageNow, ms));
 })();
 </script>
 
