@@ -23072,5 +23072,458 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
 })();
 </script>
 
+<!-- ================= BLOCK 9: BLANK LOGIN SCREEN FIX + VACATION MODE (STREAK SHIELD & ALERT SILENCER) ================= -->
+<script>
+(function() {
+    // =========================================================================
+    // 1. FIX BLANK DASHBOARD SCREEN AFTER LOGIN
+    // =========================================================================
+    function ensureActiveViewPanelVisible() {
+        const isLogged = document.body.classList.contains('is-logged-in') ||
+                         Boolean(localStorage.getItem('hh_logged_in_user_email')) ||
+                         Boolean(localStorage.getItem('hh_free_starter_user'));
+
+        if (!isLogged) return;
+
+        document.body.classList.add('is-logged-in');
+
+        // Hide public landing page containers when logged in
+        ['landing-view', 'hh-replaced-main-landing-root'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.style.display = 'none';
+        });
+
+        // Ensure main app wrappers are visible
+        const dash = document.getElementById('dashboard-container');
+        if (dash) dash.style.display = 'flex';
+        document.querySelectorAll('.app-layout').forEach(el => { el.style.display = 'flex'; });
+        document.querySelectorAll('main, .main-content').forEach(el => { el.style.display = 'block'; });
+
+        // Check if any .view-panel is currently visible; if none are visible, activate the Home panel!
+        const allPanels = Array.from(document.querySelectorAll('.view-panel, main > section, .main-content > section'));
+        if (allPanels.length > 0) {
+            const anyVisible = allPanels.some(p => {
+                const comp = window.getComputedStyle(p);
+                return p.classList.contains('active') && comp.display !== 'none' && p.offsetHeight > 20;
+            });
+
+            if (!anyVisible) {
+                const homePanel = document.getElementById('view-home') ||
+                                  document.getElementById('view-command-center') ||
+                                  document.getElementById('view-dashboard') ||
+                                  allPanels[0];
+                if (homePanel) {
+                    allPanels.forEach(p => {
+                        p.classList.remove('active');
+                        p.style.display = 'none';
+                    });
+                    homePanel.classList.add('active');
+                    homePanel.style.display = 'block';
+                }
+            } else {
+                // Ensure whichever panel has .active also has display: block
+                allPanels.forEach(p => {
+                    if (p.classList.contains('active') && window.getComputedStyle(p).display === 'none') {
+                        p.style.display = 'block';
+                    }
+                });
+            }
+        }
+    }
+
+    // Wrap navigateToView & switchView so clicking nav links always reveals the target section cleanly
+    const _origNav = window.navigateToView;
+    if (typeof _origNav === 'function' && !window._hhNavBlankFixWrapped) {
+        window._hhNavBlankFixWrapped = true;
+        window.navigateToView = function(viewId, updateHash = true) {
+            const resolvedId = (viewId === 'command-center' && !document.getElementById('view-command-center')) ? 'home' : viewId;
+            _origNav(resolvedId, updateHash);
+            const targetEl = document.getElementById('view-' + resolvedId);
+            if (targetEl) {
+                document.querySelectorAll('.view-panel').forEach(p => {
+                    if (p !== targetEl) p.style.display = 'none';
+                });
+                targetEl.classList.add('active');
+                targetEl.style.display = 'block';
+            } else {
+                ensureActiveViewPanelVisible();
+            }
+        };
+    }
+
+    // =========================================================================
+    // 2. VACATION MODE STATE & AUTO-RETURN CHECKER
+    // =========================================================================
+    const DEFAULT_VACATION_STATE = {
+        active: false,
+        startDateIso: '',
+        returnDateIso: '',
+        destinationNote: '',
+        protectTerrainGate: true,
+        shiftHomeschoolLessons: true,
+        silenceAllAlerts: true,
+        frozenStreakValue: 0
+    };
+
+    function getTodayIsoStr() {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+
+    window.getVacationModeState = function() {
+        try {
+            const raw = localStorage.getItem('hh_vacation_mode_state_v1');
+            if (raw) return { ...DEFAULT_VACATION_STATE, ...JSON.parse(raw) };
+        } catch (e) {}
+        return { ...DEFAULT_VACATION_STATE };
+    };
+
+    window.saveVacationModeState = function(st) {
+        try {
+            localStorage.setItem('hh_vacation_mode_state_v1', JSON.stringify(st));
+        } catch (e) {}
+        if (typeof setLocalData === 'function') {
+            setLocalData('hh_vacation_mode_state_v1', st, true);
+        }
+    };
+
+    window.isHubOnVacation = function() {
+        const st = window.getVacationModeState();
+        if (!st.active) return false;
+        const today = getTodayIsoStr();
+        // Auto-resume if returnDateIso has arrived!
+        if (st.returnDateIso && today >= st.returnDateIso) {
+            window.deactivateVacationMode(true);
+            return false;
+        }
+        return true;
+    };
+
+    // =========================================================================
+    // 3. SILENCE ALL PHONE DINGS, ALERTS & AUDIO CHIMES WHILE ON VACATION
+    // =========================================================================
+    // Wrap Browser Notification API so zero push/desktop dings fire during vacation
+    if ('Notification' in window && !window._hhVacationNotifWrapped) {
+        window._hhVacationNotifWrapped = true;
+        const OrigNotification = window.Notification;
+        const WrappedNotification = function(title, options) {
+            if (window.isHubOnVacation()) {
+                console.log('🏖️ [Vacation Mode] Silenced notification:', title);
+                return { close: function() {} };
+            }
+            return new OrigNotification(title, options);
+        };
+        WrappedNotification.requestPermission = OrigNotification.requestPermission.bind(OrigNotification);
+        Object.defineProperty(WrappedNotification, 'permission', {
+            get: () => OrigNotification.permission
+        });
+        window.Notification = WrappedNotification;
+    }
+
+    // Wrap AudioContext oscillator start so background reminder chimes don't ding their phone on vacation
+    const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
+    if (AudioCtxClass && AudioCtxClass.prototype && !AudioCtxClass.prototype._hhVacWrapped) {
+        AudioCtxClass.prototype._hhVacWrapped = true;
+        const origCreateOsc = AudioCtxClass.prototype.createOscillator;
+        AudioCtxClass.prototype.createOscillator = function() {
+            const osc = origCreateOsc.apply(this, arguments);
+            const origStart = osc.start.bind(osc);
+            osc.start = function() {
+                if (window.isHubOnVacation() && window.getVacationModeState().silenceAllAlerts) {
+                    return; // Muted during Vacation Mode
+                }
+                return origStart.apply(this, arguments);
+            };
+            return osc;
+        };
+    }
+
+    // =========================================================================
+    // 4. PROTECT STREAKS, TERRAIN 85% COMPLIANCE & HOMESCHOOL DATES
+    // =========================================================================
+    function applyVacationStreakAndScheduleProtection() {
+        if (!window.isHubOnVacation()) return;
+        const vState = window.getVacationModeState();
+        const todayIso = getTodayIsoStr();
+
+        // A. Shift Homeschool Lessons Forward (Marks vacation dates as No-School / Off Dates)
+        if (vState.shiftHomeschoolLessons && typeof getLocalData === 'function' && typeof setLocalData === 'function') {
+            const offDates = getLocalData('homeschool_off_dates', []) || [];
+            const startD = vState.startDateIso ? new Date(vState.startDateIso + 'T00:00:00') : new Date();
+            const endD = vState.returnDateIso ? new Date(vState.returnDateIso + 'T00:00:00') : new Date(startD.getTime() + 7 * 86400000);
+
+            let changed = false;
+            const cursor = new Date(startD);
+            let safety = 0;
+            while (cursor < endD && safety < 45) {
+                const cIso = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}-${String(cursor.getDate()).padStart(2, '0')}`;
+                if (!offDates.includes(cIso)) {
+                    offDates.push(cIso);
+                    changed = true;
+                }
+                cursor.setDate(cursor.getDate() + 1);
+                safety++;
+            }
+            if (changed) setLocalData('homeschool_off_dates', offDates, true);
+        }
+
+        // B. Protect Reclaim Your Terrain 7-Day Compliance Gate (Auto-credits current day's habits while on vacation)
+        if (vState.protectTerrainGate && typeof window.getTerrainState === 'function' && typeof window.saveTerrainState === 'function') {
+            const tState = window.getTerrainState();
+            if (tState && tState.unlocked && tState.consultCompleted) {
+                const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                const todayKey = daysOfWeek[(new Date().getDay() + 6) % 7];
+                if (!tState.weeklyChecks) tState.weeklyChecks = {};
+                let updated = false;
+                ['spirit', 'hydration', 'meal', 'movement', 'soul', 'supplement'].forEach(hk => {
+                    const k = `${todayKey}_${hk}`;
+                    if (!tState.weeklyChecks[k]) {
+                        tState.weeklyChecks[k] = true;
+                        updated = true;
+                    }
+                });
+                if (updated) window.saveTerrainState(tState);
+            }
+        }
+
+        // C. Freeze Daily Home Streak so it never drops
+        const currentStreak = parseInt(localStorage.getItem('hh_daily_streak_count') || '0');
+        if (vState.frozenStreakValue > currentStreak) {
+            localStorage.setItem('hh_daily_streak_count', String(vState.frozenStreakValue));
+        }
+        localStorage.setItem('hh_last_streak_check_date', todayIso);
+    }
+
+    // =========================================================================
+    // 5. ACTIVATE / DEACTIVATE VACATION MODE & MODAL STUDIO
+    // =========================================================================
+    window.openVacationModeModal = function() {
+        document.getElementById('hh-vacation-mode-modal')?.remove();
+        const st = window.getVacationModeState();
+        const isOn = window.isHubOnVacation();
+        const todayIso = getTodayIsoStr();
+
+        // Default return date = 7 days from today
+        const nextWeek = new Date();
+        nextWeek.setDate(nextWeek.getDate() + 7);
+        const defaultReturnIso = `${nextWeek.getFullYear()}-${String(nextWeek.getMonth() + 1).padStart(2, '0')}-${String(nextWeek.getDate()).padStart(2, '0')}`;
+
+        const modal = document.createElement('div');
+        modal.id = 'hh-vacation-mode-modal';
+        modal.className = 'modal-overlay';
+        modal.style.cssText = 'display:flex; z-index:3250;';
+        modal.innerHTML = `
+            <div style="background:#FFFDF8; width:100%; max-width:540px; border-radius:24px; padding:26px; border:3px solid ${isOn ? '#0284C7' : 'var(--sage)'}; box-shadow:0 25px 65px rgba(0,0,0,0.42);">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid var(--border); padding-bottom:12px; margin-bottom:14px; gap:10px;">
+                    <div>
+                        <span class="card-tag" style="background:${isOn ? '#0284C7' : 'var(--sage)'}; color:#fff;">
+                            ${isOn ? '🏖️ VACATION MODE IS CURRENTLY ACTIVE' : '🏖️ Pause Hub & Protect Your Streaks'}
+                        </span>
+                        <h3 style="font-family:var(--font-serif); font-size:1.55rem; color:var(--primary); margin:4px 0 2px 0;">
+                            Family Vacation & Travel Mode
+                        </h3>
+                        <p style="font-size:0.82rem; color:var(--text-muted); margin:0;">
+                            Heading out of town? Pause your household rhythms so your phone stays quiet and your streaks stay 100% intact!
+                        </p>
+                    </div>
+                    <button type="button" onclick="document.getElementById('hh-vacation-mode-modal').remove()" style="background:none; border:none; font-size:1.7rem; cursor:pointer;">&times;</button>
+                </div>
+
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:12px;">
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label style="font-size:0.78rem; font-weight:700;">📅 Vacation Start Date</label>
+                        <input type="date" id="hh-vac-start-date" value="${st.startDateIso || todayIso}" style="width:100%; padding:9px 10px; border:1.5px solid var(--border); border-radius:10px; font-weight:700; background:#fff;">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label style="font-size:0.78rem; font-weight:700;">🏡 Return Date (Auto-Resumes!)</label>
+                        <input type="date" id="hh-vac-return-date" value="${st.returnDateIso || defaultReturnIso}" style="width:100%; padding:9px 10px; border:1.5px solid var(--sage); border-radius:10px; font-weight:700; background:#fff;">
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom:14px;">
+                    <label style="font-size:0.78rem; font-weight:700;">🌴 Trip / Vacation Note (Optional)</label>
+                    <input type="text" id="hh-vac-note" value="${escapeSafeHtml(st.destinationNote || '')}" placeholder="e.g. Family Beach Trip / Visiting Grandparents" style="width:100%; padding:9px 12px; border:1.5px solid var(--border); border-radius:10px; font-size:0.86rem; background:#fff;">
+                </div>
+
+                <div style="background:#F0F9FF; border:1.5px solid #BAE6FD; border-radius:14px; padding:14px; margin-bottom:18px; display:flex; flex-direction:column; gap:9px; font-size:0.82rem; color:#0C4A6E;">
+                    <strong style="font-size:0.84rem; color:#0369A1;">🛡️ What Vacation Mode Protects While You're Away:</strong>
+                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:600;">
+                        <input type="checkbox" id="hh-vac-silence-alerts" ${st.silenceAllAlerts !== false ? 'checked' : ''} style="width:17px; height:17px; accent-color:#0284C7;">
+                        <span>🔕 <strong>Silence All Phone Dings & Reminders</strong> (Mutes 8 PM Kitchen Bell, 3x/day pings & chimes)</span>
+                    </label>
+                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:600;">
+                        <input type="checkbox" id="hh-vac-protect-terrain" ${st.protectTerrainGate !== false ? 'checked' : ''} style="width:17px; height:17px; accent-color:#0284C7;">
+                        <span>🌿 <strong>Freeze Streaks & Terrain 85% Compliance Gate</strong> (Never lose your streak or step progress)</span>
+                    </label>
+                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:600;">
+                        <input type="checkbox" id="hh-vac-shift-school" ${st.shiftHomeschoolLessons !== false ? 'checked' : ''} style="width:17px; height:17px; accent-color:#0284C7;">
+                        <span>📚 <strong>Auto-Shift Homeschool Lessons Forward</strong> (Marks vacation days off so zero lessons pile up)</span>
+                    </label>
+                </div>
+
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+                    ${isOn ? `
+                        <button type="button" class="btn-primary" style="width:100%; background:linear-gradient(135deg, #2E5A44 0%, #1F4230 100%); border-color:#173325; padding:13px;" onclick="deactivateVacationMode(false)">
+                            ☀️ We're Back Home! Resume My Hub Now &rarr;
+                        </button>
+                    ` : `
+                        <button type="button" class="btn-secondary" onclick="document.getElementById('hh-vacation-mode-modal').remove()">Cancel</button>
+                        <button type="button" class="btn-primary" style="flex:1; background:linear-gradient(135deg, #0284C7 0%, #0369A1 100%); border-color:#075985; padding:13px; font-weight:800;" onclick="activateVacationModeFromModal()">
+                            🏖️ Turn On Vacation Mode & Pause Alerts
+                        </button>
+                    `}
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    };
+
+    window.activateVacationModeFromModal = function() {
+        const startIso = document.getElementById('hh-vac-start-date')?.value || getTodayIsoStr();
+        const returnIso = document.getElementById('hh-vac-return-date')?.value || '';
+        const note = (document.getElementById('hh-vac-note')?.value || '').trim();
+        const silence = document.getElementById('hh-vac-silence-alerts')?.checked !== false;
+        const protectTerrain = document.getElementById('hh-vac-protect-terrain')?.checked !== false;
+        const shiftSchool = document.getElementById('hh-vac-shift-school')?.checked !== false;
+
+        const currentStreak = parseInt(localStorage.getItem('hh_daily_streak_count') || '0');
+
+        const newState = {
+            active: true,
+            startDateIso: startIso,
+            returnDateIso: returnIso,
+            destinationNote: note,
+            silenceAllAlerts: silence,
+            protectTerrainGate: protectTerrain,
+            shiftHomeschoolLessons: shiftSchool,
+            frozenStreakValue: currentStreak
+        };
+
+        window.saveVacationModeState(newState);
+        document.getElementById('hh-vacation-mode-modal')?.remove();
+        applyVacationStreakAndScheduleProtection();
+        renderVacationModeHeaderAndBanner();
+        alert(`🏖️ Vacation Mode is ON!\n\n• All phone dings & reminders are silenced\n• Your streaks & Reclaim Your Terrain progress are frozen\n• Homeschool lessons are shifted to ${returnIso || 'your return'}\n\nHave a wonderful, restful trip!`);
+    };
+
+    window.deactivateVacationMode = function(isAutoReturn = false) {
+        const st = window.getVacationModeState();
+        st.active = false;
+        window.saveVacationModeState(st);
+
+        // Sync Meal Planner start date to Today so they have fresh meals ready when returning!
+        try {
+            const mCfg = JSON.parse(localStorage.getItem('hh_step2_meal_rhythm_cfg') || '{}');
+            mCfg.startDateIso = getTodayIsoStr();
+            localStorage.setItem('hh_step2_meal_rhythm_cfg', JSON.stringify(mCfg));
+        } catch (e) {}
+
+        document.getElementById('hh-vacation-mode-modal')?.remove();
+        document.getElementById('hh-vacation-active-top-banner')?.remove();
+        renderVacationModeHeaderAndBanner();
+
+        if (!isAutoReturn) {
+            alert('☀️ Welcome Home! Vacation Mode is now OFF, your streaks are intact, and your Meal Planner & Daily Rhythms are ready for today.');
+        }
+    };
+
+    // =========================================================================
+    // 6. RENDER HEADER PILL BUTTON & COZY VACATION BANNER WHEN ACTIVE
+    // =========================================================================
+    function renderVacationModeHeaderAndBanner() {
+        const isOn = window.isHubOnVacation();
+        const st = window.getVacationModeState();
+
+        // 1. Inject "🏖️ Vacation" Pill Button in the Top-Right Header Bar (next to 🔔 Alerts)
+        const alertsBtn = Array.from(document.querySelectorAll('header button, .header-actions button')).find(b =>
+            (b.textContent || '').includes('Alerts') || (b.textContent || '').includes('🔕')
+        );
+        const headerBar = alertsBtn ? alertsBtn.parentElement : document.querySelector('.user-badge-header-area, .header-actions');
+
+        if (headerBar) {
+            let vacBtn = document.getElementById('hh-header-vacation-mode-btn');
+            if (!vacBtn) {
+                vacBtn = document.createElement('button');
+                vacBtn.id = 'hh-header-vacation-mode-btn';
+                vacBtn.type = 'button';
+                vacBtn.className = 'icon-btn';
+                vacBtn.onclick = window.openVacationModeModal;
+                if (alertsBtn) {
+                    alertsBtn.insertAdjacentElement('beforebegin', vacBtn);
+                } else {
+                    headerBar.prepend(vacBtn);
+                }
+            }
+
+            vacBtn.style.cssText = isOn
+                ? 'background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%); color: #ffffff; border: 1.5px solid #075985; font-weight: 800; font-size: 0.75rem; padding: 5px 12px; border-radius: 999px; cursor: pointer; box-shadow: 0 4px 12px rgba(2,132,199,0.28);'
+                : 'background: #FFFDF8; color: var(--sage); border: 1.5px solid var(--border); font-weight: 700; font-size: 0.75rem; padding: 5px 11px; border-radius: 999px; cursor: pointer;';
+            vacBtn.innerHTML = isOn ? '🏖️ Vacation ON' : '🏖️ Vacation';
+
+            // Update the 🔔 Alerts button text visually so user sees dings are muted
+            if (alertsBtn) {
+                if (isOn && st.silenceAllAlerts) {
+                    if (!alertsBtn.dataset.origAlertHtml) alertsBtn.dataset.origAlertHtml = alertsBtn.innerHTML;
+                    alertsBtn.innerHTML = '🔕 Alerts Paused';
+                    alertsBtn.style.opacity = '0.7';
+                } else if (alertsBtn.dataset.origAlertHtml) {
+                    alertsBtn.innerHTML = alertsBtn.dataset.origAlertHtml;
+                    alertsBtn.style.opacity = '1';
+                }
+            }
+        }
+
+        // 2. Show a Peaceful "Vacation Mode Active" Banner at the top of the main content when ON
+        const mainContent = document.querySelector('main.main-content, main') || document.getElementById('view-home');
+        if (!mainContent) return;
+
+        let banner = document.getElementById('hh-vacation-active-top-banner');
+        if (isOn) {
+            if (!banner) {
+                banner = document.createElement('div');
+                banner.id = 'hh-vacation-active-top-banner';
+                mainContent.prepend(banner);
+            }
+            banner.style.cssText = 'background: linear-gradient(135deg, #0369A1 0%, #0F766E 100%); color: #ffffff; border: 2.5px solid #7DD3FC; border-radius: 18px; padding: 16px 22px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; box-shadow: 0 12px 28px rgba(3, 105, 161, 0.22);';
+            banner.innerHTML = `
+                <div>
+                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:4px;">
+                        <span style="background:#E0F2FE; color:#0369A1; font-size:0.72rem; font-weight:800; padding:3px 10px; border-radius:999px; text-transform:uppercase;">
+                            🏖️ VACATION MODE ACTIVE ${st.destinationNote ? `• ${escapeSafeHtml(st.destinationNote)}` : ''}
+                        </span>
+                        <span style="font-size:0.76rem; color:#BAE6FD; font-weight:700;">
+                            🔕 Phone Alerts Muted &nbsp;•&nbsp; 🛡️ Streaks & Terrain 85% Gate Protected
+                        </span>
+                    </div>
+                    <div style="font-size:0.95rem; font-weight:700; color:#FFFDF8;">
+                        Enjoy your trip! Your household rhythms, streaks, and homeschool lessons are safely paused${st.returnDateIso ? ` until <strong>${escapeSafeHtml(st.returnDateIso)}</strong>` : ''}.
+                    </div>
+                </div>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <button type="button" onclick="openVacationModeModal()" style="background:rgba(255,255,255,0.18); color:#fff; border:1.5px solid rgba(255,255,255,0.4); border-radius:999px; padding:8px 14px; font-size:0.78rem; font-weight:700; cursor:pointer;">
+                        ⚙️ Vacation Settings
+                    </button>
+                    <button type="button" onclick="deactivateVacationMode(false)" style="background:#FEF5D8; color:#9A5B0A; border:2px solid #F59E0B; border-radius:999px; padding:8px 16px; font-size:0.8rem; font-weight:800; cursor:pointer;">
+                        ☀️ We're Home! Resume Hub
+                    </button>
+                </div>
+            `;
+        } else if (banner) {
+            banner.remove();
+        }
+    }
+
+    function bootBlankFixAndVacationMode() {
+        ensureActiveViewPanelVisible();
+        applyVacationStreakAndScheduleProtection();
+        renderVacationModeHeaderAndBanner();
+    }
+
+    bootBlankFixAndVacationMode();
+    [80, 300, 800, 1800].forEach(ms => setTimeout(bootBlankFixAndVacationMode, ms));
+    document.addEventListener('click', () => setTimeout(bootBlankFixAndVacationMode, 120));
+})();
+</script>
+
 </body>
 </html>
