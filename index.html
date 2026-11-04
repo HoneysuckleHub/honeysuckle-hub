@@ -23234,15 +23234,76 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
 })();
 </script>
 
-<!-- ================= BLOCK 10: GUIDED HOME COMMAND CENTER, STEP-BY-STEP ZONE FOCUS CHECKLISTS & DOPAMINE COACH LAYOUT ================= -->
+<!-- ================= BLOCK 10 (UPDATED): CLEAN TOP HEADER ONLY, REMOVE "TODAY'S 3 NON-NEGOTIABLES" & GUIDED HOME COMMAND CENTER ================= -->
 <script>
 (function() {
-    window._activeHomeCoachTab = window._activeHomeCoachTab || 'maintenance'; // 'maintenance' | 'zone' | 'meals' | 'terrain' | 'all'
+    window._activeHomeCoachTab = window._activeHomeCoachTab || 'maintenance'; // 'maintenance' | 'zone' | 'meals' | 'terrain'
     window._homeGraceDayActive = localStorage.getItem('hh_home_grace_day_active') === 'true';
     window._overrideZoneDayIdx = null;
     let isRenderingHomeCoach = false;
 
     const DAY_NAMES_FULL = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+    // =========================================================================
+    // 0. CLEAN UP TOP HERO BANNER (KEEP HEADER ONLY) & REMOVE "3 NON-NEGOTIABLES"
+    // =========================================================================
+    function cleanUpTopHomeBannerAndNonNegotiables() {
+        // 1. Hide the "TODAY'S 3 NON-NEGOTIABLES" card completely
+        const allSpansAndDivs = Array.from(document.querySelectorAll('span, div, h3, h4, p'));
+        const nonNegBadge = allSpansAndDivs.find(el =>
+            el.children.length === 0 && (
+                (el.textContent || '').trim().toUpperCase().includes("TODAY'S 3 NON-NEGOTIABLES") ||
+                (el.textContent || '').trim().includes('Bite-sized focus to beat overwhelm')
+            )
+        );
+        if (nonNegBadge) {
+            let nonNegCard = nonNegBadge.closest('.clinical-panel') || nonNegBadge.parentElement;
+            while (nonNegCard && nonNegCard.parentElement && !nonNegCard.parentElement.id?.includes('view-') && nonNegCard.parentElement !== document.body) {
+                if (nonNegCard.parentElement.querySelector('#hh-home-guided-coach-master-header')) break;
+                const st = nonNegCard.getAttribute('style') || '';
+                if (st.includes('border') || st.includes('radius') || nonNegCard.classList.contains('clinical-panel')) break;
+                nonNegCard = nonNegCard.parentElement;
+            }
+            if (nonNegCard && !nonNegCard.querySelector('#hh-home-guided-coach-master-header')) {
+                nonNegCard.style.setProperty('display', 'none', 'important');
+            }
+        }
+
+        // 2. Clean up the Top Welcome Banner: Keep ONLY the Header, hide the description text & 5 buttons
+        const guideBtn = Array.from(document.querySelectorAll('button')).find(b => {
+            if (b.closest('#hh-home-guided-coach-master-header')) return false;
+            const txt = (b.textContent || '').trim();
+            return txt.includes('Guide Me 1 Step at a Time') || txt.includes('60-Sec Setup & Pacing Wizard') || txt.includes('5PM Dinner Panic');
+        });
+
+        if (guideBtn) {
+            const btnRow = guideBtn.parentElement;
+            const topBanner = btnRow ? btnRow.parentElement : null;
+            if (btnRow) {
+                btnRow.style.setProperty('display', 'none', 'important');
+            }
+            if (topBanner) {
+                Array.from(topBanner.querySelectorAll('p, hr')).forEach(el => {
+                    const txt = (el.textContent || '').trim();
+                    if (el.tagName === 'HR' || txt.includes('Everything you need for today is already planned below')) {
+                        el.style.setProperty('display', 'none', 'important');
+                    }
+                });
+                // Tighten bottom margin on the header inside the banner so it looks balanced and sleek
+                const mainTitle = topBanner.querySelector('h1, h2, h3');
+                if (mainTitle) {
+                    mainTitle.style.marginBottom = '0';
+                }
+            }
+        }
+
+        // Fallback: also catch the paragraph directly even if buttons were altered
+        allSpansAndDivs.forEach(el => {
+            if (el.children.length === 0 && (el.textContent || '').includes('Everything you need for today is already planned below:')) {
+                el.style.setProperty('display', 'none', 'important');
+            }
+        });
+    }
 
     // =========================================================================
     // 1. DAILY GENERAL MAINTENANCE + 7-DAY ZONE FOCUS TASK LIBRARY
@@ -23362,7 +23423,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                 { id: 'zf_tue_7', area: 'Laundry Station', text: 'Wipe top of washer & dryer, clean lint trap, and restock wool dryer balls / laundry soap' }
             ]
         },
-        3: { // Wednesday (Matches Screenshot 20: Bedrooms Master & Kids!)
+        3: { // Wednesday
             dayName: 'Wednesday',
             zoneTitle: 'Bedrooms (Master & Kids)',
             zoneSubtitle: 'Just focus on peaceful, clutter-free sleeping spaces today—ignore the rest of the house!',
@@ -23439,7 +23500,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         "✨ Every dish washed and bed made is an act of love that lowers stress for everyone under your roof."
     ];
 
-    // Inject Scoped Styles for the Guided Home Command Center
     if (!document.getElementById('hh-home-coach-command-styles')) {
         const st = document.createElement('style');
         st.id = 'hh-home-coach-command-styles';
@@ -23572,7 +23632,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         } catch (e) {}
     }
 
-    // Also pull any custom rooms the user added via "⚙️ My Rooms" so their custom rooms appear as checkboxes!
     function getUserConfiguredRoomTasks(activeDayIdx) {
         const extraZoneTasks = [];
         if (typeof getLocalData === 'function') {
@@ -23581,7 +23640,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                 userRooms.forEach((rm, idx) => {
                     const rName = typeof rm === 'string' ? rm : (rm?.name || rm?.roomName || '');
                     if (!rName) return;
-                    // Skip standard rooms already covered in our core checklist unless it matches today's zone
                     if (/kitchen|dining/i.test(rName)) return;
                     if (activeDayIdx === 3 && /bedroom|master|kid|nursery|bunk/i.test(rName)) {
                         extraZoneTasks.push({
@@ -23670,9 +23728,9 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
     // 2. TRANSFORM THE HOME PAGE INTO THE GUIDED STEP-BY-STEP COACH LAYOUT
     // =========================================================================
     function renderGuidedHomeCommandPage() {
+        cleanUpTopHomeBannerAndNonNegotiables();
         if (isRenderingHomeCoach) return;
 
-        // Locate the "Today's Home & Room Reset" heading from Screenshot 20
         const allHeadings = Array.from(document.querySelectorAll('h2, h3, h4, div'));
         const resetHeading = allHeadings.find(el =>
             el.children.length === 0 && (el.textContent || '').trim() === "Today's Home & Room Reset"
@@ -23682,18 +23740,15 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         const resetPanel = resetHeading.closest('.clinical-panel') || resetHeading.parentElement;
         if (!resetPanel) return;
 
-        // Locate the 2-column grid holding resetPanel (Left) and Active Meal Plan Snapshot / 8 PM Bell (Right)
         const twoColGrid = resetPanel.parentElement;
         const homeRoot = twoColGrid ? twoColGrid.parentElement : resetPanel.parentElement;
         if (!twoColGrid || !homeRoot) return;
 
-        // Save reference to the native "⚙️ My Rooms" button before upgrading resetPanel
         const origRoomsBtn = Array.from(resetPanel.querySelectorAll('button')).find(b => (b.textContent || '').includes('My Rooms'));
         if (origRoomsBtn && !window._preservedMyRoomsBtnEl) {
             window._preservedMyRoomsBtnEl = origRoomsBtn;
         }
 
-        // Locate the Terrain Daily Habits summary box right above twoColGrid (from top of Screenshot 20)
         const terrainTopSummaryBox = Array.from(homeRoot.children).find(ch =>
             ch !== twoColGrid &&
             ch.id !== 'hh-home-guided-coach-master-header' &&
@@ -23702,7 +23757,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
 
         isRenderingHomeCoach = true;
         try {
-            const realTodayIdx = new Date().getDay(); // 0=Sun .. 3=Wed .. 6=Sat
+            const realTodayIdx = new Date().getDay();
             const activeZoneDayIdx = (window._overrideZoneDayIdx !== null && !isNaN(window._overrideZoneDayIdx))
                 ? window._overrideZoneDayIdx
                 : realTodayIdx;
@@ -23711,12 +23766,10 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             const checksToday = getHomeChecksForToday();
             const isGrace = window._homeGraceDayActive;
 
-            // Filter Daily General Maintenance tasks (if Grace Day is active, only show the 4 non-negotiable survival tasks!)
             const activeMaintenanceTasks = isGrace
                 ? DAILY_GENERAL_MAINTENANCE_TASKS.filter(t => t.essentialGraceDay)
                 : DAILY_GENERAL_MAINTENANCE_TASKS;
 
-            // Combine default Zone Focus tasks + user's custom room tasks + custom added zone tasks
             const combinedZoneTasks = [
                 ...zoneObj.tasks,
                 ...getUserConfiguredRoomTasks(activeZoneDayIdx),
@@ -23732,7 +23785,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             const activeTab = window._activeHomeCoachTab || 'maintenance';
             const affirmation = HOME_COACH_AFFIRMATIONS[realTodayIdx % HOME_COACH_AFFIRMATIONS.length];
 
-            // 1. Mount or Update the Guided Home Coach Header & 4-Step Navigation Bar above twoColGrid
             let coachHeader = document.getElementById('hh-home-guided-coach-master-header');
             if (!coachHeader) {
                 coachHeader = document.createElement('div');
@@ -23773,12 +23825,10 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                         </div>
                     </div>
 
-                    <!-- Progress Bar -->
                     <div style="width:100%; height:10px; background:rgba(255,255,255,0.15); border-radius:999px; overflow:hidden; margin-bottom:12px;">
                         <div style="width:${pctDone}%; height:100%; background:linear-gradient(90deg, #F59E0B 0%, #10B981 100%); transition:width 0.35s ease;"></div>
                     </div>
 
-                    <!-- 3-Step Hand-Holding Guide -->
                     <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:10px; background:rgba(255,253,248,0.1); border-radius:14px; padding:12px 14px; font-size:0.79rem; color:#E8F2EC;">
                         <div>
                             <strong style="color:#FEF5D8; display:block;">1️⃣ Start with Daily Maintenance (${maintDoneCount}/${activeMaintenanceTasks.length}):</strong>
@@ -23799,7 +23849,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                     </div>
                 </div>
 
-                <!-- 🎉 DOPAMINE CELEBRATION BANNER WHEN ALL HOME TASKS ARE DONE -->
                 ${totalTasksToday > 0 && totalDoneToday >= totalTasksToday ? `
                     <div style="background:linear-gradient(135deg, #059669 0%, #047857 100%); color:#ffffff; border:3px solid #A7F3D0; border-radius:20px; padding:16px 22px; margin-bottom:18px; text-align:center; box-shadow:0 12px 28px rgba(5, 150, 105, 0.28);">
                         <h3 style="font-family:var(--font-serif, Georgia, serif); font-size:1.45rem; color:#ffffff; margin:0 0 4px 0;">
@@ -23811,7 +23860,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                     </div>
                 ` : ''}
 
-                <!-- 🧭 4 GUIDED PRIORITY TABS (JUST LIKE RECLAIM YOUR TERRAIN!) -->
                 <div class="hh-home-nav-tabs">
                     <button type="button" class="hh-home-tab-btn ${activeTab === 'maintenance' ? 'active' : ''}" onclick="switchHomeCoachTab('maintenance')">
                         <span class="h-step-tag">☀️ STEP 1 • EVERYDAY BASELINE</span>
@@ -23839,10 +23887,8 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                 </div>
             `;
 
-            // 2. Render the Upgraded Step 1 (Daily Maintenance) & Step 2 (Zone Focus Checkboxes) inside resetPanel!
             let customHomeTaskBody = document.getElementById('hh-upgraded-home-tasks-container');
             if (!customHomeTaskBody) {
-                // Hide the old flat list inside resetPanel non-destructively
                 Array.from(resetPanel.children).forEach(ch => {
                     ch.style.display = 'none';
                 });
@@ -23851,7 +23897,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                 resetPanel.appendChild(customHomeTaskBody);
             }
 
-            // Build HTML for Tab 1: Daily General Maintenance (Grouped by Morning, Midday & Evening)
             const groups = ['🌅 Morning Kitchen & Laundry Anchor', '🍽️ After-Meals Dining & Midday Reset', '🌙 Evening Kitchen Closing & 5-Min House Reset'];
             const maintenanceHtml = `
                 <div style="display:${(activeTab === 'maintenance' || activeTab === 'all') ? 'block' : 'none'};">
@@ -23908,7 +23953,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                 </div>
             `;
 
-            // Build HTML for Tab 2: Today's Weekly Zone Focus Deep-Dive Checklist (Every single task laid out with checkboxes!)
             const zoneHtml = `
                 <div style="display:${(activeTab === 'zone' || activeTab === 'all') ? 'block' : 'none'};">
                     <div style="background:linear-gradient(135deg, #FEF5D8 0%, #FFFDF8 100%); border:2px solid #B87612; border-radius:18px; padding:16px 20px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;">
@@ -23968,7 +24012,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
 
             customHomeTaskBody.innerHTML = maintenanceHtml + zoneHtml;
 
-            // 3. Switch the 2-Column Layout into a Clean, Single-Column Guided View based on the active tab!
             const rightMealsCol = twoColGrid.children[1];
             twoColGrid.style.cssText = 'display: block; width: 100%; max-width: 980px; margin: 0 auto;';
 
@@ -23985,7 +24028,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                 if (rightMealsCol) rightMealsCol.style.display = 'none';
                 if (terrainTopSummaryBox) {
                     terrainTopSummaryBox.style.display = 'block';
-                    // Ensure terrainTopSummaryBox sits right below coachHeader when viewed
                     if (coachHeader.nextElementSibling !== terrainTopSummaryBox) {
                         coachHeader.insertAdjacentElement('afterend', terrainTopSummaryBox);
                     }
@@ -23996,13 +24038,12 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         }
     }
 
-    [350, 900, 1800].forEach(ms => setTimeout(renderGuidedHomeCommandPage, ms));
+    [150, 400, 950, 1800].forEach(ms => setTimeout(renderGuidedHomeCommandPage, ms));
     document.addEventListener('click', (e) => {
         if (e.target.closest('select, option, input[type="checkbox"]')) return;
         setTimeout(renderGuidedHomeCommandPage, 140);
     });
 })();
 </script>
-
 </body>
 </html>
