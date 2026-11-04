@@ -18337,7 +18337,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
 })();
 </script>
 
-<!-- ================= BLOCK 3 (FIXED & CONNECTED): CLEAN HERO LANDING PAGE + WORKING LOGIN & SIGNUP ================= -->
+<!-- ================= BLOCK 3 (ULTIMATE EDITION): HIGH-CONVERTING PUBLIC LANDING PAGE, INTERACTIVE STORE-BRAND DEMO, NATIVE LOGIN PRESERVATION & 3-TIER PRICING ================= -->
 <script>
 (function() {
     const FOUNDER_EMAIL = 'contacthoneysuckleandco@gmail.com';
@@ -18366,12 +18366,75 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         }
     }
 
-    // Ensure Landing Page Card Styles Are Always Loaded Immediately
-    if (!document.getElementById('hh-clean-lp-card-styles')) {
+    // Inject Landing Page Scoped Styles
+    if (!document.getElementById('hh-ultimate-block3-styles')) {
         const st = document.createElement('style');
-        st.id = 'hh-clean-lp-card-styles';
+        st.id = 'hh-ultimate-block3-styles';
         st.innerHTML = `
-            .hh-lp-feature-card {
+            #hh-new-landing-master-wrap {
+                background: #FFFDF8;
+                color: #2A1E14;
+                font-family: var(--font-sans, system-ui, -apple-system, sans-serif);
+                min-height: 100vh;
+                width: 100%;
+                box-sizing: border-box;
+            }
+            .hh-b3-nav-link {
+                color: #3D2E1E;
+                text-decoration: none;
+                font-size: 0.84rem;
+                font-weight: 700;
+                cursor: pointer;
+                transition: color 0.15s ease;
+            }
+            .hh-b3-nav-link:hover {
+                color: #2E5A44;
+            }
+            .hh-b3-hero-cta {
+                background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+                color: #ffffff;
+                border: 2.5px solid #FDE68A;
+                border-radius: 999px;
+                padding: 18px 38px;
+                font-size: 1.12rem;
+                font-weight: 800;
+                cursor: pointer;
+                box-shadow: 0 14px 32px rgba(245, 158, 11, 0.38);
+                transition: transform 0.2s ease, box-shadow 0.2s ease;
+                display: inline-flex;
+                align-items: center;
+                gap: 10px;
+            }
+            .hh-b3-hero-cta:hover {
+                transform: translateY(-2px) scale(1.01);
+                box-shadow: 0 18px 38px rgba(245, 158, 11, 0.48);
+            }
+            .hh-b3-step-card {
+                background: #ffffff;
+                border: 2px solid #EADBC0;
+                border-radius: 20px;
+                padding: 22px 20px;
+                position: relative;
+                box-shadow: 0 8px 22px rgba(42, 30, 20, 0.05);
+            }
+            .hh-b3-store-pill {
+                padding: 8px 16px;
+                border-radius: 999px;
+                font-size: 0.8rem;
+                font-weight: 800;
+                cursor: pointer;
+                border: 1.5px solid #D9B36C;
+                background: #FFFDF8;
+                color: #2A1E14;
+                transition: all 0.18s ease;
+            }
+            .hh-b3-store-pill.active {
+                background: #2E5A44;
+                color: #ffffff;
+                border-color: #1F4230;
+                box-shadow: 0 6px 14px rgba(46, 90, 68, 0.22);
+            }
+            .hh-b3-feature-card {
                 background: #ffffff;
                 border: 2px solid #EADBC0;
                 border-radius: 20px;
@@ -18381,556 +18444,618 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                 flex-direction: column;
                 transition: transform 0.22s ease, box-shadow 0.22s ease;
             }
-            .hh-lp-feature-card:hover {
+            .hh-b3-feature-card:hover {
                 transform: translateY(-4px);
                 box-shadow: 0 16px 34px rgba(42, 30, 20, 0.12);
             }
-            .hh-lp-tier-card {
+            .hh-b3-tier-card {
                 background: #FFFDF8;
                 border: 2px solid #EADBC0;
                 border-radius: 24px;
-                padding: 26px 22px;
+                padding: 28px 24px;
                 display: flex;
                 flex-direction: column;
                 justify-content: space-between;
                 box-shadow: 0 10px 28px rgba(0,0,0,0.05);
             }
-            .hh-lp-tier-card.featured {
+            .hh-b3-tier-card.featured {
                 background: linear-gradient(160deg, #FFFDF8 0%, #E8F2EC 100%);
                 border: 3px solid #2E5A44;
-                box-shadow: 0 18px 40px rgba(46, 90, 68, 0.18);
+                box-shadow: 0 18px 42px rgba(46, 90, 68, 0.18);
                 transform: scale(1.02);
+            }
+            .hh-b3-faq-item {
+                background: #ffffff;
+                border: 1.5px solid #EADBC0;
+                border-radius: 14px;
+                padding: 16px 20px;
+                margin-bottom: 10px;
+            }
+            .hh-b3-faq-item summary {
+                font-weight: 800;
+                font-size: 0.95rem;
+                color: #2A1E14;
+                cursor: pointer;
+                list-style: none;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            .hh-b3-faq-item p {
+                font-size: 0.85rem;
+                color: #4A3728;
+                line-height: 1.55;
+                margin: 10px 0 0 0;
+                padding-top: 10px;
+                border-top: 1px dashed #EADBC0;
             }
         `;
         document.head.appendChild(st);
     }
 
-    // Check if user has an active logged-in session
-    window.isHubUserAuthenticated = function() {
-        if (document.body.classList.contains('is-logged-in')) return true;
-        if (typeof currentUser !== 'undefined' && currentUser && currentUser.email) return true;
-        if (localStorage.getItem('hh_logged_in_user_email')) return true;
-        if (localStorage.getItem('hh_free_starter_user')) return true;
-        return false;
+    // Interactive Store-Brand Demo Data right on the Landing Page!
+    const DEMO_STORE_PREVIEW_DATA = {
+        walmart: {
+            label: '🔵 Walmart (In-Store & Curbside)',
+            color: '#0071DC',
+            items: [
+                ['Boneless Chicken Breasts (Need: 3.5 lbs)', 'Perdue Harvestland Free-Range Fresh Boneless Skinless Chicken Breasts'],
+                ['Whole Milk (Need: 1 Gallon)', 'Horizon Organic / Maple Hill 100% Grass-Fed Whole Vitamin D Milk'],
+                ['Salted Butter (Need: 2 Sticks)', 'Kerrygold Pure Irish Grass-Fed Salted Butter'],
+                ['Baking Flour (Need: 4 Cups)', 'King Arthur USDA Organic Unbleached All-Purpose Flour (Never Bromated)']
+            ]
+        },
+        sprouts: {
+            label: '🟢 Sprouts Farmers Market',
+            color: '#2E5A44',
+            items: [
+                ['Boneless Chicken Breasts (Need: 3.5 lbs)', 'Sprouts Organic Air-Chilled Free-Range Boneless Chicken Breasts'],
+                ['Whole Milk (Need: 1 Gallon)', 'Kalona SuperNatural Low-Temp Pasteurized Non-Homogenized / Alexandre A2/A2 Milk'],
+                ['Salted Butter (Need: 2 Sticks)', 'Straus Family Creamery Organic / Kerrygold Pure Irish Grass-Fed Butter'],
+                ['Baking Flour (Need: 4 Cups)', 'Jovial 100% Organic Ancient Einkorn Flour / King Arthur Organic']
+            ]
+        },
+        heb: {
+            label: '🔴 H-E-B (Texas In-Store & Curbside)',
+            color: '#B91C1C',
+            items: [
+                ['Boneless Chicken Breasts (Need: 3.5 lbs)', 'H-E-B Organics Air-Chilled Free-Range Boneless Skinless Chicken Breasts'],
+                ['Whole Milk (Need: 1 Gallon)', 'Kalona SuperNatural / Central Market Organics 100% Grass-Fed Whole Milk'],
+                ['Salted Butter (Need: 2 Sticks)', 'Vital Farms (Austin, TX!) Pasture-Raised Butter / Kerrygold Grass-Fed'],
+                ['Baking Flour (Need: 4 Cups)', 'Barton Springs Mill Texas Heirloom Stone-Milled Flour / Central Market Organics']
+            ]
+        },
+        aldi: {
+            label: '🟠 ALDI',
+            color: '#D97706',
+            items: [
+                ['Boneless Chicken Breasts (Need: 3.5 lbs)', 'Simply Nature Organic Free-Range Boneless Skinless Chicken Breasts'],
+                ['Whole Milk (Need: 1 Gallon)', 'Friendly Farms USDA Organic Whole Milk'],
+                ['Salted Butter (Need: 2 Sticks)', 'Countryside Creamery Pure Irish Grass-Fed Salted Butter'],
+                ['Baking Flour (Need: 4 Cups)', 'Simply Nature Organic Unbleached All-Purpose Flour']
+            ]
+        },
+        azure: {
+            label: '🌾 Azure Standard (Bulk & Homestead)',
+            color: '#9A5B0A',
+            items: [
+                ['Boneless Chicken Breasts (Need: 3.5 lbs)', 'Mary’s Free-Range Organic Heirloom Pastured Chicken Breasts'],
+                ['Whole Milk (Need: 1 Gallon)', 'Alexandre Family Farm A2/A2 Organic 100% Grass-Fed / Kalona Whole Milk'],
+                ['Salted Butter (Need: 2 Sticks)', 'Rumiano Organic 100% Grass-Fed / Sierra Nevada Vat-Cultured Pasture Butter'],
+                ['Baking Flour (Need: 4 Cups)', 'Azure Market Organics Hard Red & Soft White Wheat Berries (For Fresh Home Milling!)']
+            ]
+        }
     };
 
-    // Hide the Landing Page and open the main Hub Dashboard cleanly (no page reload loop!)
-    window.enterAuthenticatedHubDashboard = function(userEmail, userName) {
-        if (userEmail) {
-            const cleanEmail = userEmail.trim().toLowerCase();
-            try { localStorage.setItem('hh_logged_in_user_email', cleanEmail); } catch (e) {}
-            if (typeof window.currentUser === 'undefined' || !window.currentUser) {
-                window.currentUser = {
-                    id: 'usr_' + btoa(cleanEmail).replace(/[^a-zA-Z0-9]/g, '').slice(0, 12),
-                    email: cleanEmail,
-                    name: userName || cleanEmail.split('@')[0]
-                };
-            }
-            if (cleanEmail === FOUNDER_EMAIL) {
-                window.isUserAdmin = true;
-            }
-        }
-        if (userName) {
-            window.currentDisplayName = userName;
-        }
-
-        document.body.classList.add('is-logged-in');
-        window.hideMainPublicLandingPage();
-
-        document.querySelectorAll('.auth-wrapper, #auth-wrapper, #auth-modal, #auth-view, #hh-built-in-login-modal, #hh-free-starter-signup-modal').forEach(el => {
-            el.style.display = 'none';
+    window.switchLandingStoreDemo = function(storeKey) {
+        const data = DEMO_STORE_PREVIEW_DATA[storeKey] || DEMO_STORE_PREVIEW_DATA.walmart;
+        document.querySelectorAll('.hh-b3-store-pill').forEach(btn => {
+            btn.classList.toggle('active', btn.getAttribute('data-store') === storeKey);
         });
-
-        const dashContainer = document.getElementById('dashboard-container');
-        if (dashContainer) dashContainer.style.display = 'flex';
-        document.querySelectorAll('.app-layout').forEach(el => {
-            el.style.display = 'flex';
-        });
-
-        if (typeof window.loadSubscriberDashboardForUser === 'function') {
-            try { window.loadSubscriberDashboardForUser(); } catch (e) {}
-        }
-        if (typeof window.navigateToView === 'function') {
-            try { window.navigateToView('command-center'); } catch (e) {}
-        }
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
-
-    window.hideMainPublicLandingPage = function() {
-        const lv = document.getElementById('landing-view');
-        if (lv) lv.style.display = 'none';
-        const root = document.getElementById('hh-replaced-main-landing-root');
-        if (root) root.style.display = 'none';
-        if (window._replacedOldLandingContainer) {
-            window._replacedOldLandingContainer.style.display = 'none';
-        }
-        document.getElementById('hh-public-attractive-landing-modal')?.remove();
-    };
-
-    // Connected Member Login Modal (Opens native auth modal if available, or built-in Supabase/Hub login modal)
-    window.triggerNativeHubLoginFromLanding = function() {
-        document.getElementById('hh-public-attractive-landing-modal')?.remove();
-
-        const nativeAuth = document.querySelector('#auth-modal, #login-modal, .auth-wrapper, #auth-wrapper');
-        if (nativeAuth && nativeAuth.querySelector('input[type="email"], input[type="password"]')) {
-            nativeAuth.style.display = 'flex';
-            nativeAuth.style.zIndex = '3200';
-            return;
-        }
-
-        document.getElementById('hh-built-in-login-modal')?.remove();
-        const savedEmail = localStorage.getItem('hh_logged_in_user_email') || '';
-
-        const modal = document.createElement('div');
-        modal.id = 'hh-built-in-login-modal';
-        modal.className = 'modal-overlay';
-        modal.style.cssText = 'display:flex; z-index:3200;';
-        modal.innerHTML = `
-            <div style="background:#FFFDF8; width:100%; max-width:440px; border-radius:22px; padding:28px; border:3px solid var(--sage); box-shadow:0 25px 65px rgba(0,0,0,0.45); text-align:left;">
-                <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid var(--border); padding-bottom:12px; margin-bottom:16px;">
-                    <div>
-                        <span class="card-tag" style="background:var(--sage); color:#fff;">🌻 Welcome Back</span>
-                        <h3 style="font-family:var(--font-serif); font-size:1.55rem; color:var(--primary); margin:4px 0 0 0;">Member Login</h3>
+        const box = document.getElementById('hh-b3-live-store-demo-box');
+        if (!box) return;
+        box.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px; padding-bottom:8px; border-bottom:1.5px solid #EADBC0;">
+                <strong style="font-size:0.92rem; color:${data.color};">🛒 Live Preview: ${data.label}</strong>
+                <span style="font-size:0.74rem; background:#FEF5D8; color:#9A5B0A; padding:3px 10px; border-radius:999px; font-weight:800;">
+                    ✨ Automatically adapts to all 102+ recipes!
+                </span>
+            </div>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(235px, 1fr)); gap:10px;">
+                ${data.items.map(([ing, pick]) => `
+                    <div style="background:#FFFDF8; border:1px solid #EADBC0; border-left:4px solid ${data.color}; border-radius:10px; padding:10px 12px; text-align:left;">
+                        <strong style="font-size:0.84rem; color:#2A1E14; display:block;">☐ ${ing}</strong>
+                        <span style="font-size:0.74rem; color:${data.color}; font-weight:700; display:block; margin-top:4px; line-height:1.35;">
+                            ✨ Vetted Pick: ${pick}
+                        </span>
                     </div>
-                    <button type="button" onclick="document.getElementById('hh-built-in-login-modal').remove()" style="background:none; border:none; font-size:1.7rem; cursor:pointer;">&times;</button>
-                </div>
-
-                <form id="hh-built-in-login-form" onsubmit="event.preventDefault(); submitBuiltInMemberLogin();">
-                    <div class="form-group" style="margin-bottom:12px;">
-                        <label style="font-size:0.82rem; font-weight:700;">Email Address</label>
-                        <input type="email" id="hh-login-modal-email" required value="${escapeSafeHtml(savedEmail)}" placeholder="you@example.com" style="width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:10px; font-size:0.92rem; background:#fff;">
-                    </div>
-                    <div class="form-group" style="margin-bottom:16px;">
-                        <label style="font-size:0.82rem; font-weight:700;">Password</label>
-                        <input type="password" id="hh-login-modal-password" required placeholder="Enter your password..." style="width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:10px; font-size:0.92rem; background:#fff;">
-                    </div>
-                    <div id="hh-login-modal-status" style="font-size:0.8rem; color:#B91C1C; margin-bottom:10px; display:none;"></div>
-                    <button type="submit" id="hh-login-modal-submit-btn" class="btn-primary" style="width:100%; padding:13px; font-size:0.95rem; font-weight:800; background:linear-gradient(135deg, #2E5A44 0%, #1F4230 100%); border-color:#173325;">
-                        🔓 Log In to My Hub &rarr;
-                    </button>
-                </form>
-
-                <div style="margin-top:14px; padding-top:12px; border-top:1px dashed var(--border); text-align:center; font-size:0.8rem; color:var(--text-muted);">
-                    New here? <a href="#" onclick="event.preventDefault(); document.getElementById('hh-built-in-login-modal').remove(); if(typeof openFreeStarterSignupModal==='function') openFreeStarterSignupModal();" style="color:var(--primary); font-weight:800;">Start a Free Starter Account &rarr;</a>
-                </div>
+                `).join('')}
             </div>
         `;
-        document.body.appendChild(modal);
-        setTimeout(() => document.getElementById('hh-login-modal-email')?.focus(), 50);
     };
 
-    window.submitBuiltInMemberLogin = async function() {
-        const emailInp = document.getElementById('hh-login-modal-email');
-        const passInp = document.getElementById('hh-login-modal-password');
-        const statusEl = document.getElementById('hh-login-modal-status');
-        const btn = document.getElementById('hh-login-modal-submit-btn');
-
-        const email = (emailInp?.value || '').trim().toLowerCase();
-        const password = passInp?.value || '';
-        if (!email) return;
-
-        if (btn) {
-            btn.disabled = true;
-            btn.textContent = '⏳ Logging you in...';
-        }
-        if (statusEl) statusEl.style.display = 'none';
-
-        const sb = window.supabaseClient || window.sbClient || (typeof supabaseClient !== 'undefined' ? supabaseClient : null);
-        if (sb && sb.auth && typeof sb.auth.signInWithPassword === 'function') {
+    // Trigger Native Login Without Breaking Any Original Event Listeners!
+    window.triggerNativeHubLoginFromLanding = function() {
+        // 1. If we preserved the original Member Login DOM button, click it directly!
+        if (window._preservedOrigLoginBtnEl) {
             try {
-                const { data, error } = await sb.auth.signInWithPassword({ email, password });
-                if (!error && data?.user) {
-                    window.currentUser = data.user;
-                    window.currentDisplayName = data.user.user_metadata?.full_name || data.user.user_metadata?.name || email.split('@')[0];
-                    document.getElementById('hh-built-in-login-modal')?.remove();
-                    window.enterAuthenticatedHubDashboard(email, window.currentDisplayName);
-                    return;
-                } else if (error && email !== FOUNDER_EMAIL) {
-                    if (statusEl) {
-                        statusEl.textContent = '⚠️ ' + (error.message || 'Invalid email or password.');
-                        statusEl.style.display = 'block';
-                    }
-                    if (btn) {
-                        btn.disabled = false;
-                        btn.textContent = '🔓 Log In to My Hub →';
-                    }
-                    return;
-                }
-            } catch (err) {}
+                window._preservedOrigLoginBtnEl.click();
+                return;
+            } catch (e) {}
         }
+        // 2. Or call any global login modal opener in index.html
+        if (typeof window.openAuthModal === 'function') { window.openAuthModal('login'); return; }
+        if (typeof window.showAuthModal === 'function') { window.showAuthModal('login'); return; }
+        if (typeof window.openLoginModal === 'function') { window.openLoginModal(); return; }
 
-        const displayName = email === FOUNDER_EMAIL ? 'Ashton (Founder)' : email.split('@')[0];
-        document.getElementById('hh-built-in-login-modal')?.remove();
-        window.enterAuthenticatedHubDashboard(email, displayName);
+        // 3. Or reveal any existing login/auth modal in the DOM
+        const authModal = document.querySelector('#auth-modal, #login-modal, [id*="auth-modal"], [id*="login-modal"]');
+        if (authModal) {
+            authModal.style.display = 'flex';
+            authModal.classList.add('active');
+            return;
+        }
+        window.hideMainPublicLandingPage();
     };
 
     window.triggerNativeContactAshtonFromLanding = function() {
-        if (typeof window._savedNativeContactAction === 'function') {
-            window._savedNativeContactAction();
-            return;
+        if (window._preservedOrigContactBtnEl) {
+            try {
+                window._preservedOrigContactBtnEl.click();
+                return;
+            } catch (e) {}
         }
-        if (typeof openContactAshtonModal === 'function') { openContactAshtonModal(); return; }
+        if (typeof window.openContactAshtonModal === 'function') { window.openContactAshtonModal(); return; }
         window.location.href = 'mailto:contacthoneysuckleandco@gmail.com?subject=Honeysuckle%20Hub%20Question';
     };
 
-    window.buildMainLandingPageHTML = function() {
+    window.hideMainPublicLandingPage = function() {
+        const masterWrap = document.getElementById('hh-new-landing-master-wrap');
+        if (masterWrap) masterWrap.style.display = 'none';
+        if (window._legacyLandingWrapperEl) {
+            window._legacyLandingWrapperEl.style.display = 'none';
+        }
+        document.getElementById('hh-public-attractive-landing-modal')?.remove();
+    };
+
+    function buildMainLandingPageHTML() {
         const cfg = getPricingCfg();
         const isAdmin = isStrictFounderAdmin();
 
         return `
-            <div id="hh-new-landing-master-wrap" style="background:#FFFDF8; color:var(--text-main); font-family:var(--font-sans); min-height:100vh;">
-
-                <!-- TOP NAVIGATION BAR -->
-                <div style="position:sticky; top:0; z-index:90; background:rgba(255, 253, 248, 0.97); backdrop-filter:blur(8px); border-bottom:1.5px solid var(--border); padding:14px 28px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
-                    <div style="display:flex; align-items:center; gap:10px;">
-                        <span style="font-size:1.65rem;">🌻</span>
-                        <div>
-                            <strong style="font-family:var(--font-serif); font-size:1.4rem; color:var(--primary); display:block; line-height:1.05;">Honeysuckle Hub</strong>
-                            <span style="font-size:0.7rem; color:var(--sage); font-weight:800; text-transform:uppercase; letter-spacing:0.04em;">Whole-Food Kitchen, Home & Holistic Terrain OS</span>
-                        </div>
-                    </div>
-
-                    <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap; font-size:0.83rem; font-weight:700; color:var(--text-main);">
-                        <a href="#hh-main-lp-features" onclick="event.preventDefault(); document.getElementById('hh-main-lp-features')?.scrollIntoView({behavior:'smooth'});" style="color:var(--text-main); text-decoration:none; cursor:pointer;">🍽️ 102+ Photo Recipes & Store Brands</a>
-                        <a href="#hh-main-lp-features" onclick="event.preventDefault(); document.getElementById('hh-main-lp-features')?.scrollIntoView({behavior:'smooth'});" style="color:var(--text-main); text-decoration:none; cursor:pointer;">🏡 6 Household Pillars</a>
-                        <a href="#hh-main-lp-pricing" onclick="event.preventDefault(); document.getElementById('hh-main-lp-pricing')?.scrollIntoView({behavior:'smooth'});" style="color:var(--text-main); text-decoration:none; cursor:pointer;">🌿 Reclaim Your Terrain</a>
-                        <a href="#hh-main-lp-pricing" onclick="event.preventDefault(); document.getElementById('hh-main-lp-pricing')?.scrollIntoView({behavior:'smooth'});" style="color:#D97706; text-decoration:none; font-weight:800; cursor:pointer;">🔥 ${cfg.launchPromoPrice} Launch Promo</a>
-                    </div>
-
-                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                        ${isAdmin ? `
-                            <button type="button" class="btn-secondary" style="padding:7px 12px; font-size:0.74rem;" onclick="if(typeof openAdminMembershipSettingsModal==='function') openAdminMembershipSettingsModal();">
-                                ⚙️ Edit Links & Pricing
-                            </button>
-                        ` : ''}
-                        <button type="button" class="btn-secondary" style="padding:8px 14px; font-size:0.8rem; border-radius:999px;" onclick="triggerNativeContactAshtonFromLanding()">
-                            💌 Contact Ashton
-                        </button>
-                        <button type="button" class="btn-secondary" style="padding:8px 16px; font-size:0.8rem; border-radius:999px; border:1.5px solid var(--sage); color:var(--sage); font-weight:800;" onclick="triggerNativeHubLoginFromLanding()">
-                            Member Login
-                        </button>
-                        <button type="button" class="btn-primary" style="background:linear-gradient(135deg, #F59E0B 0%, #D97706 100%); border-color:#B45309; padding:9px 18px; font-size:0.82rem; border-radius:999px; font-weight:800;" onclick="if(typeof openFreeStarterSignupModal==='function') openFreeStarterSignupModal();">
-                            🌻 Get Started for Free &rarr;
-                        </button>
+            <!-- STICKY TOP NAVIGATION BAR -->
+            <div style="position:sticky; top:0; z-index:90; background:rgba(255, 253, 248, 0.97); backdrop-filter:blur(8px); border-bottom:1.5px solid #EADBC0; padding:14px 28px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <span style="font-size:1.7rem;">🌻</span>
+                    <div>
+                        <strong style="font-family:var(--font-serif, Georgia, serif); font-size:1.42rem; color:var(--primary, #B87612); display:block; line-height:1.05;">Honeysuckle Hub</strong>
+                        <span style="font-size:0.69rem; color:var(--sage, #2E5A44); font-weight:800; text-transform:uppercase; letter-spacing:0.04em;">Whole-Food Kitchen, Home & Holistic Terrain OS</span>
                     </div>
                 </div>
 
-                <!-- HERO BANNER (Single Big Yellow Button) -->
-                <div style="background:linear-gradient(135deg, #1E3F2E 0%, #142B1F 100%); color:#FFFDF8; padding:58px 28px; text-align:center; border-bottom:4px solid #D9B36C;">
-                    <div style="max-width:860px; margin:0 auto;">
-                        <span style="background:#FEF5D8; color:#9A5B0A; padding:6px 16px; border-radius:999px; font-size:0.76rem; font-weight:800; text-transform:uppercase; letter-spacing:0.04em; display:inline-block; margin-bottom:16px;">
-                            🔥 Founding Launch Promo Live: Full Hub Steward Only ${cfg.launchPromoPrice} (Reg. ${cfg.regularStewardPrice})!
-                        </span>
-                        <h1 style="font-family:var(--font-serif); font-size:clamp(2.1rem, 4.5vw, 3.3rem); color:#FEF5D8; margin:0 0 16px 0; line-height:1.15;">
-                            Stop Drowning in <em>"What's for Dinner?"</em> and Daily Home Overwhelm.
-                        </h1>
-                        <p style="font-size:1.08rem; color:#E8F2EC; line-height:1.62; margin:0 auto 28px auto; max-width:740px;">
-                            Generate a complete 7-day whole-food meal plan scaled to your exact family size, see vetted clean brands at your local grocery store, and run your daily room resets, homeschool, and natural apothecary in one peaceful place.
+                <div style="display:flex; align-items:center; gap:18px; flex-wrap:wrap;">
+                    <a class="hh-b3-nav-link" onclick="document.getElementById('hh-b3-how-it-works')?.scrollIntoView({behavior:'smooth'})">✨ How It Works</a>
+                    <a class="hh-b3-nav-link" onclick="document.getElementById('hh-b3-store-concierge')?.scrollIntoView({behavior:'smooth'})">🛒 Store-Brand Concierge</a>
+                    <a class="hh-b3-nav-link" onclick="document.getElementById('hh-main-lp-features')?.scrollIntoView({behavior:'smooth'})">🏡 6 Household Pillars</a>
+                    <a class="hh-b3-nav-link" onclick="document.getElementById('hh-main-lp-pricing')?.scrollIntoView({behavior:'smooth'})">🌿 Reclaim Your Terrain</a>
+                    <a class="hh-b3-nav-link" style="color:#D97706; font-weight:800;" onclick="document.getElementById('hh-main-lp-pricing')?.scrollIntoView({behavior:'smooth'})">🔥 Pricing</a>
+                </div>
+
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                    ${isAdmin ? `
+                        <button type="button" class="btn-secondary" style="padding:7px 12px; font-size:0.74rem;" onclick="if(typeof openAdminMembershipSettingsModal==='function') openAdminMembershipSettingsModal();">
+                            ⚙️ Edit Links & Pricing
+                        </button>
+                    ` : ''}
+                    <button type="button" class="btn-secondary" style="padding:8px 14px; font-size:0.8rem; border-radius:999px;" onclick="triggerNativeContactAshtonFromLanding()">
+                        💌 Contact Ashton
+                    </button>
+                    <button type="button" class="btn-secondary" style="padding:8px 16px; font-size:0.8rem; border-radius:999px; border:1.5px solid #2E5A44; color:#2E5A44; font-weight:800; background:#fff; cursor:pointer;" onclick="triggerNativeHubLoginFromLanding()">
+                        Member Login
+                    </button>
+                    <button type="button" class="btn-primary" style="background:linear-gradient(135deg, #F59E0B 0%, #D97706 100%); color:#fff; border:1.5px solid #B45309; padding:9px 18px; font-size:0.82rem; border-radius:999px; font-weight:800; cursor:pointer;" onclick="if(typeof openFreeStarterSignupModal==='function') openFreeStarterSignupModal();">
+                        🌻 Start Free &rarr;
+                    </button>
+                </div>
+            </div>
+
+            <!-- HERO SECTION (SINGLE BIG YELLOW CTA BUTTON) -->
+            <div style="background:linear-gradient(135deg, #1E3F2E 0%, #142B1F 100%); color:#FFFDF8; padding:62px 28px 54px 28px; text-align:center; border-bottom:4px solid #D9B36C;">
+                <div style="max-width:860px; margin:0 auto;">
+                    <span style="background:rgba(254, 245, 216, 0.15); color:#FEF5D8; border:1px solid #D9B36C; padding:6px 16px; border-radius:999px; font-size:0.75rem; font-weight:800; text-transform:uppercase; letter-spacing:0.04em; display:inline-block; margin-bottom:16px;">
+                        🌻 The Whole-Food Kitchen, Homeschool & Homestead Operating System
+                    </span>
+                    <h1 style="font-family:var(--font-serif, Georgia, serif); font-size:clamp(2.15rem, 4.6vw, 3.4rem); color:#FEF5D8; margin:0 0 16px 0; line-height:1.14;">
+                        Stop Drowning in <em>"What's for Dinner?"</em> and Daily Home Overwhelm.
+                    </h1>
+                    <p style="font-size:1.08rem; color:#E8F2EC; line-height:1.62; margin:0 auto 30px auto; max-width:740px;">
+                        Generate a complete 7-day whole-food meal plan scaled to your exact family size, see vetted clean brands at your local grocery store, and run your daily room resets, homeschool, and natural apothecary in one peaceful place.
+                    </p>
+
+                    <!-- Single Big Golden-Yellow Button -->
+                    <div style="display:flex; justify-content:center; align-items:center; margin-bottom:18px;">
+                        <button type="button" class="hh-b3-hero-cta" onclick="if(typeof openFreeStarterSignupModal==='function') openFreeStarterSignupModal();">
+                            🌻 Get Started for FREE (Daily Reset + 7-Day Meal Plan) &rarr;
+                        </button>
+                    </div>
+
+                    <div style="font-size:0.82rem; color:#A7F3D0; font-weight:700;">
+                        ✓ Free Starter Tier Available Forever &nbsp;•&nbsp; ✓ No Credit Card Needed to Start Free &nbsp;•&nbsp; ✓ Built by a Homeschool & Homestead Mom of 6
+                    </div>
+                </div>
+            </div>
+
+            <!-- HOW IT WORKS IN 3 SIMPLE STEPS -->
+            <div id="hh-b3-how-it-works" style="padding:44px 26px 24px 26px; max-width:1120px; margin:0 auto;">
+                <div style="text-align:center; max-width:700px; margin:0 auto 28px auto;">
+                    <span class="card-tag" style="background:#FEF5D8; color:#9A5B0A; border:1px solid #E5C378;">🧭 Relief in Under 2 Minutes</span>
+                    <h2 style="font-family:var(--font-serif, Georgia, serif); font-size:2rem; color:var(--primary, #B87612); margin:8px 0 6px 0;">
+                        How Honeysuckle Hub Works for Your Household
+                    </h2>
+                </div>
+
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(290px, 1fr)); gap:18px;">
+                    <div class="hh-b3-step-card">
+                        <span style="background:#E8F2EC; color:#2E5A44; font-size:0.72rem; font-weight:800; padding:4px 10px; border-radius:999px;">STEP 1 • 100% FREE</span>
+                        <h4 style="font-family:var(--font-serif, Georgia, serif); font-size:1.25rem; color:#2A1E14; margin:10px 0 6px 0;">1. Enter Your Rooms & Family Ages</h4>
+                        <p style="font-size:0.84rem; color:#4A3728; line-height:1.55; margin:0;">
+                            Add the rooms in your house for an instant <strong>Daily Room Reset Checklist</strong>, and enter your kids' ages so our kitchen math calculates your exact family portion multiplier automatically.
                         </p>
-
-                        <!-- Single Big Yellow CTA -->
-                        <div style="display:flex; justify-content:center; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:18px;">
-                            <button type="button" onclick="if(typeof openFreeStarterSignupModal==='function') openFreeStarterSignupModal();" style="background:linear-gradient(135deg, #F59E0B 0%, #D97706 100%); color:#ffffff; border:2px solid #FDE68A; border-radius:999px; padding:16px 36px; font-size:1.08rem; font-weight:800; cursor:pointer; box-shadow:0 12px 28px rgba(245, 158, 11, 0.35);">
-                                🌻 Get Started for FREE (Daily Reset + 7-Day Meal Plan) &rarr;
-                            </button>
-                        </div>
-
-                        <div style="font-size:0.82rem; color:#A7F3D0; font-weight:700;">
-                            ✓ Free Starter Tier Available Forever &nbsp;•&nbsp; ✓ No Credit Card Needed to Start Free &nbsp;•&nbsp; ✓ Built by a Homeschool & Homestead Mom of 6
-                        </div>
                     </div>
-                </div>
-
-                <!-- 6 VISUAL PHOTO FEATURE CARDS -->
-                <div id="hh-main-lp-features" style="padding:48px 26px; max-width:1120px; margin:0 auto;">
-                    <div style="text-align:center; max-width:720px; margin:0 auto 34px auto;">
-                        <span class="card-tag" style="background:var(--sage); color:#fff;">🌟 What Makes Honeysuckle Hub Different</span>
-                        <h2 style="font-family:var(--font-serif); font-size:2.1rem; color:var(--primary); margin:8px 0 6px 0;">
-                            Everything a Static Paper Planner Can't Do for You
-                        </h2>
-                        <p style="font-size:0.94rem; color:var(--text-muted); margin:0;">
-                            We combined the warmth of a cottagecore paper planner with smart kitchen math, visual photography, and store-specific brand guidance that saves families $120+ a week.
+                    <div class="hh-b3-step-card">
+                        <span style="background:#E8F2EC; color:#2E5A44; font-size:0.72rem; font-weight:800; padding:4px 10px; border-radius:999px;">STEP 2 • 100% FREE</span>
+                        <h4 style="font-family:var(--font-serif, Georgia, serif); font-size:1.25rem; color:#2A1E14; margin:10px 0 6px 0;">2. Generate Your Visual 7-Day Meal Plan</h4>
+                        <p style="font-size:0.84rem; color:#4A3728; line-height:1.55; margin:0;">
+                            Get a full week of nourishing Breakfasts, Lunches, Dinners, Batch Snacks & Drinks with mouthwatering photos, foolproof step-by-step recipe cards, and a consolidated shopping list.
                         </p>
                     </div>
-
-                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(310px, 1fr)); gap:22px;">
-                        <!-- Card 1 -->
-                        <div class="hh-lp-feature-card">
-                            <img src="https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=700&q=80" alt="Grocery Store Concierge" style="width:100%; height:180px; object-fit:cover;">
-                            <div style="padding:18px 20px; flex:1; display:flex; flex-direction:column; justify-content:space-between;">
-                                <div>
-                                    <span style="font-size:0.7rem; font-weight:800; color:var(--sage); text-transform:uppercase;">🛒 7-Store Clean-Brand Concierge</span>
-                                    <h4 style="font-family:var(--font-serif); font-size:1.25rem; color:var(--primary); margin:4px 0 8px 0;">Vetted Brands for Your Exact Store</h4>
-                                    <p style="font-size:0.84rem; color:var(--text-main); line-height:1.5; margin:0 0 10px 0;">
-                                        Stop reading tiny ingredient labels in the aisle! Pick <strong>Walmart, Sprouts, H-E-B, ALDI, Kroger, Azure Standard, or Target</strong> and see the exact clean brand to buy for every ingredient (like <em>Perdue Free-Range Chicken</em> at Walmart or <em>Kalona Non-Homogenized Milk</em> at Sprouts).
-                                    </p>
-                                </div>
-                                <span style="font-size:0.75rem; font-weight:800; color:#B87612;">🌟 Included in Full Hub Steward</span>
-                            </div>
-                        </div>
-
-                        <!-- Card 2 -->
-                        <div class="hh-lp-feature-card">
-                            <img src="https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=700&q=80" alt="Whole Food Family Meals" style="width:100%; height:180px; object-fit:cover;">
-                            <div style="padding:18px 20px; flex:1; display:flex; flex-direction:column; justify-content:space-between;">
-                                <div>
-                                    <span style="font-size:0.7rem; font-weight:800; color:var(--sage); text-transform:uppercase;">🍽️ 102+ Visual Photo Recipes & Smart Scaling</span>
-                                    <h4 style="font-family:var(--font-serif); font-size:1.25rem; color:var(--primary); margin:4px 0 8px 0;">Cuts Your Grocery Bill by Up to 45%</h4>
-                                    <p style="font-size:0.84rem; color:var(--text-main); line-height:1.5; margin:0 0 10px 0;">
-                                        Enter your kids' ages to scale every recipe automatically. Includes mouthwatering photos on every dish, <strong>$0 Planned Leftover Nights</strong>, <strong>Homeschool Dual Lunches</strong> (Kid Lunch + Mom's 35g+ Protein Lunch), and <strong>Event Hosting Mode</strong>!
-                                    </p>
-                                </div>
-                                <span style="font-size:0.75rem; font-weight:800; color:var(--sage);">🆓 7-Day Auto-Planner FREE • Swaps & Customizers in Steward</span>
-                            </div>
-                        </div>
-
-                        <!-- Card 3 -->
-                        <div class="hh-lp-feature-card">
-                            <img src="https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=700&q=80" alt="Peaceful Home Rhythm" style="width:100%; height:180px; object-fit:cover;">
-                            <div style="padding:18px 20px; flex:1; display:flex; flex-direction:column; justify-content:space-between;">
-                                <div>
-                                    <span style="font-size:0.7rem; font-weight:800; color:var(--sage); text-transform:uppercase;">🏡 Home Command & Daily Rhythm</span>
-                                    <h4 style="font-family:var(--font-serif); font-size:1.25rem; color:var(--primary); margin:4px 0 8px 0;">Custom Room Resets & 8 PM Kitchen Bell</h4>
-                                    <p style="font-size:0.84rem; color:var(--text-main); line-height:1.5; margin:0 0 10px 0;">
-                                        Add the rooms in your house and get a realistic daily reset checklist, an <strong>8:00 PM Night-Before Kitchen Bell</strong> reminding you what meat to thaw for tomorrow, and a 1-click <strong>Grace Day (Survival Mode)</strong> for hard days.
-                                    </p>
-                                </div>
-                                <span style="font-size:0.75rem; font-weight:800; color:var(--sage);">🆓 100% FREE in Starter Tier!</span>
-                            </div>
-                        </div>
-
-                        <!-- Card 4 -->
-                        <div class="hh-lp-feature-card">
-                            <img src="https://images.unsplash.com/photo-1585421514738-01798e348b17?auto=format&fit=crop&w=700&q=80" alt="Ditch and Switch Swaps" style="width:100%; height:180px; object-fit:cover;">
-                            <div style="padding:18px 20px; flex:1; display:flex; flex-direction:column; justify-content:space-between;">
-                                <div>
-                                    <span style="font-size:0.7rem; font-weight:800; color:var(--sage); text-transform:uppercase;">🧴 Zero-Guilt Low-Toxin Living</span>
-                                    <h4 style="font-family:var(--font-serif); font-size:1.25rem; color:var(--primary); margin:4px 0 8px 0;">Ditch & Switch Decoder (Levels 1–4)</h4>
-                                    <p style="font-size:0.84rem; color:var(--text-main); line-height:1.5; margin:0 0 10px 0;">
-                                        Whether you're swapping seed oils and laundry detergent at the store (Levels 1–2) or making scratch cleaners, sourdough, and freshly milled flour at home (Levels 3–4), every recipe adapts to your comfort level.
-                                    </p>
-                                </div>
-                                <span style="font-size:0.75rem; font-weight:800; color:#B87612;">🆓 Top 3 Swaps Free • Full Vault in Steward</span>
-                            </div>
-                        </div>
-
-                        <!-- Card 5 -->
-                        <div class="hh-lp-feature-card">
-                            <img src="https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?auto=format&fit=crop&w=700&q=80" alt="Folk Apothecary & Remedies" style="width:100%; height:180px; object-fit:cover;">
-                            <div style="padding:18px 20px; flex:1; display:flex; flex-direction:column; justify-content:space-between;">
-                                <div>
-                                    <span style="font-size:0.7rem; font-weight:800; color:var(--sage); text-transform:uppercase;">🌿 Folk Apothecary, Homeschool & Homestead</span>
-                                    <h4 style="font-family:var(--font-serif); font-size:1.25rem; color:var(--primary); margin:4px 0 8px 0;">Remedies, Essential Oils & Student Logs</h4>
-                                    <p style="font-size:0.84rem; color:var(--text-main); line-height:1.5; margin:0 0 10px 0;">
-                                        Search visual herbal remedies (elderberry syrups, salves, poultices & essential oil rollers), print daily homeschool tickets, track your garden & barnyard flock, and use smart camera scanners.
-                                    </p>
-                                </div>
-                                <span style="font-size:0.75rem; font-weight:800; color:#B87612;">🌟 Included in Full Hub Steward</span>
-                            </div>
-                        </div>
-
-                        <!-- Card 6 -->
-                        <div class="hh-lp-feature-card">
-                            <img src="${TERRAIN_CLEAN_IMG}" alt="Reclaim Your Terrain Cellular Hydration & Sunlight" style="width:100%; height:180px; object-fit:cover;">
-                            <div style="padding:18px 20px; flex:1; display:flex; flex-direction:column; justify-content:space-between;">
-                                <div>
-                                    <span style="font-size:0.7rem; font-weight:800; color:var(--sage); text-transform:uppercase;">🦋 16-Step Guided Clinical Coaching</span>
-                                    <h4 style="font-family:var(--font-serif); font-size:1.25rem; color:var(--primary); margin:4px 0 8px 0;">Reclaim Your Terrain Roadmap</h4>
-                                    <p style="font-size:0.84rem; color:var(--text-main); line-height:1.5; margin:0 0 10px 0;">
-                                        Step-by-step hand-holding for exhausted women: master 5 color-coded daily micro-habits (morning porch sunlight, adrenal mineral elixirs, 30g+ protein meals & gentle strength movement) at an 85% pace—self-paced or custom-built by Ashton!
-                                    </p>
-                                </div>
-                                <span style="font-size:0.75rem; font-weight:800; color:var(--sage);">🌿 ${cfg.terrainAddonPrice} Self-Paced OR ${cfg.terrainConsultOncePrice} Consult + ${cfg.terrainConsultAfterPrice}</span>
-                            </div>
-                        </div>
+                    <div class="hh-b3-step-card" style="border-color:#2E5A44; background:linear-gradient(145deg, #FFFDF8 0%, #E8F2EC 100%);">
+                        <span style="background:#2E5A44; color:#ffffff; font-size:0.72rem; font-weight:800; padding:4px 10px; border-radius:999px;">STEP 3 • FULL HUB STEWARD</span>
+                        <h4 style="font-family:var(--font-serif, Georgia, serif); font-size:1.25rem; color:#1F4230; margin:10px 0 6px 0;">3. Unlock Store Brands, Swaps & All 6 Pillars</h4>
+                        <p style="font-size:0.84rem; color:#2A1E14; line-height:1.55; margin:0;">
+                            Upgrade anytime to see <strong>Ashton's Vetted Clean Brands</strong> at your exact store, swap meals from all 102+ recipes, schedule <strong>$0 Leftover Nights</strong>, and unlock Apothecary, Ditch & Switch & Homeschool OS.
+                        </p>
                     </div>
                 </div>
+            </div>
 
-                <!-- 3-TIER PRICING SECTION -->
-                <div id="hh-main-lp-pricing" style="background:linear-gradient(180deg, #FAF3E3 0%, #FFFDF8 100%); border-top:2px solid var(--border); padding:48px 26px 68px 26px;">
-                    <div style="max-width:1120px; margin:0 auto;">
-                        <div style="text-align:center; max-width:740px; margin:0 auto 34px auto;">
-                            <span class="card-tag" style="background:var(--primary); color:var(--bg-warm-cream);">🌻 Simple, Transparent Family Pricing</span>
-                            <h2 style="font-family:var(--font-serif); font-size:2.15rem; color:var(--primary); margin:8px 0 6px 0;">
-                                Start Free Today, or Lock In Our ${cfg.launchPromoPrice} Launch Promo
-                            </h2>
-                            <p style="font-size:0.92rem; color:var(--text-main); margin:0;">
-                                Try the Daily Room Reset and 7-Day Family Meal Planner completely free—or lock in Founding Member access to the entire Hub before the price returns to ${cfg.regularStewardPrice}!
-                            </p>
+            <!-- INTERACTIVE LIVE PREVIEW: 7-STORE CLEAN-BRAND CONCIERGE -->
+            <div id="hh-b3-store-concierge" style="padding:24px 26px 36px 26px; max-width:1120px; margin:0 auto;">
+                <div style="background:linear-gradient(135deg, #E8F2EC 0%, #FFFDF8 100%); border:2.5px solid #2E5A44; border-radius:24px; padding:28px 24px; text-align:center; box-shadow:0 12px 30px rgba(46, 90, 68, 0.1);">
+                    <span class="card-tag" style="background:#2E5A44; color:#fff;">🛒 Try It Live Right Now • 7-Store Clean-Brand Concierge</span>
+                    <h3 style="font-family:var(--font-serif, Georgia, serif); font-size:1.75rem; color:#1F4230; margin:8px 0 6px 0;">
+                        Click Your Grocery Store Below to See How Your Shopping List Adapts:
+                    </h3>
+                    <p style="font-size:0.88rem; color:#2A1E14; max-width:680px; margin:0 auto 16px auto;">
+                        Walmart doesn't carry the same brands as Sprouts or Azure Standard. Pick a store below to see how Honeysuckle Hub tells you the exact clean whole-food brand to buy in every aisle:
+                    </p>
+
+                    <div style="display:flex; justify-content:center; gap:8px; flex-wrap:wrap; margin-bottom:18px;">
+                        <button type="button" class="hh-b3-store-pill active" data-store="walmart" onclick="switchLandingStoreDemo('walmart')">🔵 Walmart</button>
+                        <button type="button" class="hh-b3-store-pill" data-store="sprouts" onclick="switchLandingStoreDemo('sprouts')">🟢 Sprouts</button>
+                        <button type="button" class="hh-b3-store-pill" data-store="heb" onclick="switchLandingStoreDemo('heb')">🔴 H-E-B</button>
+                        <button type="button" class="hh-b3-store-pill" data-store="aldi" onclick="switchLandingStoreDemo('aldi')">🟠 ALDI</button>
+                        <button type="button" class="hh-b3-store-pill" data-store="azure" onclick="switchLandingStoreDemo('azure')">🌾 Azure Standard</button>
+                    </div>
+
+                    <div id="hh-b3-live-store-demo-box" style="background:#ffffff; border:1.5px solid #EADBC0; border-radius:16px; padding:16px 18px; max-width:960px; margin:0 auto;"></div>
+                </div>
+            </div>
+
+            <!-- 6 VISUAL PHOTO FEATURE CARDS -->
+            <div id="hh-main-lp-features" style="padding:28px 26px 48px 26px; max-width:1120px; margin:0 auto;">
+                <div style="text-align:center; max-width:720px; margin:0 auto 34px auto;">
+                    <span class="card-tag" style="background:var(--sage, #2E5A44); color:#fff;">🌟 6 Integrated Household Pillars</span>
+                    <h2 style="font-family:var(--font-serif, Georgia, serif); font-size:2.1rem; color:var(--primary, #B87612); margin:8px 0 6px 0;">
+                        Everything a Static Paper Planner Can't Do for You
+                    </h2>
+                    <p style="font-size:0.94rem; color:#6E5A46; margin:0;">
+                        We combined the warmth of a vintage farmhouse paper planner with smart kitchen math, visual photography, and holistic tools that save families $120+ a week.
+                    </p>
+                </div>
+
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(310px, 1fr)); gap:22px;">
+                    <!-- Card 1 -->
+                    <div class="hh-b3-feature-card">
+                        <img src="https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=700&q=80" alt="Grocery Store Concierge" style="width:100%; height:180px; object-fit:cover;">
+                        <div style="padding:18px 20px; flex:1; display:flex; flex-direction:column; justify-content:space-between;">
+                            <div>
+                                <span style="font-size:0.7rem; font-weight:800; color:#2E5A44; text-transform:uppercase;">🛒 7-Store Clean-Brand Concierge</span>
+                                <h4 style="font-family:var(--font-serif, Georgia, serif); font-size:1.25rem; color:#B87612; margin:4px 0 8px 0;">Vetted Brands for Your Exact Store</h4>
+                                <p style="font-size:0.84rem; color:#2A1E14; line-height:1.5; margin:0 0 10px 0;">
+                                    Stop reading tiny ingredient labels in the aisle! Pick <strong>Walmart, Sprouts, H-E-B, ALDI, Kroger, Azure Standard, or Target</strong> and see the exact clean brand to buy for every ingredient.
+                                </p>
+                            </div>
+                            <span style="font-size:0.75rem; font-weight:800; color:#B87612;">🌟 Included in Full Hub Steward</span>
                         </div>
+                    </div>
 
-                        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(315px, 1fr)); gap:22px; align-items:stretch;">
-
-                            <!-- TIER 1: FREE STARTER -->
-                            <div class="hh-lp-tier-card">
-                                <div>
-                                    <span style="background:#E8F2EC; color:var(--sage); padding:4px 12px; border-radius:999px; font-size:0.72rem; font-weight:800; text-transform:uppercase;">
-                                        🆓 Free Starter Account
-                                    </span>
-                                    <h3 style="font-family:var(--font-serif); font-size:1.55rem; color:var(--primary); margin:10px 0 2px 0;">Daily Rhythm Starter</h3>
-                                    <div style="font-family:var(--font-serif); font-size:2.25rem; font-weight:800; color:var(--text-main); margin:6px 0;">
-                                        $0 <span style="font-size:0.9rem; font-weight:600; color:var(--text-muted);">/ forever</span>
-                                    </div>
-                                    <p style="font-size:0.8rem; color:var(--text-muted); margin:0 0 16px 0; padding-bottom:12px; border-bottom:1px dashed var(--border);">
-                                        Perfect for getting tonight's dinner & daily room reset under control right away.
-                                    </p>
-                                    <div style="display:flex; flex-direction:column; gap:9px; font-size:0.83rem; color:var(--text-main); margin-bottom:22px;">
-                                        <div>✅ <strong>Home Command Center</strong> (Add your rooms & generate your Daily Reset Checklist)</div>
-                                        <div>✅ <strong>8:00 PM Night-Before Kitchen Bell</strong> & <strong>Grace Day Mode</strong></div>
-                                        <div>✅ <strong>Custom Family-Age Portion Scaling</strong> (Scales recipes to your exact household!)</div>
-                                        <div>✅ <strong>Full 7-Day Auto Meal Planner</strong> (Breakfast, Lunch, Dinner, Snack & Drink cards)</div>
-                                        <div>✅ <strong>Step-by-Step Visual Recipe Cards</strong> for your generated week</div>
-                                        <div>✅ <strong>Consolidated Master Shopping List</strong> (Ingredients & quantities)</div>
-                                        <div>✅ <strong>3-Card Sneak Peek</strong> in Recipe, Apothecary & Ditch & Switch Vaults</div>
-                                    </div>
-                                </div>
-                                <button type="button" class="btn-primary" style="width:100%; padding:14px; font-size:0.92rem; background:#B87612; border-color:#9A5B0A;" onclick="if(typeof openFreeStarterSignupModal==='function') openFreeStarterSignupModal();">
-                                    🌻 Start Free Starter Account &rarr;
-                                </button>
+                    <!-- Card 2 -->
+                    <div class="hh-b3-feature-card">
+                        <img src="https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=700&q=80" alt="Whole Food Family Meals" style="width:100%; height:180px; object-fit:cover;">
+                        <div style="padding:18px 20px; flex:1; display:flex; flex-direction:column; justify-content:space-between;">
+                            <div>
+                                <span style="font-size:0.7rem; font-weight:800; color:#2E5A44; text-transform:uppercase;">🍽️ 102+ Visual Photo Recipes & Smart Scaling</span>
+                                <h4 style="font-family:var(--font-serif, Georgia, serif); font-size:1.25rem; color:#B87612; margin:4px 0 8px 0;">Cuts Your Grocery Bill by Up to 45%</h4>
+                                <p style="font-size:0.84rem; color:#2A1E14; line-height:1.5; margin:0 0 10px 0;">
+                                    Enter your kids' ages to scale every recipe automatically. Includes mouthwatering photos on every dish, <strong>$0 Planned Leftover Nights</strong>, <strong>Homeschool Dual Lunches</strong> (Kid Lunch + Mom's 35g+ Protein Lunch), and <strong>Event Hosting Mode</strong>!
+                                </p>
                             </div>
+                            <span style="font-size:0.75rem; font-weight:800; color:#2E5A44;">🆓 7-Day Auto-Planner FREE • Swaps & Customizers in Steward</span>
+                        </div>
+                    </div>
 
-                            <!-- TIER 2: FULL HUB STEWARD -->
-                            <div class="hh-lp-tier-card featured">
-                                <div>
-                                    <span style="background:#D97706; color:#fff; padding:4px 12px; border-radius:999px; font-size:0.71rem; font-weight:800; text-transform:uppercase;">
-                                        🔥 Founding Launch Promo (Save $20/mo!)
-                                    </span>
-                                    <h3 style="font-family:var(--font-serif); font-size:1.65rem; color:var(--sage); margin:10px 0 2px 0;">Full Hub Steward</h3>
-                                    <div style="margin:6px 0;">
-                                        <span style="font-size:1.1rem; color:#888; text-decoration:line-through; font-weight:700; margin-right:6px;">${cfg.regularStewardPrice}</span>
-                                        <span style="font-family:var(--font-serif); font-size:2.3rem; font-weight:800; color:var(--primary);">${cfg.launchPromoPrice}</span>
-                                        <span style="display:block; font-size:0.75rem; font-weight:800; color:var(--sage);">🎉 Special Launch Rate — Lock in ${cfg.launchPromoPrice} before it returns to ${cfg.regularStewardPrice}!</span>
-                                    </div>
-                                    <p style="font-size:0.8rem; color:var(--text-main); margin:0 0 16px 0; padding-bottom:12px; border-bottom:1px dashed var(--border);">
-                                        Unlocks every store brand guide, meal swapper, leftover planner, and all 5 homestead pillars.
-                                    </p>
-                                    <div style="display:flex; flex-direction:column; gap:9px; font-size:0.83rem; color:var(--text-main); margin-bottom:22px;">
-                                        <div>🌟 <strong>Everything in Free Starter, PLUS:</strong></div>
-                                        <div>✅ <strong>7-Store Clean-Brand Concierge</strong> (Exact vetted brands at Walmart, Sprouts, H-E-B, ALDI, Kroger, Azure & Target!)</div>
-                                        <div>✅ <strong>Interactive Meal Swapper & Browse Picker</strong> + <strong>$0 Planned Leftover Nights</strong></div>
-                                        <div>✅ <strong>Homeschool Dual Lunches</strong> (Kid Lunch + My Filling Adult Lunch) & <strong>Hosting Mode</strong></div>
-                                        <div>✅ <strong>4-View Kitchen Calendar OS</strong> (Plan-Book Grid, Daily Prep Sheet & Monthly Calendar)</div>
-                                        <div>✅ <strong>All 102+ Whole-Food Recipes</strong>, <strong>Folk Apothecary Vault</strong> & <strong>Ditch & Switch Decoder</strong></div>
-                                        <div>✅ <strong>Full Homeschool & Homestead OS</strong> + <strong>Smart Camera Scanners & Voice Brain Dump</strong></div>
-                                    </div>
-                                </div>
-                                <button type="button" class="btn-primary" style="width:100%; padding:14px; font-size:0.92rem; background:linear-gradient(135deg, #2E5A44 0%, #1F4230 100%); border-color:#173325;" onclick="if(typeof launchStewardStripeCheckout==='function') launchStewardStripeCheckout('steward_promo');">
-                                    🔥 Lock In ${cfg.launchPromoPrice} Launch Promo &rarr;
-                                </button>
+                    <!-- Card 3 -->
+                    <div class="hh-b3-feature-card">
+                        <img src="https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=700&q=80" alt="Peaceful Home Rhythm" style="width:100%; height:180px; object-fit:cover;">
+                        <div style="padding:18px 20px; flex:1; display:flex; flex-direction:column; justify-content:space-between;">
+                            <div>
+                                <span style="font-size:0.7rem; font-weight:800; color:#2E5A44; text-transform:uppercase;">🏡 Home Command & Daily Rhythm</span>
+                                <h4 style="font-family:var(--font-serif, Georgia, serif); font-size:1.25rem; color:#B87612; margin:4px 0 8px 0;">Custom Room Resets & 8 PM Kitchen Bell</h4>
+                                <p style="font-size:0.84rem; color:#2A1E14; line-height:1.5; margin:0 0 10px 0;">
+                                    Add the rooms in your house and get a realistic daily reset checklist, an <strong>8:00 PM Night-Before Kitchen Bell</strong> reminding you what meat to thaw for tomorrow, and a 1-click <strong>Grace Day (Survival Mode)</strong> for hard days.
+                                </p>
                             </div>
+                            <span style="font-size:0.75rem; font-weight:800; color:#2E5A44;">🆓 100% FREE in Starter Tier!</span>
+                        </div>
+                    </div>
 
-                            <!-- TIER 3: RECLAIM YOUR TERRAIN -->
-                            <div class="hh-lp-tier-card">
-                                <div>
-                                    <span style="background:#FEF5D8; color:#9A5B0A; border:1px solid #E5C378; padding:4px 12px; border-radius:999px; font-size:0.72rem; font-weight:800; text-transform:uppercase;">
-                                        🦋 16-Step Clinical Coaching Add-On
-                                    </span>
-                                    <h3 style="font-family:var(--font-serif); font-size:1.55rem; color:var(--primary); margin:10px 0 4px 0;">Reclaim Your Terrain</h3>
-
-                                    <div style="background:#ffffff; border:1.5px solid var(--border); border-radius:14px; padding:10px 12px; margin-bottom:14px;">
-                                        <div style="margin-bottom:8px; padding-bottom:8px; border-bottom:1px dashed var(--border);">
-                                            <span style="font-size:0.7rem; font-weight:800; color:var(--sage); text-transform:uppercase; display:block;">Option 1: Self-Paced 16-Step Roadmap</span>
-                                            <strong style="font-family:var(--font-serif); font-size:1.45rem; color:var(--text-main);">Extra ${cfg.terrainAddonPrice}</strong>
-                                            <span style="font-size:0.74rem; color:var(--text-muted); display:block;">Guided 16-step app coaching, daily habits & workouts</span>
-                                        </div>
-                                        <div>
-                                            <span style="font-size:0.7rem; font-weight:800; color:#B87612; text-transform:uppercase; display:block;">Option 2: Custom Consult & Plan Built by Ashton</span>
-                                            <strong style="font-family:var(--font-serif); font-size:1.35rem; color:var(--primary);">${cfg.terrainConsultOncePrice}</strong>
-                                            <span style="font-size:0.78rem; font-weight:700; color:var(--sage);"> + ${cfg.terrainConsultAfterPrice}</span>
-                                            <span style="font-size:0.73rem; color:var(--text-main); display:block;">Personal "Read" Consult & custom protocol built by me, then $19/mo ongoing access!</span>
-                                        </div>
-                                    </div>
-
-                                    <div style="display:flex; flex-direction:column; gap:8px; font-size:0.82rem; color:var(--text-main); margin-bottom:18px;">
-                                        <div>✅ <strong>16-Step Visual Stepping-Stone Roadmap</strong> (4 Clinical Phases at your own pace)</div>
-                                        <div>✅ <strong>5 Color-Coded Daily Micro-Habits</strong> with 85% Mastery Gate so you never burn out</div>
-                                        <div>✅ <strong>Phase-Matched Workout of the Day Studio</strong> & Cortisol-Calm Rest Timer</div>
-                                        <div>✅ <strong>Done-For-You 30g+ Protein Meal Blueprints</strong> + <strong>12 Clinical Bonus Recipes</strong></div>
-                                        <div>✅ <strong>Ashton's Practitioner Dispensary</strong> & Fullscript Mineral Protocols</div>
-                                    </div>
-                                </div>
-                                <div style="display:flex; flex-direction:column; gap:8px;">
-                                    <button type="button" class="btn-primary" style="width:100%; padding:11px; font-size:0.83rem; background:var(--sage); border-color:var(--sage);" onclick="if(typeof launchStewardStripeCheckout==='function') launchStewardStripeCheckout('terrain_self_paced');">
-                                        🌿 Add Self-Paced Terrain (${cfg.terrainAddonPrice}) &rarr;
-                                    </button>
-                                    <button type="button" class="btn-secondary" style="width:100%; padding:11px; font-size:0.8rem; border:2px solid #B87612; color:#9A5B0A; font-weight:800;" onclick="if(typeof launchStewardStripeCheckout==='function') launchStewardStripeCheckout('terrain_consult_vip');">
-                                        👑 Book $127 Consult & Custom Plan Built by Me (+ $19/mo after) &rarr;
-                                    </button>
-                                </div>
+                    <!-- Card 4 -->
+                    <div class="hh-b3-feature-card">
+                        <img src="https://images.unsplash.com/photo-1585421514738-01798e348b17?auto=format&fit=crop&w=700&q=80" alt="Ditch and Switch Swaps" style="width:100%; height:180px; object-fit:cover;">
+                        <div style="padding:18px 20px; flex:1; display:flex; flex-direction:column; justify-content:space-between;">
+                            <div>
+                                <span style="font-size:0.7rem; font-weight:800; color:#2E5A44; text-transform:uppercase;">🧴 Zero-Guilt Low-Toxin Living</span>
+                                <h4 style="font-family:var(--font-serif, Georgia, serif); font-size:1.25rem; color:#B87612; margin:4px 0 8px 0;">Ditch & Switch Decoder (Levels 1–4)</h4>
+                                <p style="font-size:0.84rem; color:#2A1E14; line-height:1.5; margin:0 0 10px 0;">
+                                    Whether you're swapping seed oils and laundry detergent at the store (Levels 1–2) or making scratch cleaners, sourdough, and freshly milled flour at home (Levels 3–4), every recipe adapts to your comfort level.
+                                </p>
                             </div>
+                            <span style="font-size:0.75rem; font-weight:800; color:#B87612;">🆓 Top 3 Swaps Free • Full Vault in Steward</span>
+                        </div>
+                    </div>
 
+                    <!-- Card 5 -->
+                    <div class="hh-b3-feature-card">
+                        <img src="https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?auto=format&fit=crop&w=700&q=80" alt="Folk Apothecary & Remedies" style="width:100%; height:180px; object-fit:cover;">
+                        <div style="padding:18px 20px; flex:1; display:flex; flex-direction:column; justify-content:space-between;">
+                            <div>
+                                <span style="font-size:0.7rem; font-weight:800; color:#2E5A44; text-transform:uppercase;">🌿 Folk Apothecary, Homeschool & Homestead</span>
+                                <h4 style="font-family:var(--font-serif, Georgia, serif); font-size:1.25rem; color:#B87612; margin:4px 0 8px 0;">Remedies, Essential Oils & Student Logs</h4>
+                                <p style="font-size:0.84rem; color:#2A1E14; line-height:1.5; margin:0 0 10px 0;">
+                                    Search visual herbal remedies (elderberry syrups, salves, poultices & essential oil rollers), print daily homeschool tickets, track your garden & barnyard flock, and use AI camera scanners.
+                                </p>
+                            </div>
+                            <span style="font-size:0.75rem; font-weight:800; color:#B87612;">🌟 Included in Full Hub Steward</span>
+                        </div>
+                    </div>
+
+                    <!-- Card 6: Reclaim Your Terrain (Sunlit Citrus Mineral Elixir & Herbs — NO Yoga!) -->
+                    <div class="hh-b3-feature-card">
+                        <img src="${TERRAIN_CLEAN_IMG}" alt="Reclaim Your Terrain Cellular Hydration & Sunlight" style="width:100%; height:180px; object-fit:cover;">
+                        <div style="padding:18px 20px; flex:1; display:flex; flex-direction:column; justify-content:space-between;">
+                            <div>
+                                <span style="font-size:0.7rem; font-weight:800; color:#2E5A44; text-transform:uppercase;">🦋 16-Step Guided Clinical Coaching</span>
+                                <h4 style="font-family:var(--font-serif, Georgia, serif); font-size:1.25rem; color:#B87612; margin:4px 0 8px 0;">Reclaim Your Terrain Roadmap</h4>
+                                <p style="font-size:0.84rem; color:#2A1E14; line-height:1.5; margin:0 0 10px 0;">
+                                    Step-by-step hand-holding for exhausted women: master 5 color-coded daily micro-habits (morning porch sunlight, adrenal mineral elixirs, 30g+ protein meals & gentle strength movement) at an 85% pace—self-paced or custom-built by Ashton!
+                                </p>
+                            </div>
+                            <span style="font-size:0.75rem; font-weight:800; color:#2E5A44;">🌿 ${cfg.terrainAddonPrice} Self-Paced OR ${cfg.terrainConsultOncePrice} Consult + ${cfg.terrainConsultAfterPrice}</span>
                         </div>
                     </div>
                 </div>
             </div>
-        `;
-    };
 
-    // Always replace the old landing page HTML immediately (works regardless of what text the old landing page had!)
-    function replaceLegacyLandingPageNow() {
+            <!-- 3-TIER PRICING SECTION -->
+            <div id="hh-main-lp-pricing" style="background:linear-gradient(180deg, #FAF3E3 0%, #FFFDF8 100%); border-top:2px solid #EADBC0; padding:48px 26px 56px 26px;">
+                <div style="max-width:1120px; margin:0 auto;">
+                    <div style="text-align:center; max-width:740px; margin:0 auto 34px auto;">
+                        <span class="card-tag" style="background:#B87612; color:#fff;">🌻 Simple, Transparent Family Pricing</span>
+                        <h2 style="font-family:var(--font-serif, Georgia, serif); font-size:2.15rem; color:#B87612; margin:8px 0 6px 0;">
+                            Start Free Today, or Lock In Our ${cfg.launchPromoPrice} Launch Promo
+                        </h2>
+                        <p style="font-size:0.92rem; color:#2A1E14; margin:0;">
+                            Try the Daily Room Reset and 7-Day Family Meal Planner completely free—or lock in Founding Member access to the entire Hub before the price returns to ${cfg.regularStewardPrice}!
+                        </p>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(315px, 1fr)); gap:22px; align-items:stretch;">
+
+                        <!-- TIER 1: FREE STARTER -->
+                        <div class="hh-b3-tier-card">
+                            <div>
+                                <span style="background:#E8F2EC; color:#2E5A44; padding:4px 12px; border-radius:999px; font-size:0.72rem; font-weight:800; text-transform:uppercase;">
+                                    🆓 Free Starter Account
+                                </span>
+                                <h3 style="font-family:var(--font-serif, Georgia, serif); font-size:1.55rem; color:#B87612; margin:10px 0 2px 0;">Daily Rhythm Starter</h3>
+                                <div style="font-family:var(--font-serif, Georgia, serif); font-size:2.25rem; font-weight:800; color:#2A1E14; margin:6px 0;">
+                                    $0 <span style="font-size:0.9rem; font-weight:600; color:#6E5A46;">/ forever</span>
+                                </div>
+                                <p style="font-size:0.8rem; color:#6E5A46; margin:0 0 16px 0; padding-bottom:12px; border-bottom:1px dashed #EADBC0;">
+                                    Perfect for getting tonight's dinner & daily room reset under control right away.
+                                </p>
+                                <div style="display:flex; flex-direction:column; gap:9px; font-size:0.83rem; color:#2A1E14; margin-bottom:22px;">
+                                    <div>✅ <strong>Home Command Center</strong> (Add your rooms & generate your Daily Reset Checklist)</div>
+                                    <div>✅ <strong>8:00 PM Night-Before Kitchen Bell</strong> & <strong>Grace Day Mode</strong></div>
+                                    <div>✅ <strong>Custom Family-Age Portion Scaling</strong> (Scales recipes to your exact household!)</div>
+                                    <div>✅ <strong>Full 7-Day Auto Meal Planner</strong> (Breakfast, Lunch, Dinner, Snack & Drink cards)</div>
+                                    <div>✅ <strong>Step-by-Step Visual Recipe Cards</strong> for your generated week</div>
+                                    <div>✅ <strong>Consolidated Master Shopping List</strong> (Ingredients & quantities)</div>
+                                    <div>✅ <strong>3-Card Sneak Peek</strong> in Recipe, Apothecary & Ditch & Switch Vaults</div>
+                                </div>
+                            </div>
+                            <button type="button" class="btn-primary" style="width:100%; padding:14px; font-size:0.92rem; background:#B87612; border-color:#9A5B0A; color:#fff; border-radius:12px; font-weight:800; cursor:pointer;" onclick="if(typeof openFreeStarterSignupModal==='function') openFreeStarterSignupModal();">
+                                🌻 Start Free Starter Account &rarr;
+                            </button>
+                        </div>
+
+                        <!-- TIER 2: FULL HUB STEWARD ($9 LAUNCH PROMO / $29 REG) -->
+                        <div class="hh-b3-tier-card featured">
+                            <div>
+                                <span style="background:#D97706; color:#fff; padding:4px 12px; border-radius:999px; font-size:0.71rem; font-weight:800; text-transform:uppercase;">
+                                    🔥 Founding Launch Promo (Save $20/mo!)
+                                </span>
+                                <h3 style="font-family:var(--font-serif, Georgia, serif); font-size:1.65rem; color:#2E5A44; margin:10px 0 2px 0;">Full Hub Steward</h3>
+                                <div style="margin:6px 0;">
+                                    <span style="font-size:1.1rem; color:#888; text-decoration:line-through; font-weight:700; margin-right:6px;">${cfg.regularStewardPrice}</span>
+                                    <span style="font-family:var(--font-serif, Georgia, serif); font-size:2.3rem; font-weight:800; color:#B87612;">${cfg.launchPromoPrice}</span>
+                                    <span style="display:block; font-size:0.75rem; font-weight:800; color:#2E5A44;">🎉 Special Launch Rate — Lock in ${cfg.launchPromoPrice} before it returns to ${cfg.regularStewardPrice}!</span>
+                                </div>
+                                <p style="font-size:0.8rem; color:#2A1E14; margin:0 0 16px 0; padding-bottom:12px; border-bottom:1px dashed #EADBC0;">
+                                    Unlocks every store brand guide, meal swapper, leftover planner, and all 5 homestead pillars.
+                                </p>
+                                <div style="display:flex; flex-direction:column; gap:9px; font-size:0.83rem; color:#2A1E14; margin-bottom:22px;">
+                                    <div>🌟 <strong>Everything in Free Starter, PLUS:</strong></div>
+                                    <div>✅ <strong>7-Store Clean-Brand Concierge</strong> (Exact vetted brands at Walmart, Sprouts, H-E-B, ALDI, Kroger, Azure & Target!)</div>
+                                    <div>✅ <strong>Interactive Meal Swapper & Browse Picker</strong> + <strong>$0 Planned Leftover Nights</strong></div>
+                                    <div>✅ <strong>Homeschool Dual Lunches</strong> (Kid Lunch + My Filling Adult Lunch) & <strong>Hosting Mode</strong></div>
+                                    <div>✅ <strong>4-View Kitchen Calendar OS</strong> (Plan-Book Grid, Daily Prep Sheet & Monthly Calendar)</div>
+                                    <div>✅ <strong>All 102+ Whole-Food Recipes</strong>, <strong>Folk Apothecary Vault</strong> & <strong>Ditch & Switch Decoder</strong></div>
+                                    <div>✅ <strong>Full Homeschool & Homestead OS</strong> + <strong>AI Camera Scanners & Voice Brain Dump</strong></div>
+                                </div>
+                            </div>
+                            <button type="button" class="btn-primary" style="width:100%; padding:14px; font-size:0.92rem; background:linear-gradient(135deg, #2E5A44 0%, #1F4230 100%); border-color:#173325; color:#fff; border-radius:12px; font-weight:800; cursor:pointer;" onclick="if(typeof launchStewardStripeCheckout==='function') launchStewardStripeCheckout('steward_promo');">
+                                🔥 Lock In ${cfg.launchPromoPrice} Launch Promo &rarr;
+                            </button>
+                        </div>
+
+                        <!-- TIER 3: RECLAIM YOUR TERRAIN (+$19/MO OR $127 CONSULT + $19/MO AFTER) -->
+                        <div class="hh-b3-tier-card">
+                            <div>
+                                <span style="background:#FEF5D8; color:#9A5B0A; border:1px solid #E5C378; padding:4px 12px; border-radius:999px; font-size:0.72rem; font-weight:800; text-transform:uppercase;">
+                                    🦋 16-Step Clinical Coaching Add-On
+                                </span>
+                                <h3 style="font-family:var(--font-serif, Georgia, serif); font-size:1.55rem; color:#B87612; margin:10px 0 4px 0;">Reclaim Your Terrain</h3>
+
+                                <div style="background:#ffffff; border:1.5px solid #EADBC0; border-radius:14px; padding:10px 12px; margin-bottom:14px;">
+                                    <div style="margin-bottom:8px; padding-bottom:8px; border-bottom:1px dashed #EADBC0;">
+                                        <span style="font-size:0.7rem; font-weight:800; color:#2E5A44; text-transform:uppercase; display:block;">Option 1: Self-Paced 16-Step Roadmap</span>
+                                        <strong style="font-family:var(--font-serif, Georgia, serif); font-size:1.45rem; color:#2A1E14;">Extra ${cfg.terrainAddonPrice}</strong>
+                                        <span style="font-size:0.74rem; color:#6E5A46; display:block;">Guided 16-step app coaching, daily habits & workouts</span>
+                                    </div>
+                                    <div>
+                                        <span style="font-size:0.7rem; font-weight:800; color:#B87612; text-transform:uppercase; display:block;">Option 2: Custom Consult & Plan Built by Ashton</span>
+                                        <strong style="font-family:var(--font-serif, Georgia, serif); font-size:1.35rem; color:#B87612;">${cfg.terrainConsultOncePrice}</strong>
+                                        <span style="font-size:0.78rem; font-weight:700; color:#2E5A44;"> + ${cfg.terrainConsultAfterPrice}</span>
+                                        <span style="font-size:0.73rem; color:#2A1E14; display:block;">Personal "Read" Consult & custom protocol built by me, then $19/mo ongoing access!</span>
+                                    </div>
+                                </div>
+
+                                <div style="display:flex; flex-direction:column; gap:8px; font-size:0.82rem; color:#2A1E14; margin-bottom:18px;">
+                                    <div>✅ <strong>16-Step Visual Stepping-Stone Roadmap</strong> (4 Clinical Phases at your own pace)</div>
+                                    <div>✅ <strong>5 Color-Coded Daily Micro-Habits</strong> with 85% Mastery Gate so you never burn out</div>
+                                    <div>✅ <strong>Phase-Matched Workout of the Day Studio</strong> & Cortisol-Calm Rest Timer</div>
+                                    <div>✅ <strong>Done-For-You 30g+ Protein Meal Blueprints</strong> + <strong>12 Clinical Bonus Recipes</strong></div>
+                                    <div>✅ <strong>Ashton's Practitioner Dispensary</strong> & Fullscript Mineral Protocols</div>
+                                </div>
+                            </div>
+                            <div style="display:flex; flex-direction:column; gap:8px;">
+                                <button type="button" class="btn-primary" style="width:100%; padding:11px; font-size:0.83rem; background:#2E5A44; border-color:#2E5A44; color:#fff; border-radius:10px; font-weight:800; cursor:pointer;" onclick="if(typeof launchStewardStripeCheckout==='function') launchStewardStripeCheckout('terrain_self_paced');">
+                                    🌿 Add Self-Paced Terrain (${cfg.terrainAddonPrice}) &rarr;
+                                </button>
+                                <button type="button" class="btn-secondary" style="width:100%; padding:11px; font-size:0.8rem; border:2px solid #B87612; color:#9A5B0A; background:#FFFDF8; border-radius:10px; font-weight:800; cursor:pointer;" onclick="if(typeof launchStewardStripeCheckout==='function') launchStewardStripeCheckout('terrain_consult_vip');">
+                                    👑 Book $127 Consult & Custom Plan Built by Me (+ $19/mo after) &rarr;
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- FREQUENTLY ASKED QUESTIONS -->
+            <div style="padding:40px 26px 64px 26px; max-width:860px; margin:0 auto;">
+                <div style="text-align:center; margin-bottom:24px;">
+                    <span class="card-tag" style="background:#E8F2EC; color:#2E5A44;">💬 Common Questions</span>
+                    <h3 style="font-family:var(--font-serif, Georgia, serif); font-size:1.8rem; color:#B87612; margin:6px 0 0 0;">Frequently Asked Questions</h3>
+                </div>
+                <details class="hh-b3-faq-item">
+                    <summary>🌻 Is the Free Starter Account really free forever? <span>+</span></summary>
+                    <p>Yes! You can enter your rooms, run your Daily Room Reset Checklist, scale portions to your family's ages, and generate a fresh 7-Day Whole-Food Meal Plan & basic shopping list every week for $0 without ever entering a credit card.</p>
+                </details>
+                <details class="hh-b3-faq-item">
+                    <summary>🛒 What do I get when I upgrade to the $9/month Launch Promo? <span>+</span></summary>
+                    <p>You lock in our Founding Member rate ($9/month instead of the regular $29/month) and unlock the 7-Store Clean-Brand Concierge (showing the exact clean brand to buy at Walmart, Sprouts, H-E-B, ALDI, Kroger, Azure & Target), the Interactive Meal Swapper, $0 Planned Leftover Nights, Homeschool Dual Lunches, all 102+ photo recipes, the Folk Apothecary, Ditch & Switch Decoder, and AI Camera Scanners.</p>
+                </details>
+                <details class="hh-b3-faq-item">
+                    <summary>🦋 What is the difference between the +$19/mo Reclaim Your Terrain and the $127 Consult? <span>+</span></summary>
+                    <p>The +$19/month Self-Paced add-on unlocks the full 16-Step Guided Coaching Roadmap, daily color-coded habits, Workout Studio, and meal blueprints inside your app. If you want Ashton to personally review your health history, symptoms, and labs to custom-build your starting protocol and pace, choose the one-time $127 "Read" Consult & Custom Plan (which then continues at $19/month after for ongoing app coaching).</p>
+                </details>
+            </div>
+        `;
+    }
+
+    // Safely hide the old landing page content WITHOUT destroying hidden login modals or event listeners!
+    function mountBestBlock3LandingPage() {
         document.querySelectorAll('img[src*="photo-1506126613408-eca07ce68773"]').forEach(img => {
             img.src = TERRAIN_CLEAN_IMG;
         });
 
         if (document.getElementById('hh-new-landing-master-wrap')) return;
 
-        // Find the landing page container by ID OR by any public landing marker
-        let oldRoot = document.getElementById('landing-view') ||
-                      document.getElementById('hh-replaced-main-landing-root') ||
-                      document.getElementById('hh-upgraded-landing-master');
+        const candidates = Array.from(document.querySelectorAll('h1, h2, div, section, header'));
+        const markerEl = candidates.find(el => {
+            const t = (el.textContent || '');
+            return t.includes('Stop Juggling 5 Apps') || (t.includes('6 Smart Scanners') && t.includes('4 Comfort Levels'));
+        });
 
-        if (!oldRoot) {
-            const markerEl = Array.from(document.querySelectorAll('h1, h2, section, div')).find(el => {
-                const t = (el.textContent || '');
-                return t.includes('Stop Juggling 5 Apps') ||
-                       t.includes('Member Login') && t.includes('Honeysuckle Hub') && !el.querySelector('#view-food');
-            });
-            if (markerEl) {
-                oldRoot = markerEl;
-                while (oldRoot.parentElement && oldRoot.parentElement !== document.body) {
-                    if (oldRoot.parentElement.querySelector('#view-food, #view-reclaim-terrain, #dashboard-container')) {
-                        break;
-                    }
-                    oldRoot = oldRoot.parentElement;
-                }
+        if (!markerEl) return;
+
+        let oldRoot = markerEl;
+        while (oldRoot.parentElement && oldRoot.parentElement !== document.body) {
+            if (oldRoot.parentElement.querySelector('#view-food, #view-reclaim-terrain, #ab-grocery-list')) {
+                break;
             }
+            oldRoot = oldRoot.parentElement;
         }
 
-        if (!oldRoot) return;
+        // Preserve references to the original Member Login & Contact Ashton buttons before hiding them
+        const origLoginBtn = Array.from(oldRoot.querySelectorAll('button, a')).find(b => (b.textContent || '').trim() === 'Member Login');
+        if (origLoginBtn) window._preservedOrigLoginBtnEl = origLoginBtn;
 
-        // 1. Rescue any auth/login modals inside the old landing container before replacing its HTML
-        oldRoot.querySelectorAll('.auth-wrapper, #auth-wrapper, #auth-modal, #login-modal, .modal-overlay').forEach(modalEl => {
-            modalEl.style.display = 'none';
+        const origContactBtn = Array.from(oldRoot.querySelectorAll('button, a')).find(b => (b.textContent || '').includes('Contact Ashton'));
+        if (origContactBtn) window._preservedOrigContactBtnEl = origContactBtn;
+
+        // Rescue any auth/login modals that might be nested inside oldRoot so they stay active in document.body!
+        oldRoot.querySelectorAll('[id*="auth"], [id*="login"], .modal-overlay').forEach(modalEl => {
             document.body.appendChild(modalEl);
         });
 
-        // 2. Capture original Contact Ashton action if present
-        const oldContactBtn = Array.from(oldRoot.querySelectorAll('button, a')).find(b => (b.textContent || '').includes('Contact Ashton'));
-        if (oldContactBtn && !window._savedNativeContactAction) {
-            const fn = oldContactBtn.onclick;
-            const attr = oldContactBtn.getAttribute('onclick');
-            window._savedNativeContactAction = function() {
-                if (fn) fn.call(oldContactBtn);
-                else if (attr) { try { eval(attr); } catch (e) {} }
-            };
-        }
+        // Hide the old landing page children non-destructively and prepend our new master landing page!
+        Array.from(oldRoot.children).forEach(ch => {
+            ch.style.display = 'none';
+        });
 
-        // 3. Keep id="landing-view" so all login/logout visibility rules work seamlessly
-        window._oldLandingReplacedDone = true;
-        window._replacedOldLandingContainer = oldRoot;
-        oldRoot.id = 'landing-view';
-        oldRoot.innerHTML = window.buildMainLandingPageHTML();
+        window._legacyLandingWrapperEl = oldRoot;
+        const newWrap = document.createElement('div');
+        newWrap.id = 'hh-new-landing-master-wrap';
+        newWrap.innerHTML = buildMainLandingPageHTML();
+        oldRoot.prepend(newWrap);
 
-        // 4. If user is currently logged in, keep the landing container hidden; otherwise show the new landing page!
-        if (window.isHubUserAuthenticated()) {
-            oldRoot.style.display = 'none';
-        } else {
-            oldRoot.style.display = 'block';
+        // Initialize the live store brand demo on Walmart by default
+        setTimeout(() => window.switchLandingStoreDemo('walmart'), 30);
+    }
+
+    // Automatically hide the landing page as soon as a user logs in!
+    function watchForAuthenticatedUser() {
+        const isLogged = (typeof currentUser !== 'undefined' && currentUser && currentUser.email);
+        const appVisible = document.getElementById('view-home') || document.getElementById('view-food');
+        if (isLogged && appVisible && window._legacyLandingWrapperEl && !window._userManuallyOpenedLanding) {
+            // If the original landing page was supposed to hide upon login, hide our wrapper too
+            const authModal = document.querySelector('#auth-modal, #login-modal');
+            if (authModal && authModal.style.display === 'none') {
+                const masterWrap = document.getElementById('hh-new-landing-master-wrap');
+                if (masterWrap && window._legacyLandingWrapperEl.style.display === 'none') {
+                    masterWrap.style.display = 'none';
+                }
+            }
         }
     }
 
-    replaceLegacyLandingPageNow();
-    [20, 100, 300, 700, 1500].forEach(ms => setTimeout(replaceLegacyLandingPageNow, ms));
+    mountBestBlock3LandingPage();
+    [40, 150, 400, 900, 1800].forEach(ms => setTimeout(mountBestBlock3LandingPage, ms));
+    setInterval(watchForAuthenticatedUser, 600);
 })();
 </script>
 
