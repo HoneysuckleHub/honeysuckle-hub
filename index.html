@@ -23234,5 +23234,775 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
 })();
 </script>
 
+<!-- ================= BLOCK 10: GUIDED HOME COMMAND CENTER, STEP-BY-STEP ZONE FOCUS CHECKLISTS & DOPAMINE COACH LAYOUT ================= -->
+<script>
+(function() {
+    window._activeHomeCoachTab = window._activeHomeCoachTab || 'maintenance'; // 'maintenance' | 'zone' | 'meals' | 'terrain' | 'all'
+    window._homeGraceDayActive = localStorage.getItem('hh_home_grace_day_active') === 'true';
+    window._overrideZoneDayIdx = null;
+    let isRenderingHomeCoach = false;
+
+    const DAY_NAMES_FULL = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+    // =========================================================================
+    // 1. DAILY GENERAL MAINTENANCE + 7-DAY ZONE FOCUS TASK LIBRARY
+    // =========================================================================
+    const DAILY_GENERAL_MAINTENANCE_TASKS = [
+        {
+            id: 'gm_k1',
+            group: '🌅 Morning Kitchen & Laundry Anchor',
+            room: 'Kitchen',
+            task: 'Empty clean dishwasher (or dish rack) first thing in the morning so dirty dishes go straight in all day',
+            why: 'Prevents dishes from piling up in the sink before breakfast even starts.',
+            essentialGraceDay: true,
+            bg: '#FFFBEB', border: '#D97706', tagBg: '#FEF3C7', tagColor: '#B45309'
+        },
+        {
+            id: 'gm_l1',
+            group: '🌅 Morning Kitchen & Laundry Anchor',
+            room: 'Laundry',
+            task: 'Start 1 daily load of family laundry in the morning (wash ➔ transfer to dryer/line ➔ fold & put away)',
+            why: 'One load a day keeps Mount Washmore from taking over your weekend.',
+            essentialGraceDay: true,
+            bg: '#FFFBEB', border: '#D97706', tagBg: '#FEF3C7', tagColor: '#B45309'
+        },
+        {
+            id: 'gm_d1',
+            group: '🍽️ After-Meals Dining & Midday Reset',
+            room: 'Dining Room',
+            task: 'Clear & wipe dining table surface after family meals',
+            why: 'Keeps the heart of your home ready for homeschooling, crafts, or the next meal.',
+            essentialGraceDay: true,
+            bg: '#F0F9FF', border: '#0284C7', tagBg: '#E0F2FE', tagColor: '#0369A1'
+        },
+        {
+            id: 'gm_d2',
+            group: '🍽️ After-Meals Dining & Midday Reset',
+            room: 'Dining Room',
+            task: 'Quick crumb sweep under the dining table & push in chairs',
+            why: 'Stops food crumbs from being tracked through the rest of the house.',
+            essentialGraceDay: false,
+            bg: '#F0F9FF', border: '#0284C7', tagBg: '#E0F2FE', tagColor: '#0369A1'
+        },
+        {
+            id: 'gm_k2',
+            group: '🍽️ After-Meals Dining & Midday Reset',
+            room: 'Kitchen',
+            task: 'Wipe dining/prep island surface & clear any daytime clutter',
+            why: 'Clears visual noise so you can think clearly when cooking dinner.',
+            essentialGraceDay: false,
+            bg: '#F0F9FF', border: '#0284C7', tagBg: '#E0F2FE', tagColor: '#0369A1'
+        },
+        {
+            id: 'gm_k3',
+            group: '🌙 Evening Kitchen Closing & 5-Min House Reset',
+            room: 'Kitchen',
+            task: 'Wipe counters, stovetop & backsplash with Castile Orange Spray after dinner',
+            why: 'Waking up to clean counters lowers morning cortisol immediately.',
+            essentialGraceDay: true,
+            bg: '#F0FDF4', border: '#16A34A', tagBg: '#DCFCE7', tagColor: '#15803D'
+        },
+        {
+            id: 'gm_k4',
+            group: '🌙 Evening Kitchen Closing & 5-Min House Reset',
+            room: 'Kitchen',
+            task: 'Sweep high-traffic kitchen floor spots after dinner',
+            why: 'Takes 90 seconds and keeps bare feet crumb-free in the morning.',
+            essentialGraceDay: false,
+            bg: '#F0FDF4', border: '#16A34A', tagBg: '#DCFCE7', tagColor: '#15803D'
+        },
+        {
+            id: 'gm_k5',
+            group: '🌙 Evening Kitchen Closing & 5-Min House Reset',
+            room: 'Kitchen',
+            task: 'Shine kitchen sink with baking soda, run dishwasher & set out a clean dish towel before bed',
+            why: 'Your final evening signal that the kitchen is officially closed for the night.',
+            essentialGraceDay: true,
+            bg: '#F0FDF4', border: '#16A34A', tagBg: '#DCFCE7', tagColor: '#15803D'
+        },
+        {
+            id: 'gm_lv1',
+            group: '🌙 Evening Kitchen Closing & 5-Min House Reset',
+            room: 'Living Area',
+            task: '5-Minute Family Floor Pickup: Return toys, books & shoes to their baskets and fluff couch pillows',
+            why: 'Everyone pitches in for 5 minutes to reset the living room before bedtime.',
+            essentialGraceDay: false,
+            bg: '#FDF2F8', border: '#DB2777', tagBg: '#FCE7F3', tagColor: '#BE185D'
+        }
+    ];
+
+    const WEEKLY_ZONE_FOCUS_CATALOG = {
+        1: { // Monday
+            dayName: 'Monday',
+            zoneTitle: 'Kitchen & Pantry Deep Reset',
+            zoneSubtitle: 'Spend 15–20 focused minutes refreshing your food storage & kitchen surfaces—ignore the other rooms today!',
+            icon: '🫙',
+            tasks: [
+                { id: 'zf_mon_1', area: 'Refrigerator', text: 'Check refrigerator shelves: toss any spoiled items & wipe sticky spills with warm soapy water' },
+                { id: 'zf_mon_2', area: 'Appliances', text: 'Wipe down fronts & handles of refrigerator, oven door, microwave, and dishwasher' },
+                { id: 'zf_mon_3', area: 'Pantry Shelf', text: 'Tidy 1 pantry shelf: group jars/grains neatly, wipe crumbs & check staple par levels' },
+                { id: 'zf_mon_4', area: 'Kitchen Sink', text: 'Deep-scrub kitchen sink basin, faucet base & drain strainer with baking soda and vinegar' },
+                { id: 'zf_mon_5', area: 'Small Tools', text: 'Empty toaster crumb tray & wipe down blender/mixer base or coffee station' },
+                { id: 'zf_mon_6', area: 'Kitchen Floors', text: 'Spot-mop kitchen floor & wipe kickplates under cabinets' },
+                { id: 'zf_mon_7', area: 'Linens', text: 'Gather used kitchen hand towels, dishcloths & aprons for the wash' }
+            ]
+        },
+        2: { // Tuesday
+            dayName: 'Tuesday',
+            zoneTitle: 'Bathrooms & Laundry Room Reset',
+            zoneSubtitle: '15–20 minutes to make your bathrooms and laundry station fresh, stocked, and sanitized.',
+            icon: '🛁',
+            tasks: [
+                { id: 'zf_tue_1', area: 'Vanity & Sinks', text: 'Spray and scrub bathroom sinks, faucets, soap dishes & countertops' },
+                { id: 'zf_tue_2', area: 'Mirrors', text: 'Wipe bathroom mirrors streak-free with glass spray or vinegar-water mist' },
+                { id: 'zf_tue_3', area: 'Toilets', text: 'Scrub toilet bowls inside and wipe down seats, handles & outer bases' },
+                { id: 'zf_tue_4', area: 'Tub & Shower', text: 'Spray shower walls & tub basin, rinse clean, and organize bath bottles' },
+                { id: 'zf_tue_5', area: 'Fresh Towels', text: 'Swap damp bath towels & hand towels for fresh linens and empty bathroom trash bins' },
+                { id: 'zf_tue_6', area: 'Bathroom Floors', text: 'Shake out bath mats & quick-sweep/mop bathroom floors' },
+                { id: 'zf_tue_7', area: 'Laundry Station', text: 'Wipe top of washer & dryer, clean lint trap, and restock wool dryer balls / laundry soap' }
+            ]
+        },
+        3: { // Wednesday (Matches Screenshot 20: Bedrooms Master & Kids!)
+            dayName: 'Wednesday',
+            zoneTitle: 'Bedrooms (Master & Kids)',
+            zoneSubtitle: 'Just focus on peaceful, clutter-free sleeping spaces today—ignore the rest of the house!',
+            icon: '🛏️',
+            tasks: [
+                { id: 'zf_wed_1', area: 'Master Bedroom', text: 'Strip bed sheets & pillowcases in Master Bedroom and remake bed with fresh, clean linens' },
+                { id: 'zf_wed_2', area: 'Kids’ Bedrooms', text: 'Change or straighten kids’ bed sheets, blankets & stuffed animals' },
+                { id: 'zf_wed_3', area: 'Nightstands & Dressers', text: 'Clear nightstands & dresser tops of water glasses, books, hair ties & surface clutter' },
+                { id: 'zf_wed_4', area: 'Clothing & Laundry', text: 'Put away all clean folded laundry sitting in baskets or chairs & gather dirty clothes from floors' },
+                { id: 'zf_wed_5', area: 'Under Beds & Closets', text: 'Quick 3-minute sweep under beds & closet floors for stray shoes, socks, or toys' },
+                { id: 'zf_wed_6', area: 'Dusting Surfaces', text: 'Dust headboards, bedroom lamps, ceiling fan blades & windowsills' },
+                { id: 'zf_wed_7', area: 'Bedroom Floors', text: 'Vacuum bedroom carpets/rugs or sweep & mop hard bedroom floors' }
+            ]
+        },
+        4: { // Thursday
+            dayName: 'Thursday',
+            zoneTitle: 'Living Room, Entryway & Homeschool Area',
+            zoneSubtitle: 'Reset your family gathering spaces, mudroom/entryway, and homeschool table in 20 minutes.',
+            icon: '🛋️',
+            tasks: [
+                { id: 'zf_thu_1', area: 'Entryway / Mudroom', text: 'Line up shoes & boots neatly, hang coats/bags on hooks, and shake out the entry rug' },
+                { id: 'zf_thu_2', area: 'Homeschool & Desk Area', text: 'Stack curriculum books, sharpen pencils, file loose worksheets & wipe the school table' },
+                { id: 'zf_thu_3', area: 'Sofa & Seating', text: 'Vacuum couch cushions (and crumbs underneath!), fold throw blankets & fluff pillows' },
+                { id: 'zf_thu_4', area: 'Living Room Surfaces', text: 'Clear and dust coffee table, end tables, bookshelves, mantle & lamps' },
+                { id: 'zf_thu_5', area: 'High-Touch Spots', text: 'Wipe light switches, doorknobs & baseboards in main living areas' },
+                { id: 'zf_thu_6', area: 'Toy & Book Baskets', text: 'Sort out broken toys or out-of-place items from living room baskets' },
+                { id: 'zf_thu_7', area: 'Living & Hall Floors', text: 'Thoroughly vacuum living room rugs & sweep/mop hallway floors' }
+            ]
+        },
+        5: { // Friday
+            dayName: 'Friday',
+            zoneTitle: 'Whole-House Floors, Porch & Weekend Prep',
+            zoneSubtitle: 'Finish the week strong so your weekend is free for family, rest, and homestead joy.',
+            icon: '🧹',
+            tasks: [
+                { id: 'zf_fri_1', area: 'High-Traffic Floors', text: 'Quick whole-house vacuum or sweep/mop of main walkways and dining area' },
+                { id: 'zf_fri_2', area: 'Trash & Recycling', text: 'Empty all household trash cans & take bins out for pickup' },
+                { id: 'zf_fri_3', area: 'Front Porch & Patio', text: 'Sweep front porch steps, shake welcome mat & tidy outdoor boots/rocking chairs' },
+                { id: 'zf_fri_4', area: 'Family Vehicle / Bags', text: '5-minute clear-out of car trash, cups, diaper bag, or tote bags from the week' },
+                { id: 'zf_fri_5', area: 'Glass & Windows', text: 'Wipe fingerprints off front storm door glass, sliding glass door & kitchen window' },
+                { id: 'zf_fri_6', area: 'Weekend Readiness', text: 'Check weekend family plans, Saturday breakfast ingredients & hosting supplies' }
+            ]
+        },
+        6: { // Saturday
+            dayName: 'Saturday',
+            zoneTitle: 'Homestead, Yard & Batch-Prep Reset',
+            zoneSubtitle: 'Hands-on family stewardship, outdoor care, and 1 simple kitchen batch-prep for the week ahead.',
+            icon: '🌻',
+            tasks: [
+                { id: 'zf_sat_1', area: 'Kitchen Batch-Prep', text: 'Prep 1 weekend staple (feed sourdough starter, simmer bone broth, or make 1 batch snack)' },
+                { id: 'zf_sat_2', area: 'Household Restock', text: 'Refill foaming hand soaps, Castile spray bottles, toilet paper & paper goods' },
+                { id: 'zf_sat_3', area: 'Homestead / Garden', text: 'Check garden beds, seed trays, or refresh barnyard/coop waterers and nesting boxes' },
+                { id: 'zf_sat_4', area: '10-Min Family Blitz', text: 'Put on upbeat music for a 10-minute whole-family tidy before Saturday evening rest' }
+            ]
+        },
+        0: { // Sunday
+            dayName: 'Sunday',
+            zoneTitle: 'Sabbath Rest, Peace & Week-Ahead Rhythm',
+            zoneSubtitle: 'No heavy deep cleaning today—just rest, nourishment, and a gentle 5-minute look at Monday.',
+            icon: '🕊️',
+            tasks: [
+                { id: 'zf_sun_1', area: 'Spirit & Rest', text: 'Enjoy a slow morning, worship/prayer, and guilt-free family rest (zero deep-cleaning pressure!)' },
+                { id: 'zf_sun_2', area: 'Meal Plan Check', text: 'Review your 7-Day Family Meal Plan & check off items already in your fridge/pantry' },
+                { id: 'zf_sun_3', area: 'Monday Readiness', text: 'Set out Monday morning homeschool books & kids’ clothes so Monday starts in peace' },
+                { id: 'zf_sun_4', area: '8:00 PM Kitchen Bell', text: 'Pull Monday’s dinner meat from the freezer to thaw & close the kitchen early' }
+            ]
+        }
+    };
+
+    const HOME_COACH_AFFIRMATIONS = [
+        "🏡 A peaceful home isn't built by cleaning everything at once—it's built by keeping your daily baseline and focusing on just ONE zone today.",
+        "🌻 Ignore the rooms that aren't in today's Zone Focus! Their turn is coming later this week.",
+        "🕊️ You are stewarding a living, breathing family home—not a museum. Done is always better than perfect.",
+        "✨ Every dish washed and bed made is an act of love that lowers stress for everyone under your roof."
+    ];
+
+    // Inject Scoped Styles for the Guided Home Command Center
+    if (!document.getElementById('hh-home-coach-command-styles')) {
+        const st = document.createElement('style');
+        st.id = 'hh-home-coach-command-styles';
+        st.innerHTML = `
+            .hh-home-coach-banner {
+                background: linear-gradient(135deg, #1E3F2E 0%, #142B1F 100%);
+                color: #FFFDF8;
+                border-radius: 22px;
+                padding: 22px 24px;
+                margin-bottom: 18px;
+                border: 2.5px solid #D9B36C;
+                box-shadow: 0 12px 30px rgba(20, 43, 31, 0.16);
+            }
+            .hh-home-nav-tabs {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(205px, 1fr));
+                gap: 10px;
+                margin-bottom: 18px;
+            }
+            .hh-home-tab-btn {
+                background: #FFFDF8;
+                border: 2px solid #EADBC0;
+                border-radius: 16px;
+                padding: 13px 15px;
+                text-align: left;
+                cursor: pointer;
+                transition: all 0.18s ease;
+                display: flex;
+                flex-direction: column;
+                gap: 3px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+            }
+            .hh-home-tab-btn:hover {
+                border-color: #2E5A44;
+                transform: translateY(-1px);
+            }
+            .hh-home-tab-btn.active {
+                background: linear-gradient(135deg, #2E5A44 0%, #1F4230 100%);
+                border-color: #173325;
+                color: #ffffff;
+                box-shadow: 0 10px 22px rgba(46, 90, 68, 0.25);
+            }
+            .hh-home-tab-btn .h-step-tag {
+                font-size: 0.68rem;
+                font-weight: 800;
+                text-transform: uppercase;
+                letter-spacing: 0.04em;
+                color: #B87612;
+            }
+            .hh-home-tab-btn.active .h-step-tag {
+                color: #FEF5D8;
+            }
+            .hh-home-tab-btn .h-main-lbl {
+                font-size: 0.92rem;
+                font-weight: 800;
+                color: #2A1E14;
+            }
+            .hh-home-tab-btn.active .h-main-lbl {
+                color: #ffffff;
+            }
+            .hh-home-task-card {
+                border-radius: 16px;
+                padding: 14px 18px;
+                margin-bottom: 10px;
+                transition: all 0.2s ease;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                gap: 14px;
+                cursor: pointer;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+            }
+            .hh-home-task-card:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 8px 18px rgba(0,0,0,0.06);
+            }
+            .hh-home-task-card.done {
+                background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%) !important;
+                border: 2px solid #10B981 !important;
+                border-left: 7px solid #059669 !important;
+                opacity: 0.88;
+            }
+        `;
+        document.head.appendChild(st);
+    }
+
+    function getTodayDateKey() {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+
+    function getHomeChecksForToday() {
+        try {
+            const all = JSON.parse(localStorage.getItem('hh_home_daily_checks_v2') || '{}');
+            return all[getTodayDateKey()] || {};
+        } catch (e) {
+            return {};
+        }
+    }
+
+    function saveHomeCheckForToday(taskId, isChecked) {
+        try {
+            const key = getTodayDateKey();
+            const all = JSON.parse(localStorage.getItem('hh_home_daily_checks_v2') || '{}');
+            if (!all[key]) all[key] = {};
+            all[key][taskId] = Boolean(isChecked);
+            localStorage.setItem('hh_home_daily_checks_v2', JSON.stringify(all));
+        } catch (e) {}
+    }
+
+    function getCustomZoneTasks(dayIdx) {
+        try {
+            const map = JSON.parse(localStorage.getItem('hh_custom_zone_tasks_v1') || '{}');
+            return Array.isArray(map[dayIdx]) ? map[dayIdx] : [];
+        } catch (e) {
+            return [];
+        }
+    }
+
+    function saveCustomZoneTask(dayIdx, areaLabel, taskText) {
+        try {
+            const map = JSON.parse(localStorage.getItem('hh_custom_zone_tasks_v1') || '{}');
+            if (!Array.isArray(map[dayIdx])) map[dayIdx] = [];
+            map[dayIdx].push({
+                id: 'zf_cust_' + Date.now(),
+                area: areaLabel || 'Custom Room',
+                text: taskText
+            });
+            localStorage.setItem('hh_custom_zone_tasks_v1', JSON.stringify(map));
+        } catch (e) {}
+    }
+
+    // Also pull any custom rooms the user added via "⚙️ My Rooms" so their custom rooms appear as checkboxes!
+    function getUserConfiguredRoomTasks(activeDayIdx) {
+        const extraZoneTasks = [];
+        if (typeof getLocalData === 'function') {
+            const userRooms = getLocalData('household_rooms_list', []) || getLocalData('custom_home_rooms', []) || [];
+            if (Array.isArray(userRooms)) {
+                userRooms.forEach((rm, idx) => {
+                    const rName = typeof rm === 'string' ? rm : (rm?.name || rm?.roomName || '');
+                    if (!rName) return;
+                    // Skip standard rooms already covered in our core checklist unless it matches today's zone
+                    if (/kitchen|dining/i.test(rName)) return;
+                    if (activeDayIdx === 3 && /bedroom|master|kid|nursery|bunk/i.test(rName)) {
+                        extraZoneTasks.push({
+                            id: `zf_usr_rm_${idx}`,
+                            area: rName,
+                            text: `${rName}: Tidy surfaces, put away laundry/toys & quick floor sweep/vacuum`
+                        });
+                    }
+                });
+            }
+        }
+        return extraZoneTasks;
+    }
+
+    function playHomeTaskChime(isAllDone = false) {
+        try {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (!AudioCtx) return;
+            const ctx = new AudioCtx();
+            const notes = isAllDone ? [528, 660, 792, 1056] : [528, 660];
+            notes.forEach((freq, idx) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.13);
+                gain.gain.setValueAtTime(0.12, ctx.currentTime + idx * 0.13);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + idx * 0.13 + 0.32);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(ctx.currentTime + idx * 0.13);
+                osc.stop(ctx.currentTime + idx * 0.13 + 0.34);
+            });
+        } catch (e) {}
+    }
+
+    window.toggleGuidedHomeTask = function(taskId, isChecked) {
+        saveHomeCheckForToday(taskId, isChecked);
+        if (isChecked) {
+            playHomeTaskChime(false);
+            if (typeof window.awardHubStars === 'function') {
+                window.awardHubStars(2, 'Completed Daily Home Reset Task!');
+            }
+        }
+        renderGuidedHomeCommandPage();
+    };
+
+    window.switchHomeCoachTab = function(tabKey) {
+        window._activeHomeCoachTab = tabKey;
+        renderGuidedHomeCommandPage();
+    };
+
+    window.toggleHomeGraceDayMode = function() {
+        window._homeGraceDayActive = !window._homeGraceDayActive;
+        localStorage.setItem('hh_home_grace_day_active', window._homeGraceDayActive ? 'true' : 'false');
+        renderGuidedHomeCommandPage();
+    };
+
+    window.changeActiveZoneDayPreview = function(newDayIdx) {
+        window._overrideZoneDayIdx = parseInt(newDayIdx);
+        renderGuidedHomeCommandPage();
+    };
+
+    window.openAddCustomZoneTaskModal = function(dayIdx) {
+        const zInfo = WEEKLY_ZONE_FOCUS_CATALOG[dayIdx] || WEEKLY_ZONE_FOCUS_CATALOG[3];
+        if (typeof openUniversalModal === 'function') {
+            openUniversalModal(`➕ Add Custom Task to ${zInfo.dayName}'s Zone (${zInfo.zoneTitle})`, [
+                { name: 'area', label: '1. Room or Sub-Area Name', value: zInfo.zoneTitle.split(' ')[0], placeholder: 'e.g. Kids Bunk Room, Master Closet, Mudroom' },
+                { name: 'text', label: '2. Specific Task to Check Off', placeholder: 'e.g. Rotate toy bins & wipe windowsill' }
+            ], vals => {
+                if (!vals.text || !vals.text.trim()) return;
+                saveCustomZoneTask(dayIdx, (vals.area || 'Zone Focus').trim(), vals.text.trim());
+                renderGuidedHomeCommandPage();
+            });
+        }
+    };
+
+    window.triggerOriginalMyRoomsModal = function() {
+        if (window._preservedMyRoomsBtnEl) {
+            try { window._preservedMyRoomsBtnEl.click(); return; } catch (e) {}
+        }
+        if (typeof openMyRoomsModal === 'function') { openMyRoomsModal(); return; }
+        if (typeof openRoomsConfigModal === 'function') { openRoomsConfigModal(); return; }
+    };
+
+    // =========================================================================
+    // 2. TRANSFORM THE HOME PAGE INTO THE GUIDED STEP-BY-STEP COACH LAYOUT
+    // =========================================================================
+    function renderGuidedHomeCommandPage() {
+        if (isRenderingHomeCoach) return;
+
+        // Locate the "Today's Home & Room Reset" heading from Screenshot 20
+        const allHeadings = Array.from(document.querySelectorAll('h2, h3, h4, div'));
+        const resetHeading = allHeadings.find(el =>
+            el.children.length === 0 && (el.textContent || '').trim() === "Today's Home & Room Reset"
+        );
+        if (!resetHeading) return;
+
+        const resetPanel = resetHeading.closest('.clinical-panel') || resetHeading.parentElement;
+        if (!resetPanel) return;
+
+        // Locate the 2-column grid holding resetPanel (Left) and Active Meal Plan Snapshot / 8 PM Bell (Right)
+        const twoColGrid = resetPanel.parentElement;
+        const homeRoot = twoColGrid ? twoColGrid.parentElement : resetPanel.parentElement;
+        if (!twoColGrid || !homeRoot) return;
+
+        // Save reference to the native "⚙️ My Rooms" button before upgrading resetPanel
+        const origRoomsBtn = Array.from(resetPanel.querySelectorAll('button')).find(b => (b.textContent || '').includes('My Rooms'));
+        if (origRoomsBtn && !window._preservedMyRoomsBtnEl) {
+            window._preservedMyRoomsBtnEl = origRoomsBtn;
+        }
+
+        // Locate the Terrain Daily Habits summary box right above twoColGrid (from top of Screenshot 20)
+        const terrainTopSummaryBox = Array.from(homeRoot.children).find(ch =>
+            ch !== twoColGrid &&
+            ch.id !== 'hh-home-guided-coach-master-header' &&
+            ((ch.textContent || '').includes('Meal Timing') || (ch.textContent || '').includes("Today's Movement") || (ch.textContent || '').includes('Mindset Reset'))
+        );
+
+        isRenderingHomeCoach = true;
+        try {
+            const realTodayIdx = new Date().getDay(); // 0=Sun .. 3=Wed .. 6=Sat
+            const activeZoneDayIdx = (window._overrideZoneDayIdx !== null && !isNaN(window._overrideZoneDayIdx))
+                ? window._overrideZoneDayIdx
+                : realTodayIdx;
+
+            const zoneObj = WEEKLY_ZONE_FOCUS_CATALOG[activeZoneDayIdx] || WEEKLY_ZONE_FOCUS_CATALOG[3];
+            const checksToday = getHomeChecksForToday();
+            const isGrace = window._homeGraceDayActive;
+
+            // Filter Daily General Maintenance tasks (if Grace Day is active, only show the 4 non-negotiable survival tasks!)
+            const activeMaintenanceTasks = isGrace
+                ? DAILY_GENERAL_MAINTENANCE_TASKS.filter(t => t.essentialGraceDay)
+                : DAILY_GENERAL_MAINTENANCE_TASKS;
+
+            // Combine default Zone Focus tasks + user's custom room tasks + custom added zone tasks
+            const combinedZoneTasks = [
+                ...zoneObj.tasks,
+                ...getUserConfiguredRoomTasks(activeZoneDayIdx),
+                ...getCustomZoneTasks(activeZoneDayIdx)
+            ];
+
+            const maintDoneCount = activeMaintenanceTasks.filter(t => checksToday[t.id]).length;
+            const zoneDoneCount = combinedZoneTasks.filter(t => checksToday[t.id]).length;
+            const totalTasksToday = activeMaintenanceTasks.length + (isGrace ? 0 : combinedZoneTasks.length);
+            const totalDoneToday = maintDoneCount + (isGrace ? 0 : zoneDoneCount);
+            const pctDone = totalTasksToday > 0 ? Math.round((totalDoneToday / totalTasksToday) * 100) : 0;
+
+            const activeTab = window._activeHomeCoachTab || 'maintenance';
+            const affirmation = HOME_COACH_AFFIRMATIONS[realTodayIdx % HOME_COACH_AFFIRMATIONS.length];
+
+            // 1. Mount or Update the Guided Home Coach Header & 4-Step Navigation Bar above twoColGrid
+            let coachHeader = document.getElementById('hh-home-guided-coach-master-header');
+            if (!coachHeader) {
+                coachHeader = document.createElement('div');
+                coachHeader.id = 'hh-home-guided-coach-master-header';
+                twoColGrid.insertAdjacentElement('beforebegin', coachHeader);
+            }
+
+            coachHeader.innerHTML = `
+                <div class="hh-home-coach-banner">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px; margin-bottom:12px;">
+                        <div>
+                            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:6px;">
+                                <span style="background:#FEF5D8; color:#9A5B0A; padding:4px 12px; border-radius:999px; font-size:0.72rem; font-weight:800; text-transform:uppercase;">
+                                    🏡 DAILY HOME COMMAND COACH • ${DAY_NAMES_FULL[realTodayIdx].toUpperCase()}
+                                </span>
+                                <span style="background:rgba(255,255,255,0.14); color:#A7F3D0; padding:4px 11px; border-radius:999px; font-size:0.72rem; font-weight:800;">
+                                    ${zoneObj.icon} Today's Zone: ${escapeSafeHtml(zoneObj.zoneTitle)}
+                                </span>
+                            </div>
+                            <h3 style="font-family:var(--font-serif, Georgia, serif); font-size:1.48rem; color:#FEF5D8; margin:0 0 4px 0;">
+                                Here Is Exactly What to Do Today — One Peaceful Step at a Time:
+                            </h3>
+                            <p style="font-size:0.82rem; color:#D7E8DF; margin:0;">
+                                Don't look at the whole house! Follow your 4 simple daily tabs below so you never feel overwhelmed.
+                            </p>
+                        </div>
+
+                        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                            <div style="background:rgba(255,255,255,0.12); border:1.5px solid #D9B36C; border-radius:14px; padding:8px 16px; text-align:center;">
+                                <span style="font-size:0.68rem; text-transform:uppercase; color:#FEF5D8; display:block; font-weight:700;">Today's Home Win Meter</span>
+                                <strong style="font-size:1.22rem; color:${totalDoneToday >= totalTasksToday && totalTasksToday > 0 ? '#86EFAC' : '#FEF5D8'};">
+                                    ${totalDoneToday} of ${totalTasksToday} Done (${pctDone}%) ⭐
+                                </strong>
+                            </div>
+                            <button type="button" onclick="toggleHomeGraceDayMode()" style="background:${isGrace ? '#F59E0B' : 'rgba(255,255,255,0.12)'}; color:#ffffff; border:1.5px solid #FDE68A; border-radius:12px; padding:9px 14px; font-size:0.76rem; font-weight:800; cursor:pointer;">
+                                ${isGrace ? '🌿 Grace Day ON (Survival Mode)' : '🌿 Need a Grace Day? (15-Min Mode)'}
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div style="width:100%; height:10px; background:rgba(255,255,255,0.15); border-radius:999px; overflow:hidden; margin-bottom:12px;">
+                        <div style="width:${pctDone}%; height:100%; background:linear-gradient(90deg, #F59E0B 0%, #10B981 100%); transition:width 0.35s ease;"></div>
+                    </div>
+
+                    <!-- 3-Step Hand-Holding Guide -->
+                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:10px; background:rgba(255,253,248,0.1); border-radius:14px; padding:12px 14px; font-size:0.79rem; color:#E8F2EC;">
+                        <div>
+                            <strong style="color:#FEF5D8; display:block;">1️⃣ Start with Daily Maintenance (${maintDoneCount}/${activeMaintenanceTasks.length}):</strong>
+                            Keep the kitchen, dining table, and 1 load of laundry moving so the house never falls behind.
+                        </div>
+                        <div>
+                            <strong style="color:#FEF5D8; display:block;">2️⃣ Tackle ONLY ${escapeSafeHtml(zoneObj.dayName)}'s Zone (${zoneDoneCount}/${combinedZoneTasks.length}):</strong>
+                            Today is <strong>${escapeSafeHtml(zoneObj.zoneTitle)}</strong>. Spend 15–20 minutes checking off the zone list—ignore every other room!
+                        </div>
+                        <div>
+                            <strong style="color:#FEF5D8; display:block;">3️⃣ Check Your Family Table & 8 PM Bell:</strong>
+                            Tap Tab #3 anytime to open today's recipes, mark meals "Made It", and see tonight's 3-minute thaw reminder.
+                        </div>
+                    </div>
+
+                    <div style="margin-top:10px; font-size:0.8rem; color:#FEF5D8; font-style:italic; text-align:center; padding-top:8px; border-top:1px dashed rgba(254,245,216,0.25);">
+                        💬 <strong>Daily Home Note:</strong> "${escapeSafeHtml(affirmation)}"
+                    </div>
+                </div>
+
+                <!-- 🎉 DOPAMINE CELEBRATION BANNER WHEN ALL HOME TASKS ARE DONE -->
+                ${totalTasksToday > 0 && totalDoneToday >= totalTasksToday ? `
+                    <div style="background:linear-gradient(135deg, #059669 0%, #047857 100%); color:#ffffff; border:3px solid #A7F3D0; border-radius:20px; padding:16px 22px; margin-bottom:18px; text-align:center; box-shadow:0 12px 28px rgba(5, 150, 105, 0.28);">
+                        <h3 style="font-family:var(--font-serif, Georgia, serif); font-size:1.45rem; color:#ffffff; margin:0 0 4px 0;">
+                            🎉🏆 Amazing Job! Today's Home Maintenance & ${escapeSafeHtml(zoneObj.dayName)} Zone Focus Are 100% Complete!
+                        </h3>
+                        <p style="font-size:0.86rem; color:#ECFDF5; margin:0;">
+                            Your kitchen, core spaces, and ${escapeSafeHtml(zoneObj.zoneTitle)} are reset. Pour a mineral drink and enjoy a peaceful evening!
+                        </p>
+                    </div>
+                ` : ''}
+
+                <!-- 🧭 4 GUIDED PRIORITY TABS (JUST LIKE RECLAIM YOUR TERRAIN!) -->
+                <div class="hh-home-nav-tabs">
+                    <button type="button" class="hh-home-tab-btn ${activeTab === 'maintenance' ? 'active' : ''}" onclick="switchHomeCoachTab('maintenance')">
+                        <span class="h-step-tag">☀️ STEP 1 • EVERYDAY BASELINE</span>
+                        <span class="h-main-lbl">1. Daily Maintenance (${maintDoneCount}/${activeMaintenanceTasks.length})</span>
+                        <span style="font-size:0.73rem; opacity:0.85;">Kitchen, Dining & Laundry Reset</span>
+                    </button>
+
+                    <button type="button" class="hh-home-tab-btn ${activeTab === 'zone' ? 'active' : ''}" onclick="switchHomeCoachTab('zone')">
+                        <span class="h-step-tag">${zoneObj.icon} STEP 2 • ${escapeSafeHtml(zoneObj.dayName.toUpperCase())} FOCUS</span>
+                        <span class="h-main-lbl">2. ${escapeSafeHtml(zoneObj.zoneTitle)} (${zoneDoneCount}/${combinedZoneTasks.length})</span>
+                        <span style="font-size:0.73rem; opacity:0.85;">Every task for today's zone laid out</span>
+                    </button>
+
+                    <button type="button" class="hh-home-tab-btn ${activeTab === 'meals' ? 'active' : ''}" onclick="switchHomeCoachTab('meals')">
+                        <span class="h-step-tag">🍽️ STEP 3 • TODAY'S KITCHEN</span>
+                        <span class="h-main-lbl">3. Today's Meals & 8 PM Bell</span>
+                        <span style="font-size:0.73rem; opacity:0.85;">Active Meal Snapshot & Thaw Prep</span>
+                    </button>
+
+                    <button type="button" class="hh-home-tab-btn ${activeTab === 'terrain' ? 'active' : ''}" onclick="switchHomeCoachTab('terrain')">
+                        <span class="h-step-tag">🌿 STEP 4 • MY WELLNESS</span>
+                        <span class="h-main-lbl">4. My Daily Terrain Habits</span>
+                        <span style="font-size:0.73rem; opacity:0.85;">Morning Elixir, Movement & Mindset</span>
+                    </button>
+                </div>
+            `;
+
+            // 2. Render the Upgraded Step 1 (Daily Maintenance) & Step 2 (Zone Focus Checkboxes) inside resetPanel!
+            let customHomeTaskBody = document.getElementById('hh-upgraded-home-tasks-container');
+            if (!customHomeTaskBody) {
+                // Hide the old flat list inside resetPanel non-destructively
+                Array.from(resetPanel.children).forEach(ch => {
+                    ch.style.display = 'none';
+                });
+                customHomeTaskBody = document.createElement('div');
+                customHomeTaskBody.id = 'hh-upgraded-home-tasks-container';
+                resetPanel.appendChild(customHomeTaskBody);
+            }
+
+            // Build HTML for Tab 1: Daily General Maintenance (Grouped by Morning, Midday & Evening)
+            const groups = ['🌅 Morning Kitchen & Laundry Anchor', '🍽️ After-Meals Dining & Midday Reset', '🌙 Evening Kitchen Closing & 5-Min House Reset'];
+            const maintenanceHtml = `
+                <div style="display:${(activeTab === 'maintenance' || activeTab === 'all') ? 'block' : 'none'};">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; border-bottom:2px solid var(--border); padding-bottom:12px; margin-bottom:16px;">
+                        <div>
+                            <span class="card-tag" style="background:var(--sage); color:#fff;">☀️ STEP 1 OF 2 • NON-NEGOTIABLE DAILY BASELINE</span>
+                            <h3 style="font-family:var(--font-serif, Georgia, serif); font-size:1.5rem; color:var(--primary); margin:4px 0 2px 0;">
+                                Daily General Maintenance Checklist (${maintDoneCount} of ${activeMaintenanceTasks.length} Done)
+                            </h3>
+                            <p style="font-size:0.82rem; color:var(--text-muted); margin:0;">
+                                These ${activeMaintenanceTasks.length} quick daily anchors keep your kitchen, dining table, and laundry running smoothly every single day.
+                            </p>
+                        </div>
+                        <div style="display:flex; gap:8px; align-items:center;">
+                            <button type="button" class="btn-secondary" style="padding:7px 13px; font-size:0.78rem;" onclick="triggerOriginalMyRoomsModal()">
+                                ⚙️ My Rooms
+                            </button>
+                            <button type="button" class="btn-primary" style="background:var(--sage); border-color:var(--sage); padding:8px 15px; font-size:0.8rem;" onclick="switchHomeCoachTab('zone')">
+                                Next: Open ${escapeSafeHtml(zoneObj.dayName)} Zone Tasks (${zoneDoneCount}/${combinedZoneTasks.length}) &rarr;
+                            </button>
+                        </div>
+                    </div>
+
+                    ${groups.map(grpName => {
+                        const grpTasks = activeMaintenanceTasks.filter(t => t.group === grpName);
+                        if (!grpTasks.length) return '';
+                        return `
+                            <div style="margin-bottom:18px;">
+                                <h4 style="font-size:0.86rem; font-weight:800; color:var(--sage); text-transform:uppercase; letter-spacing:0.03em; margin:0 0 10px 0;">
+                                    ${grpName}
+                                </h4>
+                                ${grpTasks.map(t => {
+                                    const isDone = Boolean(checksToday[t.id]);
+                                    return `
+                                        <label class="hh-home-task-card ${isDone ? 'done' : ''}" style="background:${t.bg}; border:2px solid ${t.border}; border-left:7px solid ${t.border};">
+                                            <div style="flex:1;">
+                                                <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px; flex-wrap:wrap;">
+                                                    <span style="background:${isDone ? '#059669' : t.tagBg}; color:${isDone ? '#fff' : t.tagColor}; padding:2px 9px; border-radius:999px; font-size:0.7rem; font-weight:800;">
+                                                        ${isDone ? '✓ DONE' : escapeSafeHtml(t.room)}
+                                                    </span>
+                                                    <span style="font-size:0.74rem; color:#5A4634; font-style:italic;">💡 ${escapeSafeHtml(t.why)}</span>
+                                                </div>
+                                                <strong style="font-size:0.93rem; color:#2A1E14; display:block; ${isDone ? 'text-decoration:line-through;' : ''}">
+                                                    ${escapeSafeHtml(t.task)}
+                                                </strong>
+                                            </div>
+                                            <input type="checkbox" ${isDone ? 'checked' : ''} onchange="toggleGuidedHomeTask('${t.id}', this.checked)" style="width:24px; height:24px; accent-color:#059669; cursor:pointer; flex-shrink:0;">
+                                        </label>
+                                    `;
+                                }).join('')}
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+
+            // Build HTML for Tab 2: Today's Weekly Zone Focus Deep-Dive Checklist (Every single task laid out with checkboxes!)
+            const zoneHtml = `
+                <div style="display:${(activeTab === 'zone' || activeTab === 'all') ? 'block' : 'none'};">
+                    <div style="background:linear-gradient(135deg, #FEF5D8 0%, #FFFDF8 100%); border:2px solid #B87612; border-radius:18px; padding:16px 20px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;">
+                        <div>
+                            <span class="card-tag" style="background:#B87612; color:#fff;">${zoneObj.icon} STEP 2 OF 2 • ${escapeSafeHtml(zoneObj.dayName.toUpperCase())} WEEKLY ZONE FOCUS</span>
+                            <h3 style="font-family:var(--font-serif, Georgia, serif); font-size:1.55rem; color:var(--primary); margin:4px 0 2px 0;">
+                                ${escapeSafeHtml(zoneObj.dayName)} Zone Focus: ${escapeSafeHtml(zoneObj.zoneTitle)} (${zoneDoneCount} of ${combinedZoneTasks.length} Done)
+                            </h3>
+                            <p style="font-size:0.83rem; color:#4A3728; margin:0;">
+                                🎯 <strong>Coach Rule:</strong> ${escapeSafeHtml(zoneObj.zoneSubtitle)}
+                            </p>
+                        </div>
+
+                        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                            <select onchange="changeActiveZoneDayPreview(this.value)" style="padding:7px 11px; border:1.5px solid #B87612; border-radius:10px; font-size:0.78rem; font-weight:700; background:#fff; cursor:pointer;">
+                                ${[1,2,3,4,5,6,0].map(dIdx => {
+                                    const z = WEEKLY_ZONE_FOCUS_CATALOG[dIdx];
+                                    return `<option value="${dIdx}" ${activeZoneDayIdx === dIdx ? 'selected' : ''}>${z.dayName}: ${z.zoneTitle}${dIdx === realTodayIdx ? ' (Today)' : ''}</option>`;
+                                }).join('')}
+                            </select>
+                            <button type="button" class="btn-primary" style="padding:7px 13px; font-size:0.78rem;" onclick="openAddCustomZoneTaskModal(${activeZoneDayIdx})">
+                                + Add Zone Task
+                            </button>
+                            <button type="button" class="btn-secondary" style="padding:7px 12px; font-size:0.78rem;" onclick="triggerOriginalMyRoomsModal()">
+                                ⚙️ My Rooms
+                            </button>
+                        </div>
+                    </div>
+
+                    <div style="display:flex; flex-direction:column; gap:2px;">
+                        ${combinedZoneTasks.map((zt, idx) => {
+                            const isDone = Boolean(checksToday[zt.id]);
+                            return `
+                                <label class="hh-home-task-card ${isDone ? 'done' : ''}" style="background:#FFFDF8; border:2px solid #EADBC0; border-left:7px solid #2E5A44;">
+                                    <div style="flex:1;">
+                                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+                                            <span style="background:${isDone ? '#059669' : '#E8F2EC'}; color:${isDone ? '#fff' : '#1F4230'}; padding:2px 10px; border-radius:999px; font-size:0.7rem; font-weight:800;">
+                                                ${isDone ? `✓ ZONE STEP #${idx + 1} COMPLETE` : `📍 ZONE STEP #${idx + 1} • ${escapeSafeHtml(zt.area)}`}
+                                            </span>
+                                        </div>
+                                        <strong style="font-size:0.94rem; color:#2A1E14; display:block; ${isDone ? 'text-decoration:line-through;' : ''}">
+                                            ${escapeSafeHtml(zt.text)}
+                                        </strong>
+                                    </div>
+                                    <input type="checkbox" ${isDone ? 'checked' : ''} onchange="toggleGuidedHomeTask('${zt.id}', this.checked)" style="width:24px; height:24px; accent-color:#059669; cursor:pointer; flex-shrink:0;">
+                                </label>
+                            `;
+                        }).join('')}
+                    </div>
+
+                    <div style="margin-top:14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                        <button type="button" class="btn-secondary" style="font-size:0.8rem;" onclick="switchHomeCoachTab('maintenance')">&larr; Back to Step 1: Daily Maintenance</button>
+                        <button type="button" class="btn-primary" style="background:var(--sage); border-color:var(--sage); font-size:0.8rem;" onclick="switchHomeCoachTab('meals')">Next: Step 3 — Today's Family Table & 8 PM Bell &rarr;</button>
+                    </div>
+                </div>
+            `;
+
+            customHomeTaskBody.innerHTML = maintenanceHtml + zoneHtml;
+
+            // 3. Switch the 2-Column Layout into a Clean, Single-Column Guided View based on the active tab!
+            const rightMealsCol = twoColGrid.children[1];
+            twoColGrid.style.cssText = 'display: block; width: 100%; max-width: 980px; margin: 0 auto;';
+
+            if (activeTab === 'maintenance' || activeTab === 'zone') {
+                resetPanel.style.display = 'block';
+                if (rightMealsCol) rightMealsCol.style.display = 'none';
+                if (terrainTopSummaryBox) terrainTopSummaryBox.style.display = 'none';
+            } else if (activeTab === 'meals') {
+                resetPanel.style.display = 'none';
+                if (rightMealsCol) rightMealsCol.style.display = 'block';
+                if (terrainTopSummaryBox) terrainTopSummaryBox.style.display = 'none';
+            } else if (activeTab === 'terrain') {
+                resetPanel.style.display = 'none';
+                if (rightMealsCol) rightMealsCol.style.display = 'none';
+                if (terrainTopSummaryBox) {
+                    terrainTopSummaryBox.style.display = 'block';
+                    // Ensure terrainTopSummaryBox sits right below coachHeader when viewed
+                    if (coachHeader.nextElementSibling !== terrainTopSummaryBox) {
+                        coachHeader.insertAdjacentElement('afterend', terrainTopSummaryBox);
+                    }
+                }
+            }
+        } finally {
+            isRenderingHomeCoach = false;
+        }
+    }
+
+    [350, 900, 1800].forEach(ms => setTimeout(renderGuidedHomeCommandPage, ms));
+    document.addEventListener('click', (e) => {
+        if (e.target.closest('select, option, input[type="checkbox"]')) return;
+        setTimeout(renderGuidedHomeCommandPage, 140);
+    });
+})();
+</script>
+
 </body>
 </html>
