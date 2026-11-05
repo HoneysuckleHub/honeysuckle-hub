@@ -24045,5 +24045,518 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
     });
 })();
 </script>
+
+<!-- ================= BLOCK 11: PREMIUM MOTION UI & PHYSICS ENGINE (SINK & SPRING, 35% PULL RESISTANCE, ROLLING DIGITS, 105% DRAG REORDER, 350MS EASE-OUT & 470MS DRAW-THE-WIN) ================= -->
+<script>
+(function() {
+    if (document.getElementById('hh-premium-motion-ui-styles')) return;
+
+    const st = document.createElement('style');
+    st.id = 'hh-premium-motion-ui-styles';
+    st.innerHTML = `
+        /* =====================================================================
+           01. BUTTON PRESS: SINK TO 95%, THEN SPRING BACK (500ms)
+           ===================================================================== */
+        button, .btn-primary, .btn-secondary, .icon-btn, .hh-coach-tab-btn, .hh-home-tab-btn, .hh-b3-hero-cta, .hh-b3-store-pill {
+            transform-origin: center center;
+            will-change: transform;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .hh-btn-sinking {
+            transform: scale(0.95) !important;
+            transition: transform 95ms cubic-bezier(0.2, 0, 0, 1) !important;
+        }
+        @keyframes hhBtnSpringBack {
+            0%   { transform: scale(0.95); }
+            52%  { transform: scale(1.028); }
+            78%  { transform: scale(0.99); }
+            100% { transform: scale(1); }
+        }
+        .hh-btn-springing {
+            animation: hhBtnSpringBack 500ms cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
+        }
+
+        /* =====================================================================
+           02. PULL TO REFRESH: 35% FINGER RESISTANCE INDICATOR
+           ===================================================================== */
+        #hh-pull-refresh-indicator {
+            position: fixed;
+            top: 12px;
+            left: 50%;
+            transform: translate(-50%, -80px) scale(0.8);
+            z-index: 3200;
+            background: #1E3F2E;
+            color: #FEF5D8;
+            border: 2px solid #D9B36C;
+            border-radius: 999px;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            font-size: 0.78rem;
+            font-weight: 800;
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.25);
+            pointer-events: none;
+            opacity: 0;
+            transition: transform 350ms cubic-bezier(0.16, 1, 0.3, 1), opacity 250ms ease;
+        }
+        #hh-pull-refresh-indicator.pulling {
+            transition: none;
+        }
+
+        /* =====================================================================
+           03. ROLLING NUMBERS: DIGITS ROLL 100ms APART (600ms)
+           ===================================================================== */
+        .hh-rolling-num-wrap {
+            display: inline-flex;
+            align-items: baseline;
+            overflow: hidden;
+            vertical-align: bottom;
+            line-height: 1.15;
+            height: 1.15em;
+        }
+        .hh-rolling-digit-track {
+            display: inline-flex;
+            flex-direction: column;
+            transition: transform 600ms cubic-bezier(0.16, 1, 0.3, 1);
+            will-change: transform;
+        }
+        .hh-rolling-digit-track span {
+            height: 1.15em;
+            line-height: 1.15;
+            display: block;
+            text-align: center;
+        }
+
+        /* =====================================================================
+           04. DRAG TO REORDER: LIFT 105% + OTHERS SLIDE 200ms
+           ===================================================================== */
+        .hh-home-task-card, .hh-habit-card-upgraded {
+            transition: transform 200ms cubic-bezier(0.2, 0, 0, 1), box-shadow 200ms ease, background 250ms ease !important;
+            position: relative;
+        }
+        .hh-drag-handle-grip {
+            cursor: grab;
+            color: #9A8B7A;
+            font-size: 1.1rem;
+            padding: 4px 8px 4px 2px;
+            margin-right: 4px;
+            user-select: none;
+            touch-action: none;
+            display: inline-flex;
+            align-items: center;
+            opacity: 0.65;
+            transition: opacity 150ms ease, color 150ms ease;
+        }
+        .hh-drag-handle-grip:hover {
+            opacity: 1;
+            color: #2E5A44;
+        }
+        .hh-card-lifting {
+            transform: scale(1.05) !important;
+            z-index: 60 !important;
+            box-shadow: 0 20px 38px rgba(30, 63, 46, 0.22) !important;
+            cursor: grabbing !important;
+        }
+
+        /* =====================================================================
+           05. CARD & MODAL EXPAND: FAST, THEN SLOW (EASE-OUT 350ms)
+           ===================================================================== */
+        @keyframes hhCardExpandEaseOut {
+            0% {
+                opacity: 0;
+                transform: scale(0.92) translateY(10px);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+        .modal-overlay > div,
+        .clinical-panel,
+        .recipe-card,
+        #hh-upgraded-home-tasks-container > div {
+            animation: hhCardExpandEaseOut 350ms cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* =====================================================================
+           06. SUCCESS CHECKMARK: DRAW CIRCLE, THEN TICK (470ms)
+           ===================================================================== */
+        .hh-draw-win-badge {
+            width: 28px;
+            height: 28px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            pointer-events: none;
+        }
+        .hh-draw-win-svg {
+            width: 28px;
+            height: 28px;
+            overflow: visible;
+            filter: drop-shadow(0 0 6px rgba(16, 185, 129, 0.45));
+        }
+        .hh-draw-win-circle {
+            fill: #059669;
+            fill-opacity: 0;
+            stroke: #10B981;
+            stroke-width: 2.5;
+            stroke-linecap: round;
+            stroke-dasharray: 76;
+            stroke-dashoffset: 76;
+            animation: hhDrawCircle 260ms cubic-bezier(0.22, 1, 0.36, 1) forwards,
+                       hhFillCircle 200ms ease 220ms forwards;
+        }
+        .hh-draw-win-tick {
+            fill: none;
+            stroke: #ffffff;
+            stroke-width: 2.6;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            stroke-dasharray: 24;
+            stroke-dashoffset: 24;
+            animation: hhDrawTick 210ms cubic-bezier(0.22, 1, 0.36, 1) 260ms forwards;
+        }
+        @keyframes hhDrawCircle {
+            to { stroke-dashoffset: 0; }
+        }
+        @keyframes hhFillCircle {
+            to { fill-opacity: 1; }
+        }
+        @keyframes hhDrawTick {
+            to { stroke-dashoffset: 0; }
+        }
+    `;
+    document.head.appendChild(st);
+
+    // =========================================================================
+    // 1. BUTTON PRESS: SINK TO 95%, THEN SPRING BACK (500ms)
+    // =========================================================================
+    const BTN_SELECTOR = 'button, .btn-primary, .btn-secondary, .icon-btn, .hh-coach-tab-btn, .hh-home-tab-btn, .hh-b3-hero-cta, .hh-b3-store-pill';
+
+    document.addEventListener('pointerdown', (e) => {
+        const btn = e.target.closest(BTN_SELECTOR);
+        if (!btn) return;
+        btn.classList.remove('hh-btn-springing');
+        btn.classList.add('hh-btn-sinking');
+    }, { passive: true });
+
+    function releaseButtonSpring(e) {
+        const sinkingBtns = document.querySelectorAll('.hh-btn-sinking');
+        sinkingBtns.forEach(btn => {
+            btn.classList.remove('hh-btn-sinking');
+            // Reflow to restart the 500ms spring animation cleanly
+            void btn.offsetWidth;
+            btn.classList.add('hh-btn-springing');
+            setTimeout(() => btn.classList.remove('hh-btn-springing'), 520);
+        });
+    }
+    document.addEventListener('pointerup', releaseButtonSpring, { passive: true });
+    document.addEventListener('pointercancel', releaseButtonSpring, { passive: true });
+
+    // =========================================================================
+    // 2. PULL TO REFRESH: 35% RESISTANCE RATIO (FINGER 100% -> LIST 35%)
+    // =========================================================================
+    let pullStartY = null;
+    let currentPullDelta = 0;
+
+    function getPullIndicator() {
+        let ind = document.getElementById('hh-pull-refresh-indicator');
+        if (!ind) {
+            ind = document.createElement('div');
+            ind.id = 'hh-pull-refresh-indicator';
+            ind.className = 'no-print';
+            ind.innerHTML = `
+                <svg width="20" height="20" viewBox="0 0 24 24" style="transform:rotate(-90deg);">
+                    <circle cx="12" cy="12" r="9" fill="none" stroke="rgba(254,245,216,0.25)" stroke-width="2.5"></circle>
+                    <circle id="hh-pull-progress-ring" cx="12" cy="12" r="9" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="56.5" stroke-dashoffset="56.5"></circle>
+                </svg>
+                <span id="hh-pull-refresh-text">Pull to refresh rhythm...</span>
+            `;
+            document.body.appendChild(ind);
+        }
+        return ind;
+    }
+
+    document.addEventListener('touchstart', (e) => {
+        if (window.scrollY <= 2 && e.touches.length === 1 && !e.target.closest('.modal-overlay, .hh-drag-handle-grip')) {
+            pullStartY = e.touches[0].clientY;
+            currentPullDelta = 0;
+        } else {
+            pullStartY = null;
+        }
+    }, { passive: true });
+
+    document.addEventListener('touchmove', (e) => {
+        if (pullStartY === null) return;
+        const rawDelta = e.touches[0].clientY - pullStartY;
+        if (rawDelta <= 0 || window.scrollY > 2) {
+            pullStartY = null;
+            return;
+        }
+
+        // Exact 35% resistance from the video: Finger moves 100%, list moves 35%!
+        currentPullDelta = Math.min(95, rawDelta * 0.35);
+        if (currentPullDelta < 6) return;
+
+        const appContainer = document.querySelector('main') || document.getElementById('view-home')?.parentElement;
+        const ind = getPullIndicator();
+        const ring = document.getElementById('hh-pull-progress-ring');
+        const txt = document.getElementById('hh-pull-refresh-text');
+
+        ind.classList.add('pulling');
+        const progress = Math.min(1, currentPullDelta / 65);
+        ind.style.opacity = String(Math.min(1, progress * 1.25));
+        ind.style.transform = `translate(-50%, ${Math.min(28, currentPullDelta - 45)}px) scale(${0.85 + progress * 0.15})`;
+
+        if (ring) {
+            ring.style.strokeDashoffset = String(56.5 * (1 - progress));
+        }
+        if (txt) {
+            txt.textContent = progress >= 1 ? '✨ Release to sync & refresh!' : 'Pull to refresh rhythm...';
+        }
+        if (appContainer) {
+            appContainer.style.transition = 'none';
+            appContainer.style.transform = `translateY(${currentPullDelta}px)`;
+        }
+    }, { passive: true });
+
+    document.addEventListener('touchend', () => {
+        if (pullStartY === null) return;
+        const appContainer = document.querySelector('main') || document.getElementById('view-home')?.parentElement;
+        const ind = getPullIndicator();
+        const triggeredRefresh = currentPullDelta >= 65;
+
+        pullStartY = null;
+        currentPullDelta = 0;
+
+        if (appContainer) {
+            appContainer.style.transition = 'transform 420ms cubic-bezier(0.22, 1, 0.36, 1)';
+            appContainer.style.transform = 'translateY(0)';
+            setTimeout(() => { appContainer.style.transition = ''; appContainer.style.transform = ''; }, 450);
+        }
+
+        ind.classList.remove('pulling');
+        if (triggeredRefresh) {
+            const txt = document.getElementById('hh-pull-refresh-text');
+            if (txt) txt.textContent = '✅ Household Rhythm Synced!';
+            setTimeout(() => {
+                ind.style.opacity = '0';
+                ind.style.transform = 'translate(-50%, -80px) scale(0.8)';
+            }, 650);
+        } else {
+            ind.style.opacity = '0';
+            ind.style.transform = 'translate(-50%, -80px) scale(0.8)';
+        }
+    }, { passive: true });
+
+    // =========================================================================
+    // 3. ROLLING NUMBERS: DIGITS ROLL INTO PLACE 100ms APART (600ms)
+    // =========================================================================
+    const previousNumberValues = new WeakMap();
+
+    window.animateRollingNumberElement = function(el, prevText, newText) {
+        if (!el || prevText === newText) return;
+        let digitIdx = 0;
+
+        // Replace each numeric sequence with rolling digit columns staggered 100ms apart
+        const htmlOut = newText.replace(/\d/g, (newDigitChar) => {
+            const delayMs = digitIdx * 100;
+            digitIdx++;
+            const targetNum = parseInt(newDigitChar, 10);
+            const startNum = (targetNum + 9) % 10; // Roll from previous digit smoothly into target digit
+            return `<span class="hh-rolling-num-wrap"><span class="hh-rolling-digit-track" data-delay="${delayMs}"><span>${startNum}</span><span>${targetNum}</span></span></span>`;
+        });
+
+        el.innerHTML = htmlOut;
+
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                el.querySelectorAll('.hh-rolling-digit-track').forEach(track => {
+                    const d = parseInt(track.getAttribute('data-delay') || '0', 10);
+                    track.style.transitionDelay = `${d}ms`;
+                    track.style.transform = 'translateY(-1.15em)';
+                });
+            });
+        });
+    };
+
+    function upgradeCountersWithRollingDigits() {
+        // Target Win Meters, Shopping Progress, and Level/Star Counters
+        const counterSelectors = [
+            '#hh-home-guided-coach-master-header strong',
+            '#hh-terrain-guided-coach-header strong',
+            '#hh-curated-action-toolbar span',
+            'header .icon-btn strong',
+            '#user-stars-count'
+        ];
+        document.querySelectorAll(counterSelectors.join(',')).forEach(el => {
+            if (el.querySelector('.hh-rolling-num-wrap')) return;
+            const txt = (el.textContent || '').trim();
+            if (!/\d/.test(txt) || txt.length > 65) return;
+            if (!/(Done|Habits|checked|⭐|Lvl|\d+\s*of\s*\d+)/i.test(txt)) return;
+
+            const prev = previousNumberValues.get(el);
+            if (prev && prev !== txt) {
+                window.animateRollingNumberElement(el, prev, txt);
+            }
+            previousNumberValues.set(el, txt);
+        });
+    }
+
+    // =========================================================================
+    // 4. DRAG TO REORDER: LIFT 105% + OTHER ROWS SLIDE 200ms
+    // =========================================================================
+    function attachDragToReorderHandles() {
+        const cards = document.querySelectorAll('.hh-home-task-card, .hh-habit-card-upgraded');
+        cards.forEach(card => {
+            if (card.querySelector('.hh-drag-handle-grip')) return;
+            const handle = document.createElement('span');
+            handle.className = 'hh-drag-handle-grip no-print';
+            handle.title = 'Drag to reorder';
+            handle.innerHTML = '☰';
+            handle.addEventListener('click', (e) => e.stopPropagation());
+            card.prepend(handle);
+
+            let isDragging = false;
+            let startY = 0;
+
+            handle.addEventListener('pointerdown', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                isDragging = true;
+                startY = e.clientY;
+                handle.setPointerCapture(e.pointerId);
+                card.classList.add('hh-card-lifting');
+            });
+
+            handle.addEventListener('pointermove', (e) => {
+                if (!isDragging) return;
+                const dy = e.clientY - startY;
+                card.style.transform = `translateY(${dy}px) scale(1.05)`;
+
+                const parent = card.parentElement;
+                if (!parent) return;
+                const siblings = Array.from(parent.children).filter(c =>
+                    c !== card && (c.classList.contains('hh-home-task-card') || c.classList.contains('hh-habit-card-upgraded'))
+                );
+
+                const cardRect = card.getBoundingClientRect();
+                const cardMid = cardRect.top + cardRect.height / 2;
+
+                for (const sib of siblings) {
+                    const sibRect = sib.getBoundingClientRect();
+                    const sibMid = sibRect.top + sibRect.height / 2;
+                    if (dy > 18 && cardMid > sibMid && card.compareDocumentPosition(sib) & Node.DOCUMENT_POSITION_FOLLOWING) {
+                        sib.insertAdjacentElement('afterend', card);
+                        startY = e.clientY;
+                        card.style.transform = 'scale(1.05)';
+                        break;
+                    } else if (dy < -18 && cardMid < sibMid && card.compareDocumentPosition(sib) & Node.DOCUMENT_POSITION_PRECEDING) {
+                        sib.insertAdjacentElement('beforebegin', card);
+                        startY = e.clientY;
+                        card.style.transform = 'scale(1.05)';
+                        break;
+                    }
+                }
+            });
+
+            function endDrag(e) {
+                if (!isDragging) return;
+                isDragging = false;
+                card.classList.remove('hh-card-lifting');
+                card.style.transform = '';
+            }
+            handle.addEventListener('pointerup', endDrag);
+            handle.addEventListener('pointercancel', endDrag);
+        });
+    }
+
+    // =========================================================================
+    // 6. SUCCESS: DRAW CIRCLE, THEN TICK (470ms ANIMATED SVG CHECKMARK)
+    // =========================================================================
+    function createDrawTheWinSvgBadge() {
+        const span = document.createElement('span');
+        span.className = 'hh-draw-win-badge';
+        span.innerHTML = `
+            <svg class="hh-draw-win-svg" viewBox="0 0 28 28">
+                <circle class="hh-draw-win-circle" cx="14" cy="14" r="12"></circle>
+                <path class="hh-draw-win-tick" d="M8.5 14.5 L12.2 18.2 L19.8 10.2"></path>
+            </svg>
+        `;
+        return span;
+    }
+
+    document.addEventListener('change', (e) => {
+        const chk = e.target;
+        if (!chk || chk.type !== 'checkbox') return;
+
+        // Play the 470ms "Draw the Win" Circle-then-Tick SVG animation right over the checkbox!
+        if (chk.checked) {
+            const existingBadge = chk.parentElement?.querySelector('.hh-draw-win-badge');
+            if (existingBadge) existingBadge.remove();
+
+            const badge = createDrawTheWinSvgBadge();
+            chk.style.display = 'none';
+            chk.insertAdjacentElement('afterend', badge);
+
+            // Allow clicking the drawn SVG badge to uncheck if needed
+            badge.style.pointerEvents = 'auto';
+            badge.style.cursor = 'pointer';
+            badge.onclick = (ev) => {
+                ev.preventDefault();
+                ev.stopPropagation();
+                badge.remove();
+                chk.style.display = '';
+                chk.checked = false;
+                chk.dispatchEvent(new Event('change', { bubbles: true }));
+            };
+        }
+
+        setTimeout(() => {
+            upgradeCountersWithRollingDigits();
+            syncCheckedBoxesWithSvgBadges();
+        }, 65);
+    });
+
+    function syncCheckedBoxesWithSvgBadges() {
+        const scopeSelectors = '#hh-upgraded-home-tasks-container input[type="checkbox"], #view-reclaim-terrain input[type="checkbox"], #hh-clean-curated-4col-grid input[type="checkbox"]';
+        document.querySelectorAll(scopeSelectors).forEach(chk => {
+            const nextEl = chk.nextElementSibling;
+            const hasBadge = nextEl && nextEl.classList.contains('hh-draw-win-badge');
+            if (chk.checked && !hasBadge) {
+                const badge = createDrawTheWinSvgBadge();
+                chk.style.display = 'none';
+                chk.insertAdjacentElement('afterend', badge);
+                badge.style.pointerEvents = 'auto';
+                badge.style.cursor = 'pointer';
+                badge.onclick = (ev) => {
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                    badge.remove();
+                    chk.style.display = '';
+                    chk.checked = false;
+                    chk.dispatchEvent(new Event('change', { bubbles: true }));
+                };
+            } else if (!chk.checked && hasBadge) {
+                nextEl.remove();
+                chk.style.display = '';
+            }
+        });
+    }
+
+    function runPremiumMotionEnhancements() {
+        attachDragToReorderHandles();
+        syncCheckedBoxesWithSvgBadges();
+        upgradeCountersWithRollingDigits();
+    }
+
+    [300, 900, 1800].forEach(ms => setTimeout(runPremiumMotionEnhancements, ms));
+    document.addEventListener('click', () => setTimeout(runPremiumMotionEnhancements, 120));
+})();
+</script>
+
 </body>
 </html>
