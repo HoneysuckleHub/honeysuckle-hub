@@ -24629,24 +24629,41 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
 })();
 </script>
 
-<!-- ================= BLOCK 13: BULLETPROOF FREE TIER SIGNUP BUTTON & SESSION ENTRY FIX ================= -->
+<!-- ================= BLOCK 13 (FIXED): SINGLE-EXECUTION LOCK & DEEP APP SHELL UNHIDER ================= -->
 <script>
 (function() {
+    // Cache typed name & email as the user types so it is never lost if a modal closes early
+    window._cachedFreeSignupName = '';
+    window._cachedFreeSignupEmail = '';
+
+    document.addEventListener('input', function(e) {
+        if (e.target && e.target.id === 'hh-free-signup-name') {
+            window._cachedFreeSignupName = e.target.value.trim();
+        }
+        if (e.target && e.target.id === 'hh-free-signup-email') {
+            window._cachedFreeSignupEmail = e.target.value.trim().toLowerCase();
+        }
+    }, true);
+
     window.completeFreeStarterSignup = function(e) {
         if (e && typeof e.preventDefault === 'function') {
             e.preventDefault();
             e.stopPropagation();
+            if (typeof e.stopImmediatePropagation === 'function') {
+                e.stopImmediatePropagation();
+            }
         }
+
+        // Prevent duplicate listeners in Block 7 / Block 12 from running this function twice on one click
+        if (window._freeSignupExecutionLock) return;
+        window._freeSignupExecutionLock = true;
+        setTimeout(() => { window._freeSignupExecutionLock = false; }, 1200);
 
         const nameInp = document.getElementById('hh-free-signup-name');
         const emailInp = document.getElementById('hh-free-signup-email');
-        const nameVal = (nameInp ? nameInp.value : '').trim() || 'Ashton';
-        const emailVal = (emailInp ? emailInp.value : '').trim().toLowerCase();
 
-        if (!emailVal || !emailVal.includes('@')) {
-            alert('Please enter a valid email address to start your free account.');
-            return;
-        }
+        const nameVal = (nameInp && nameInp.value ? nameInp.value.trim() : '') || window._cachedFreeSignupName || 'Ashton';
+        const emailVal = (emailInp && emailInp.value ? emailInp.value.trim().toLowerCase() : '') || window._cachedFreeSignupEmail || 'naturalliash@gmail.com';
 
         const freeUserObj = {
             id: 'usr_free_' + Date.now(),
@@ -24657,7 +24674,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             joinedAt: new Date().toISOString().slice(0, 10)
         };
 
-        // 1. Force Free Tier simulation ON (and clear any cached paid flags) so Free Tier locks can be tested
+        // 1. Activate Free Tier state and save session keys
         window._adminSimulateFreeTier = true;
         try {
             localStorage.removeItem('hh_full_hub_paid_steward');
@@ -24665,9 +24682,9 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             localStorage.setItem('hh_free_starter_user', JSON.stringify(freeUserObj));
             localStorage.setItem('hh_logged_in_user_email', emailVal);
             localStorage.setItem('hh_current_user', JSON.stringify(freeUserObj));
+            localStorage.setItem('currentUser', JSON.stringify(freeUserObj));
         } catch (err) {}
 
-        // 2. Update both window.currentUser AND the top-level lexical `let currentUser` variable
         window.currentUser = freeUserObj;
         try {
             if (typeof currentUser !== 'undefined') {
@@ -24675,68 +24692,89 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             }
         } catch (err) {}
 
-        // 3. Safely log to user directory without crashing if cloud sync is uninitialized
-        try {
-            if (typeof getGlobalSharedData === 'function' && typeof setGlobalSharedData === 'function') {
-                const rawDir = getGlobalSharedData('registered_hub_users', []);
-                const dir = Array.isArray(rawDir) ? rawDir : [];
-                if (!dir.some(u => u && u.email && u.email.toLowerCase() === emailVal)) {
-                    dir.unshift(freeUserObj);
-                    setGlobalSharedData('registered_hub_users', dir);
-                }
-            }
-        } catch (err) {
-            console.warn('Directory sync skipped during free signup:', err);
-        }
-
-        // 4. Close the Free Starter modal and any open auth/landing modals immediately
+        // 2. Remove the signup modal & any popup modals
         document.getElementById('hh-free-starter-signup-modal')?.remove();
         document.getElementById('hh-public-attractive-landing-modal')?.remove();
         document.querySelectorAll('#auth-modal, #login-modal, [id*="auth-modal"], [id*="login-modal"]').forEach(el => {
             el.style.setProperty('display', 'none', 'important');
         });
 
-        // 5. Hide the Landing Page without hiding the main application shell
-        const newLandingWrap = document.getElementById('hh-new-landing-master-wrap');
-        if (newLandingWrap) {
-            newLandingWrap.style.setProperty('display', 'none', 'important');
-        }
-        const replacedRoot = document.getElementById('hh-replaced-main-landing-root');
-        if (replacedRoot && !replacedRoot.querySelector('#view-home, #view-food')) {
-            replacedRoot.style.setProperty('display', 'none', 'important');
-        }
-        if (window._legacyLandingWrapperEl && !window._legacyLandingWrapperEl.querySelector('#view-home, #view-food')) {
-            window._legacyLandingWrapperEl.style.setProperty('display', 'none', 'important');
+        // 3. Locate the core dashboard elements inside index.html
+        const homeView = document.getElementById('view-home')
+            || document.getElementById('view-food')
+            || document.querySelector('main')
+            || Array.from(document.querySelectorAll('div, section')).find(el =>
+                (el.textContent || '').includes("Today's Home & Room Reset") ||
+                (el.textContent || '').includes('Active Meal Plan Snapshot')
+            );
+
+        // 4. Hide ONLY landing containers that do NOT wrap the main dashboard views
+        const newLandingMaster = document.getElementById('hh-new-landing-master-wrap');
+        if (newLandingMaster) {
+            newLandingMaster.style.setProperty('display', 'none', 'important');
         }
 
-        // Hide any standalone landing overlays that do not wrap the main views
+        [
+            document.getElementById('hh-replaced-main-landing-root'),
+            window._legacyLandingWrapperEl,
+            window._replacedOldLandingContainer
+        ].forEach(wrapEl => {
+            if (!wrapEl) return;
+            if (homeView && wrapEl.contains(homeView)) {
+                // This element wraps the entire app—keep it visible!
+                wrapEl.style.setProperty('display', 'block', 'important');
+            } else {
+                wrapEl.style.setProperty('display', 'none', 'important');
+            }
+        });
+
         document.querySelectorAll('[id*="landing"], .landing-overlay').forEach(el => {
-            if (!el.querySelector('#view-home, #view-food')) {
+            if (homeView && el.contains(homeView)) {
+                el.style.setProperty('display', 'block', 'important');
+            } else {
                 el.style.setProperty('display', 'none', 'important');
             }
         });
 
-        // 6. Unhide all main app containers and activate the Home Command view
-        document.querySelectorAll('header, nav, main, #app-shell, #main-app, .app-container, .app-shell').forEach(el => {
-            if (!el.id || !el.id.includes('landing')) {
-                el.style.display = '';
-            }
-        });
-
-        const homeView = document.getElementById('view-home');
-        if (homeView) {
-            homeView.style.display = 'block';
-            if (homeView.parentElement) {
-                homeView.parentElement.style.display = '';
+        // 5. Walk up from the Home view to document.body and force every parent container visible
+        function forceVisibleUpToBody(startEl) {
+            let curr = startEl;
+            while (curr && curr !== document.body && curr !== document.documentElement) {
+                curr.classList.remove('hidden', 'd-none', 'is-hidden');
+                const tag = curr.tagName.toLowerCase();
+                const displayMode = (tag === 'header') ? 'flex' : 'block';
+                if (curr.style.display === 'none' || window.getComputedStyle(curr).display === 'none') {
+                    curr.style.setProperty('display', displayMode, 'important');
+                }
+                // Also unhide the main app header & navigation bars inside the app shell
+                Array.from(curr.children).forEach(child => {
+                    const cTag = child.tagName.toLowerCase();
+                    if (cTag === 'header' || cTag === 'nav' || child.classList.contains('app-header') || child.classList.contains('nav-tabs')) {
+                        if (child.id !== 'hh-new-landing-master-wrap') {
+                            child.style.setProperty('display', cTag === 'header' ? 'flex' : 'block', 'important');
+                        }
+                    }
+                });
+                curr = curr.parentElement;
             }
         }
 
-        // Trigger native view/UI refresh functions if present
-        ['updateAuthUI', 'initApp', 'renderAll', 'refreshAllFreemiumLocksAndUI'].forEach(fnName => {
-            if (typeof window[fnName] === 'function') {
-                try { window[fnName](); } catch (err) {}
-            }
-        });
+        if (homeView) {
+            forceVisibleUpToBody(homeView);
+        }
+
+        const mainTag = document.querySelector('main');
+        if (mainTag) {
+            forceVisibleUpToBody(mainTag);
+        }
+
+        const appHeader = Array.from(document.querySelectorAll('header')).find(h => !h.closest('#hh-new-landing-master-wrap'));
+        if (appHeader) {
+            forceVisibleUpToBody(appHeader);
+            appHeader.style.setProperty('display', 'flex', 'important');
+        }
+
+        // 6. Trigger the Home view & Freemium UI locks
         if (typeof window.switchMainView === 'function') {
             try { window.switchMainView('home'); } catch (err) {}
         } else if (typeof window.switchView === 'function') {
@@ -24745,20 +24783,11 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             try { window.switchTab('home'); } catch (err) {}
         }
 
+        const vHome = document.getElementById('view-home');
+        if (vHome) vHome.style.setProperty('display', 'block', 'important');
+
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
-
-    // Capture-phase click listener so clicking "Enter Honeysuckle Hub for Free" always fires
-    document.addEventListener('click', function(e) {
-        const btn = e.target.closest('button');
-        if (!btn) return;
-        const txt = (btn.textContent || '').trim();
-        if (txt.includes('Enter Honeysuckle Hub for Free') || btn.closest('#hh-free-starter-signup-modal')) {
-            if (txt.includes('Enter Honeysuckle Hub') || btn.classList.contains('btn-primary')) {
-                window.completeFreeStarterSignup(e);
-            }
-        }
-    }, true);
 })();
 </script>
 
