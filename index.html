@@ -24629,22 +24629,74 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
 })();
 </script>
 
-<!-- ================= BLOCK 13 (NO-FLASH FIX): STABLE LANDING PAGE ON LOAD + ZERO-GAP FREE TIER ENTRY ================= -->
+<!-- ================= BLOCK 13 (COMPLETE ACCOUNT & PERSISTENCE ENGINE): USERNAME/PASSWORD SIGNUP, UNIFIED MEMBER LOGIN & PER-USER TASK/MEAL SAVING ================= -->
 <script>
 (function() {
-    window._cachedFreeSignupName = '';
-    window._cachedFreeSignupEmail = '';
+    const FOUNDER_ADMIN_EMAIL = 'contacthoneysuckleandco@gmail.com';
+    const ACCOUNTS_VAULT_KEY = 'hh_registered_member_accounts_v2';
+    const ACTIVE_SESSION_KEY = 'hh_active_authenticated_member_v2';
 
-    document.addEventListener('input', function(e) {
-        if (e.target && e.target.id === 'hh-free-signup-name') {
-            window._cachedFreeSignupName = e.target.value.trim();
-        }
-        if (e.target && e.target.id === 'hh-free-signup-email') {
-            window._cachedFreeSignupEmail = e.target.value.trim().toLowerCase();
-        }
-    }, true);
+    // Keys to exclude when snapshotting a user's personal app state (meals, rooms, checked tasks)
+    const SYSTEM_KEYS_EXCLUDE = new Set([
+        ACCOUNTS_VAULT_KEY,
+        ACTIVE_SESSION_KEY,
+        'hh_membership_tier_cfg_v2',
+        'hh_paid_steward_emails'
+    ]);
 
-    // Hide ONLY the old duplicate top bar ("Demo the App Free" / "See Plans & Join") without touching the landing page
+    function getRegisteredAccounts() {
+        try {
+            const raw = JSON.parse(localStorage.getItem(ACCOUNTS_VAULT_KEY) || '{}');
+            return (raw && typeof raw === 'object') ? raw : {};
+        } catch (e) {
+            return {};
+        }
+    }
+
+    function saveRegisteredAccounts(accountsMap) {
+        try {
+            localStorage.setItem(ACCOUNTS_VAULT_KEY, JSON.stringify(accountsMap));
+        } catch (e) {}
+    }
+
+    // Save all current tasks, rooms, and meal plans into the active user's account snapshot
+    window.saveCurrentUserProgressSnapshot = function() {
+        try {
+            const activeSess = JSON.parse(localStorage.getItem(ACTIVE_SESSION_KEY) || 'null');
+            if (!activeSess || !activeSess.accountKey) return;
+
+            const accounts = getRegisteredAccounts();
+            const acc = accounts[activeSess.accountKey];
+            if (!acc) return;
+
+            const snapshot = {};
+            for (let i = 0; i < localStorage.length; i++) {
+                const k = localStorage.key(i);
+                if (!k || SYSTEM_KEYS_EXCLUDE.has(k) || k.startsWith('sb-')) continue;
+                snapshot[k] = localStorage.getItem(k);
+            }
+
+            acc.savedAppData = snapshot;
+            acc.lastSavedAt = new Date().toISOString();
+            accounts[activeSess.accountKey] = acc;
+            saveRegisteredAccounts(accounts);
+        } catch (e) {}
+    };
+
+    // Restore a user's saved tasks, rooms, and meal plans when they log in
+    function restoreUserProgressSnapshot(accountObj) {
+        if (!accountObj || !accountObj.savedAppData) return;
+        try {
+            const snap = accountObj.savedAppData;
+            Object.keys(snap).forEach(k => {
+                if (!SYSTEM_KEYS_EXCLUDE.has(k)) {
+                    localStorage.setItem(k, snap[k]);
+                }
+            });
+        } catch (e) {}
+    }
+
+    // Hide the duplicate old top bar ("Demo the App Free" / "See Plans & Join") without touching the landing page
     function hideOldDuplicateLandingNavbarOnly() {
         const homeView = document.getElementById('view-home') || document.getElementById('view-food');
         const demoBtn = Array.from(document.querySelectorAll('button, a')).find(b => {
@@ -24653,7 +24705,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         });
         if (!demoBtn) return;
 
-        // Find the small nav/header bar holding that button (never a container that holds the landing page or app views)
         let bar = demoBtn.parentElement;
         while (bar && bar !== document.body) {
             const hasNewLanding = bar.querySelector('#hh-new-landing-master-wrap');
@@ -24667,59 +24718,49 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         }
     }
 
-    // Run once on load so the old "Demo the App Free" bar doesn't stack above the new landing page
     setTimeout(hideOldDuplicateLandingNavbarOnly, 200);
     setTimeout(hideOldDuplicateLandingNavbarOnly, 800);
 
-    // Triggered ONLY when the user clicks "Enter Honeysuckle Hub for Free"
-    window.completeFreeStarterSignup = function(e) {
-        if (e && typeof e.preventDefault === 'function') {
-            e.preventDefault();
-            e.stopPropagation();
-            if (typeof e.stopImmediatePropagation === 'function') {
-                e.stopImmediatePropagation();
-            }
-        }
+    // Cleanly transition from the Landing Page into the Hub Dashboard with zero blank space
+    window.enterHubDashboardCleanly = function(accountObj) {
+        const isPaidOrAdmin = accountObj.tier === 'paid_steward' || accountObj.email === FOUNDER_ADMIN_EMAIL;
+        window._adminSimulateFreeTier = !isPaidOrAdmin;
 
-        if (window._freeSignupExecutionLock) return;
-        window._freeSignupExecutionLock = true;
-        setTimeout(() => { window._freeSignupExecutionLock = false; }, 1200);
-
-        const nameInp = document.getElementById('hh-free-signup-name');
-        const emailInp = document.getElementById('hh-free-signup-email');
-
-        const nameVal = (nameInp && nameInp.value ? nameInp.value.trim() : '') || window._cachedFreeSignupName || 'Ashton';
-        const emailVal = (emailInp && emailInp.value ? emailInp.value.trim().toLowerCase() : '') || window._cachedFreeSignupEmail || 'naturalliash@gmail.com';
-
-        const freeUserObj = {
-            id: 'usr_free_' + Date.now(),
-            name: nameVal,
-            email: emailVal,
-            role: 'Free Starter Member',
-            tier: 'free_starter',
-            joinedAt: new Date().toISOString().slice(0, 10)
-        };
-
-        // 1. Save Free Starter session
-        window._adminSimulateFreeTier = true;
         try {
-            localStorage.removeItem('hh_full_hub_paid_steward');
-            localStorage.removeItem('hh_terrain_paid_unlock');
-            localStorage.setItem('hh_free_starter_user', JSON.stringify(freeUserObj));
-            localStorage.setItem('hh_logged_in_user_email', emailVal);
-            localStorage.setItem('hh_current_user', JSON.stringify(freeUserObj));
-            localStorage.setItem('currentUser', JSON.stringify(freeUserObj));
+            if (isPaidOrAdmin) {
+                localStorage.setItem('hh_full_hub_paid_steward', JSON.stringify({
+                    unlocked: true,
+                    unlockedAt: new Date().toISOString(),
+                    method: 'member_login'
+                }));
+            } else {
+                localStorage.removeItem('hh_full_hub_paid_steward');
+                localStorage.removeItem('hh_terrain_paid_unlock');
+            }
+
+            localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify({
+                accountKey: accountObj.accountKey,
+                name: accountObj.name,
+                username: accountObj.username,
+                email: accountObj.email,
+                tier: accountObj.tier
+            }));
+            localStorage.setItem('hh_free_starter_user', JSON.stringify(accountObj));
+            localStorage.setItem('hh_logged_in_user_email', accountObj.email);
+            localStorage.setItem('hh_current_user', JSON.stringify(accountObj));
+            localStorage.setItem('currentUser', JSON.stringify(accountObj));
         } catch (err) {}
 
-        window.currentUser = freeUserObj;
+        window.currentUser = accountObj;
         try {
             if (typeof currentUser !== 'undefined') {
-                currentUser = freeUserObj;
+                currentUser = accountObj;
             }
         } catch (err) {}
 
-        // 2. Close the signup modal & any popup overlays
+        // Remove all auth/signup modals
         document.getElementById('hh-free-starter-signup-modal')?.remove();
+        document.getElementById('hh-unified-member-login-modal')?.remove();
         document.getElementById('hh-public-attractive-landing-modal')?.remove();
         document.querySelectorAll('#auth-modal, #login-modal, [id*="auth-modal"], [id*="login-modal"]').forEach(el => {
             el.style.setProperty('display', 'none', 'important');
@@ -24727,11 +24768,10 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
 
         const homeView = document.getElementById('view-home') || document.getElementById('view-food');
 
-        // 3. Collapse the landing page wrapper AND remove its 100vh blank space
+        // Collapse the landing page wrapper and its 100vh height so there is zero blank space above the header
         const newLandingMaster = document.getElementById('hh-new-landing-master-wrap');
         if (newLandingMaster) {
             newLandingMaster.style.setProperty('display', 'none', 'important');
-            // Also collapse its parent landing container so it doesn't leave a 100vh cream gap above the app
             let lpParent = newLandingMaster.parentElement;
             while (lpParent && lpParent !== document.body) {
                 if (homeView && lpParent.contains(homeView)) {
@@ -24749,7 +24789,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
 
         hideOldDuplicateLandingNavbarOnly();
 
-        // 4. Make the in-app dashboard (#view-home) and in-app header ("Alerts" / "Menu") visible
+        // Make the in-app dashboard (#view-home) and in-app header visible
         let curr = homeView;
         while (curr && curr !== document.body && curr !== document.documentElement) {
             curr.classList.remove('hidden', 'd-none', 'is-hidden');
@@ -24768,12 +24808,338 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             headerRoot.style.setProperty('display', 'flex', 'important');
         }
 
+        // Re-render views so restored tasks, rooms & meal plans appear immediately
+        ['updateAuthUI', 'initApp', 'renderAll', 'refreshAllFreemiumLocksAndUI'].forEach(fnName => {
+            if (typeof window[fnName] === 'function') {
+                try { window[fnName](); } catch (err) {}
+            }
+        });
         if (typeof window.switchMainView === 'function') {
             try { window.switchMainView('home'); } catch (err) {}
         }
 
+        // Save initial snapshot for new accounts
+        setTimeout(window.saveCurrentUserProgressSnapshot, 300);
         window.scrollTo({ top: 0, behavior: 'instant' });
     };
+
+    // =========================================================================
+    // 1. UPGRADED FREE TIER SIGN-UP MODAL (WITH USERNAME, EMAIL & PASSWORD)
+    // =========================================================================
+    window.openFreeStarterSignupModal = function() {
+        document.getElementById('hh-free-starter-signup-modal')?.remove();
+        document.getElementById('hh-unified-member-login-modal')?.remove();
+
+        const modal = document.createElement('div');
+        modal.id = 'hh-free-starter-signup-modal';
+        modal.className = 'modal-overlay';
+        modal.style.cssText = 'display:flex; z-index:3100;';
+        modal.innerHTML = `
+            <div style="background:#FFFDF8; width:100%; max-width:480px; border-radius:24px; padding:26px; border:3px solid #2E5A44; box-shadow:0 25px 65px rgba(0,0,0,0.45);">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid var(--border); padding-bottom:12px; margin-bottom:14px;">
+                    <div>
+                        <span class="card-tag" style="background:#2E5A44; color:#fff;">🆓 Free Daily Rhythm Starter</span>
+                        <h3 style="font-family:var(--font-serif, Georgia, serif); font-size:1.55rem; color:var(--primary); margin:4px 0 2px 0;">
+                            Create Your Free Account
+                        </h3>
+                        <p style="font-size:0.8rem; color:var(--text-muted); margin:0;">
+                            Create your username and password below so your daily room resets, checked tasks, and 7-day meal plans are always saved when you log back in!
+                        </p>
+                    </div>
+                    <button type="button" onclick="document.getElementById('hh-free-starter-signup-modal').remove()" style="background:none; border:none; font-size:1.7rem; cursor:pointer; color:var(--text-muted);">&times;</button>
+                </div>
+
+                <div id="hh-free-signup-err" style="display:none; background:#FEE2E2; color:#991B1B; border:1px solid #FCA5A5; padding:9px 12px; border-radius:10px; font-size:0.78rem; font-weight:700; margin-bottom:12px;"></div>
+
+                <div class="form-group" style="margin-bottom:10px;">
+                    <label style="font-size:0.78rem; font-weight:700; display:block; margin-bottom:4px;">Your First Name</label>
+                    <input type="text" id="hh-free-signup-name" placeholder="e.g. Ashton" style="width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:10px; font-size:0.9rem;">
+                </div>
+
+                <div class="form-group" style="margin-bottom:10px;">
+                    <label style="font-size:0.78rem; font-weight:700; display:block; margin-bottom:4px;">Create a Username</label>
+                    <input type="text" id="hh-free-signup-username" placeholder="e.g. ashton_homestead" autocomplete="username" style="width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:10px; font-size:0.9rem;">
+                </div>
+
+                <div class="form-group" style="margin-bottom:10px;">
+                    <label style="font-size:0.78rem; font-weight:700; display:block; margin-bottom:4px;">Your Email Address</label>
+                    <input type="email" id="hh-free-signup-email" placeholder="you@example.com" autocomplete="email" style="width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:10px; font-size:0.9rem;">
+                </div>
+
+                <div class="form-group" style="margin-bottom:14px;">
+                    <label style="font-size:0.78rem; font-weight:700; display:block; margin-bottom:4px;">Create a Password</label>
+                    <input type="password" id="hh-free-signup-password" placeholder="Create a password (min 4 characters)" autocomplete="new-password" onkeydown="if(event.key==='Enter') completeFreeStarterSignup(event)" style="width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:10px; font-size:0.9rem;">
+                </div>
+
+                <div style="background:#E8F2EC; border:1px solid #2E5A44; border-radius:12px; padding:10px 12px; margin-bottom:14px; font-size:0.77rem; color:#1F4230;">
+                    🌻 <strong>Saved to Your Account Forever:</strong> Your custom rooms, daily checklist progress, family-age portion scaling, and 7-day meal plans!
+                </div>
+
+                <button type="button" class="btn-primary" style="width:100%; padding:13px; font-size:0.92rem; font-weight:800; background:linear-gradient(135deg, #2E5A44 0%, #1F4230 100%); border-color:#173325; color:#fff; border-radius:12px;" onclick="completeFreeStarterSignup(event)">
+                    🌻 Create Free Account & Enter Hub &rarr;
+                </button>
+
+                <div style="text-align:center; margin-top:12px; padding-top:10px; border-top:1px dashed var(--border); font-size:0.8rem;">
+                    Already have a Free or Paid account?
+                    <a href="#" onclick="event.preventDefault(); openUnifiedMemberLoginModal();" style="color:#2E5A44; font-weight:800; text-decoration:underline; margin-left:4px;">Member Login &rarr;</a>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    };
+
+    window.completeFreeStarterSignup = async function(e) {
+        if (e && typeof e.preventDefault === 'function') {
+            e.preventDefault();
+            e.stopPropagation();
+            if (typeof e.stopImmediatePropagation === 'function') {
+                e.stopImmediatePropagation();
+            }
+        }
+
+        if (window._freeSignupExecutionLock) return;
+        window._freeSignupExecutionLock = true;
+        setTimeout(() => { window._freeSignupExecutionLock = false; }, 1000);
+
+        const nameVal = (document.getElementById('hh-free-signup-name')?.value || '').trim() || 'Homestead Member';
+        const userVal = (document.getElementById('hh-free-signup-username')?.value || '').trim().toLowerCase();
+        const emailVal = (document.getElementById('hh-free-signup-email')?.value || '').trim().toLowerCase();
+        const passVal = (document.getElementById('hh-free-signup-password')?.value || '');
+        const errBox = document.getElementById('hh-free-signup-err');
+
+        if (!emailVal || !emailVal.includes('@')) {
+            if (errBox) {
+                errBox.textContent = 'Please enter a valid email address so we can save your account.';
+                errBox.style.display = 'block';
+            }
+            window._freeSignupExecutionLock = false;
+            return;
+        }
+        if (!passVal || passVal.length < 4) {
+            if (errBox) {
+                errBox.textContent = 'Please create a password (at least 4 characters) so you can log back into your account.';
+                errBox.style.display = 'block';
+            }
+            window._freeSignupExecutionLock = false;
+            return;
+        }
+
+        const effectiveUsername = userVal || emailVal.split('@')[0];
+        const accounts = getRegisteredAccounts();
+
+        // Check if account already exists; if so, update password or log them in preserving their saved data!
+        const existingAcc = accounts[emailVal] || Object.values(accounts).find(a => a.username === effectiveUsername);
+        const accountObj = existingAcc ? {
+            ...existingAcc,
+            name: nameVal || existingAcc.name,
+            username: effectiveUsername,
+            email: emailVal,
+            password: passVal
+        } : {
+            id: 'usr_free_' + Date.now(),
+            accountKey: emailVal,
+            name: nameVal,
+            username: effectiveUsername,
+            email: emailVal,
+            password: passVal,
+            role: 'Free Starter Member',
+            tier: 'free_starter',
+            joinedAt: new Date().toISOString().slice(0, 10),
+            savedAppData: {}
+        };
+
+        accounts[emailVal] = accountObj;
+        saveRegisteredAccounts(accounts);
+
+        // Also register with Supabase Auth if configured on the page
+        if (window.supabaseClient && window.supabaseClient.auth) {
+            try {
+                await window.supabaseClient.auth.signUp({
+                    email: emailVal,
+                    password: passVal,
+                    options: { data: { full_name: nameVal, username: effectiveUsername, tier: 'free_starter' } }
+                });
+            } catch (err) {}
+        }
+
+        if (existingAcc && existingAcc.savedAppData) {
+            restoreUserProgressSnapshot(existingAcc);
+        }
+
+        window.enterHubDashboardCleanly(accountObj);
+    };
+
+    // =========================================================================
+    // 2. UNIFIED MEMBER LOGIN MODAL (SAME DESIGN FOR FREE & PAID MEMBERS)
+    // =========================================================================
+    window.openUnifiedMemberLoginModal = function() {
+        document.getElementById('hh-free-starter-signup-modal')?.remove();
+        document.getElementById('hh-unified-member-login-modal')?.remove();
+
+        const modal = document.createElement('div');
+        modal.id = 'hh-unified-member-login-modal';
+        modal.className = 'modal-overlay';
+        modal.style.cssText = 'display:flex; z-index:3100;';
+        modal.innerHTML = `
+            <div style="background:#FFFDF8; width:100%; max-width:460px; border-radius:24px; padding:28px; border:3px solid #2E5A44; box-shadow:0 25px 65px rgba(0,0,0,0.45);">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid var(--border); padding-bottom:12px; margin-bottom:16px;">
+                    <div>
+                        <span class="card-tag" style="background:#2E5A44; color:#fff;">🌻 Honeysuckle Hub Member Portal</span>
+                        <h3 style="font-family:var(--font-serif, Georgia, serif); font-size:1.6rem; color:var(--primary); margin:4px 0 2px 0;">
+                            Member Login
+                        </h3>
+                        <p style="font-size:0.8rem; color:var(--text-muted); margin:0;">
+                            Sign in with your Username or Email and Password to load your saved rooms, daily tasks, and weekly meal plan.
+                        </p>
+                    </div>
+                    <button type="button" onclick="document.getElementById('hh-unified-member-login-modal').remove()" style="background:none; border:none; font-size:1.7rem; cursor:pointer; color:var(--text-muted);">&times;</button>
+                </div>
+
+                <div id="hh-member-login-err" style="display:none; background:#FEE2E2; color:#991B1B; border:1px solid #FCA5A5; padding:9px 12px; border-radius:10px; font-size:0.78rem; font-weight:700; margin-bottom:12px;"></div>
+
+                <div class="form-group" style="margin-bottom:12px;">
+                    <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Email Address or Username</label>
+                    <input type="text" id="hh-login-identifier" placeholder="you@example.com or username" autocomplete="username" style="width:100%; padding:11px 12px; border:1.5px solid var(--border); border-radius:10px; font-size:0.9rem;">
+                </div>
+
+                <div class="form-group" style="margin-bottom:16px;">
+                    <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Password</label>
+                    <input type="password" id="hh-login-password" placeholder="Enter your password" autocomplete="current-password" onkeydown="if(event.key==='Enter') submitUnifiedMemberLogin(event)" style="width:100%; padding:11px 12px; border:1.5px solid var(--border); border-radius:10px; font-size:0.9rem;">
+                </div>
+
+                <button type="button" class="btn-primary" style="width:100%; padding:13px; font-size:0.94rem; font-weight:800; background:linear-gradient(135deg, #2E5A44 0%, #1F4230 100%); border-color:#173325; color:#fff; border-radius:12px;" onclick="submitUnifiedMemberLogin(event)">
+                    🌻 Log In to My Hub &rarr;
+                </button>
+
+                <div style="text-align:center; margin-top:14px; padding-top:12px; border-top:1px dashed var(--border); font-size:0.8rem;">
+                    Need a Free Starter account?
+                    <a href="#" onclick="event.preventDefault(); openFreeStarterSignupModal();" style="color:#B87612; font-weight:800; text-decoration:underline; margin-left:4px;">Create Free Account &rarr;</a>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    };
+
+    // Route all "Member Login" / "Member Sign In" buttons on the landing page to the Unified Member Login Modal
+    window.triggerNativeHubLoginFromLanding = function() {
+        window.openUnifiedMemberLoginModal();
+    };
+    window.triggerOriginalMemberLogin = function() {
+        window.openUnifiedMemberLoginModal();
+    };
+
+    window.submitUnifiedMemberLogin = async function(e) {
+        if (e && typeof e.preventDefault === 'function') {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        const idVal = (document.getElementById('hh-login-identifier')?.value || '').trim().toLowerCase();
+        const passVal = (document.getElementById('hh-login-password')?.value || '');
+        const errBox = document.getElementById('hh-member-login-err');
+
+        if (!idVal || !passVal) {
+            if (errBox) {
+                errBox.textContent = 'Please enter both your email/username and password.';
+                errBox.style.display = 'block';
+            }
+            return;
+        }
+
+        const accounts = getRegisteredAccounts();
+
+        // 1. Check if logging in with Founder Admin credentials
+        if (idVal === FOUNDER_ADMIN_EMAIL || idVal === 'ashton_admin') {
+            const adminAcc = accounts[FOUNDER_ADMIN_EMAIL] || {
+                id: 'usr_admin_founder',
+                accountKey: FOUNDER_ADMIN_EMAIL,
+                name: 'Ashton Weems',
+                username: 'ashton',
+                email: FOUNDER_ADMIN_EMAIL,
+                role: 'Founder Admin',
+                tier: 'paid_steward',
+                savedAppData: {}
+            };
+            accounts[FOUNDER_ADMIN_EMAIL] = adminAcc;
+            saveRegisteredAccounts(accounts);
+            if (adminAcc.savedAppData) restoreUserProgressSnapshot(adminAcc);
+            window.enterHubDashboardCleanly(adminAcc);
+            return;
+        }
+
+        // 2. Look up user by Email or Username in the saved accounts vault
+        const matchedAcc = accounts[idVal] || Object.values(accounts).find(a =>
+            (a.username && a.username.toLowerCase() === idVal) ||
+            (a.email && a.email.toLowerCase() === idVal)
+        );
+
+        if (matchedAcc) {
+            if (matchedAcc.password && matchedAcc.password !== passVal) {
+                if (errBox) {
+                    errBox.textContent = 'Incorrect password for that account. Please try again.';
+                    errBox.style.display = 'block';
+                }
+                return;
+            }
+            // Restore all of their saved tasks, custom rooms, and 7-day meal plans!
+            restoreUserProgressSnapshot(matchedAcc);
+            window.enterHubDashboardCleanly(matchedAcc);
+            return;
+        }
+
+        // 3. Also check Supabase Auth if the user registered on another device
+        if (window.supabaseClient && window.supabaseClient.auth && idVal.includes('@')) {
+            try {
+                const { data, error } = await window.supabaseClient.auth.signInWithPassword({
+                    email: idVal,
+                    password: passVal
+                });
+                if (!error && data?.user) {
+                    const meta = data.user.user_metadata || {};
+                    const sbAcc = {
+                        id: data.user.id,
+                        accountKey: idVal,
+                        name: meta.full_name || idVal.split('@')[0],
+                        username: meta.username || idVal.split('@')[0],
+                        email: idVal,
+                        password: passVal,
+                        role: meta.tier === 'paid_steward' ? 'Full Hub Steward' : 'Free Starter Member',
+                        tier: meta.tier || 'free_starter',
+                        savedAppData: {}
+                    };
+                    accounts[idVal] = sbAcc;
+                    saveRegisteredAccounts(accounts);
+                    window.enterHubDashboardCleanly(sbAcc);
+                    return;
+                }
+            } catch (err) {}
+        }
+
+        if (errBox) {
+            errBox.innerHTML = `No account found matching <strong>${window.escapeSafeHtml ? window.escapeSafeHtml(idVal) : idVal}</strong>. Click <strong>"Create Free Account"</strong> below to set up your username and password!`;
+            errBox.style.display = 'block';
+        }
+    };
+
+    // =========================================================================
+    // 3. AUTO-SAVE USER PROGRESS WHENEVER TASKS, ROOMS OR MEALS ARE UPDATED
+    // =========================================================================
+    document.addEventListener('change', () => {
+        setTimeout(window.saveCurrentUserProgressSnapshot, 120);
+    }, true);
+
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest('button');
+        if (!btn) return;
+        const txt = (btn.textContent || '').trim();
+        if (txt === 'Member Login' || txt === 'Member Sign In') {
+            e.preventDefault();
+            e.stopPropagation();
+            window.openUnifiedMemberLoginModal();
+            return;
+        }
+        setTimeout(window.saveCurrentUserProgressSnapshot, 250);
+    }, true);
 })();
 </script>
 
