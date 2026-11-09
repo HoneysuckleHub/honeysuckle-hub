@@ -24629,7 +24629,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
 })();
 </script>
 
-<!-- ================= BLOCK 13 (UPDATED): FREE TIER SIGNUP + COLLAPSE BLANK LANDING SPACER & DUPLICATE HEADER ================= -->
+<!-- ================= BLOCK 13 (NO-FLASH FIX): STABLE LANDING PAGE ON LOAD + ZERO-GAP FREE TIER ENTRY ================= -->
 <script>
 (function() {
     window._cachedFreeSignupName = '';
@@ -24644,63 +24644,34 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         }
     }, true);
 
-    // Helper: Completely collapse the old landing page header ("Demo the App Free" / "See Plans & Join") and its 100vh blank box
-    function collapseLandingSpacerAndDuplicateHeader() {
-        // 1. Hide our injected landing wrapper
-        const newLandingMaster = document.getElementById('hh-new-landing-master-wrap');
-        if (newLandingMaster) {
-            newLandingMaster.style.setProperty('display', 'none', 'important');
-        }
-
-        // 2. Find the public landing top bar ("Demo the App Free" / "Member Sign In" / "See Plans & Join") and collapse its wrapper
-        const allBtns = Array.from(document.querySelectorAll('button, a'));
-        const demoBtn = allBtns.find(b => {
+    // Hide ONLY the old duplicate top bar ("Demo the App Free" / "See Plans & Join") without touching the landing page
+    function hideOldDuplicateLandingNavbarOnly() {
+        const homeView = document.getElementById('view-home') || document.getElementById('view-food');
+        const demoBtn = Array.from(document.querySelectorAll('button, a')).find(b => {
             const t = (b.textContent || '').trim();
             return t.includes('Demo the App Free') || t.includes('See Plans & Join');
         });
+        if (!demoBtn) return;
 
-        const homeView = document.getElementById('view-home') || document.getElementById('view-food');
-
-        if (demoBtn) {
-            // Hide the public header bar itself
-            const pubHeader = demoBtn.closest('header, nav, div');
-            if (pubHeader && (!homeView || !pubHeader.contains(homeView))) {
-                pubHeader.style.setProperty('display', 'none', 'important');
+        // Find the small nav/header bar holding that button (never a container that holds the landing page or app views)
+        let bar = demoBtn.parentElement;
+        while (bar && bar !== document.body) {
+            const hasNewLanding = bar.querySelector('#hh-new-landing-master-wrap');
+            const hasHomeView = homeView && bar.contains(homeView);
+            if (hasNewLanding || hasHomeView) break;
+            if (bar.tagName === 'NAV' || bar.tagName === 'HEADER' || bar.offsetHeight < 140) {
+                bar.style.setProperty('display', 'none', 'important');
+                break;
             }
-
-            // Walk up to the landing page's 100vh wrapper (stopping before any container that holds #view-home)
-            let landingBox = demoBtn.parentElement;
-            while (landingBox && landingBox !== document.body) {
-                if (homeView && landingBox.contains(homeView)) break;
-                landingBox.style.setProperty('display', 'none', 'important');
-                landingBox.style.setProperty('min-height', '0', 'important');
-                landingBox.style.setProperty('height', '0', 'important');
-                landingBox.style.setProperty('padding', '0', 'important');
-                landingBox.style.setProperty('margin', '0', 'important');
-                landingBox.style.setProperty('overflow', 'hidden', 'important');
-                landingBox = landingBox.parentElement;
-            }
+            bar = bar.parentElement;
         }
-
-        // 3. Also collapse any saved legacy landing containers if they don't wrap #view-home
-        [
-            document.getElementById('hh-replaced-main-landing-root'),
-            window._legacyLandingWrapperEl,
-            window._replacedOldLandingContainer
-        ].forEach(wrapEl => {
-            if (!wrapEl) return;
-            if (homeView && wrapEl.contains(homeView)) {
-                wrapEl.style.setProperty('min-height', '0', 'important');
-                wrapEl.style.setProperty('padding-top', '0', 'important');
-                wrapEl.style.setProperty('margin-top', '0', 'important');
-            } else {
-                wrapEl.style.setProperty('display', 'none', 'important');
-                wrapEl.style.setProperty('min-height', '0', 'important');
-                wrapEl.style.setProperty('height', '0', 'important');
-            }
-        });
     }
 
+    // Run once on load so the old "Demo the App Free" bar doesn't stack above the new landing page
+    setTimeout(hideOldDuplicateLandingNavbarOnly, 200);
+    setTimeout(hideOldDuplicateLandingNavbarOnly, 800);
+
+    // Triggered ONLY when the user clicks "Enter Honeysuckle Hub for Free"
     window.completeFreeStarterSignup = function(e) {
         if (e && typeof e.preventDefault === 'function') {
             e.preventDefault();
@@ -24747,15 +24718,38 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             }
         } catch (err) {}
 
-        // 2. Remove modals
+        // 2. Close the signup modal & any popup overlays
         document.getElementById('hh-free-starter-signup-modal')?.remove();
         document.getElementById('hh-public-attractive-landing-modal')?.remove();
         document.querySelectorAll('#auth-modal, #login-modal, [id*="auth-modal"], [id*="login-modal"]').forEach(el => {
             el.style.setProperty('display', 'none', 'important');
         });
 
-        // 3. Unhide ONLY the real in-app dashboard (#view-home) and the real in-app header ("Alerts" / "Menu")
         const homeView = document.getElementById('view-home') || document.getElementById('view-food');
+
+        // 3. Collapse the landing page wrapper AND remove its 100vh blank space
+        const newLandingMaster = document.getElementById('hh-new-landing-master-wrap');
+        if (newLandingMaster) {
+            newLandingMaster.style.setProperty('display', 'none', 'important');
+            // Also collapse its parent landing container so it doesn't leave a 100vh cream gap above the app
+            let lpParent = newLandingMaster.parentElement;
+            while (lpParent && lpParent !== document.body) {
+                if (homeView && lpParent.contains(homeView)) {
+                    lpParent.style.setProperty('min-height', '0', 'important');
+                    lpParent.style.setProperty('padding-top', '0', 'important');
+                    lpParent.style.setProperty('margin-top', '0', 'important');
+                    break;
+                }
+                lpParent.style.setProperty('display', 'none', 'important');
+                lpParent.style.setProperty('min-height', '0', 'important');
+                lpParent.style.setProperty('height', '0', 'important');
+                lpParent = lpParent.parentElement;
+            }
+        }
+
+        hideOldDuplicateLandingNavbarOnly();
+
+        // 4. Make the in-app dashboard (#view-home) and in-app header ("Alerts" / "Menu") visible
         let curr = homeView;
         while (curr && curr !== document.body && curr !== document.documentElement) {
             curr.classList.remove('hidden', 'd-none', 'is-hidden');
@@ -24774,25 +24768,12 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             headerRoot.style.setProperty('display', 'flex', 'important');
         }
 
-        // 4. Collapse the top landing bar and its 100vh blank space
-        collapseLandingSpacerAndDuplicateHeader();
-
         if (typeof window.switchMainView === 'function') {
             try { window.switchMainView('home'); } catch (err) {}
         }
 
         window.scrollTo({ top: 0, behavior: 'instant' });
     };
-
-    // Automatically collapse the blank landing space whenever the in-app dashboard ("Today's Household Rhythm") is visible on screen
-    function autoCleanBlankSpaceWhenInApp() {
-        const homeView = document.getElementById('view-home');
-        if (homeView && window.getComputedStyle(homeView).display !== 'none') {
-            collapseLandingSpacerAndDuplicateHeader();
-        }
-    }
-
-    setInterval(autoCleanBlankSpaceWhenInApp, 300);
 })();
 </script>
 
