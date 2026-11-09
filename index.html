@@ -24629,14 +24629,28 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
 })();
 </script>
 
-<!-- ================= BLOCK 13 (COMPLETE ACCOUNT & PERSISTENCE ENGINE): USERNAME/PASSWORD SIGNUP, UNIFIED MEMBER LOGIN & PER-USER TASK/MEAL SAVING ================= -->
+<!-- ================= BLOCK 13 (SUPABASE CLOUD SYNC EDITION): USERNAME/EMAIL AUTH & REAL-TIME CLOUD SYNC FOR TASKS, ROOMS & MEAL PLANS ================= -->
 <script>
 (function() {
     const FOUNDER_ADMIN_EMAIL = 'contacthoneysuckleandco@gmail.com';
     const ACCOUNTS_VAULT_KEY = 'hh_registered_member_accounts_v2';
     const ACTIVE_SESSION_KEY = 'hh_active_authenticated_member_v2';
 
-    // Keys to exclude when snapshotting a user's personal app state (meals, rooms, checked tasks)
+    // Default Supabase credentials (automatically uses your existing client if already initialized in index.html)
+    const FALLBACK_SB_URL = 'https://agdponuzpjllgehmccyr.supabase.co';
+    const FALLBACK_SB_KEY = 'sb_publishable_UBdMZZrTYxYRLmtMVIIGrA_P6whzO1T';
+
+    function getSbClient() {
+        if (window.supabaseClient && window.supabaseClient.auth) return window.supabaseClient;
+        if (window.sbClient && window.sbClient.auth) return window.sbClient;
+        if (typeof supabase !== 'undefined' && supabase.auth) return supabase;
+        if (window.supabase && typeof window.supabase.createClient === 'function') {
+            window.supabaseClient = window.supabase.createClient(FALLBACK_SB_URL, FALLBACK_SB_KEY);
+            return window.supabaseClient;
+        }
+        return null;
+    }
+
     const SYSTEM_KEYS_EXCLUDE = new Set([
         ACCOUNTS_VAULT_KEY,
         ACTIVE_SESSION_KEY,
@@ -24644,59 +24658,80 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         'hh_paid_steward_emails'
     ]);
 
-    function getRegisteredAccounts() {
+    function getLocalAccounts() {
         try {
             const raw = JSON.parse(localStorage.getItem(ACCOUNTS_VAULT_KEY) || '{}');
             return (raw && typeof raw === 'object') ? raw : {};
-        } catch (e) {
-            return {};
-        }
+        } catch (e) { return {}; }
     }
 
-    function saveRegisteredAccounts(accountsMap) {
-        try {
-            localStorage.setItem(ACCOUNTS_VAULT_KEY, JSON.stringify(accountsMap));
-        } catch (e) {}
+    function saveLocalAccounts(map) {
+        try { localStorage.setItem(ACCOUNTS_VAULT_KEY, JSON.stringify(map)); } catch (e) {}
     }
 
-    // Save all current tasks, rooms, and meal plans into the active user's account snapshot
-    window.saveCurrentUserProgressSnapshot = function() {
+    function collectCurrentAppDataSnapshot() {
+        const snapshot = {};
         try {
-            const activeSess = JSON.parse(localStorage.getItem(ACTIVE_SESSION_KEY) || 'null');
-            if (!activeSess || !activeSess.accountKey) return;
-
-            const accounts = getRegisteredAccounts();
-            const acc = accounts[activeSess.accountKey];
-            if (!acc) return;
-
-            const snapshot = {};
             for (let i = 0; i < localStorage.length; i++) {
                 const k = localStorage.key(i);
                 if (!k || SYSTEM_KEYS_EXCLUDE.has(k) || k.startsWith('sb-')) continue;
                 snapshot[k] = localStorage.getItem(k);
             }
-
-            acc.savedAppData = snapshot;
-            acc.lastSavedAt = new Date().toISOString();
-            accounts[activeSess.accountKey] = acc;
-            saveRegisteredAccounts(accounts);
         } catch (e) {}
-    };
+        return snapshot;
+    }
 
-    // Restore a user's saved tasks, rooms, and meal plans when they log in
-    function restoreUserProgressSnapshot(accountObj) {
-        if (!accountObj || !accountObj.savedAppData) return;
+    function restoreAppDataSnapshot(snap) {
+        if (!snap || typeof snap !== 'object') return;
         try {
-            const snap = accountObj.savedAppData;
             Object.keys(snap).forEach(k => {
-                if (!SYSTEM_KEYS_EXCLUDE.has(k)) {
+                if (!SYSTEM_KEYS_EXCLUDE.has(k) && snap[k] !== undefined && snap[k] !== null) {
                     localStorage.setItem(k, snap[k]);
                 }
             });
         } catch (e) {}
     }
 
-    // Hide the duplicate old top bar ("Demo the App Free" / "See Plans & Join") without touching the landing page
+    // Debounced Cloud + Local Save whenever a user checks a task, edits rooms, or updates their meal plan
+    let syncTimer = null;
+    window.saveCurrentUserProgressSnapshot = function() {
+        clearTimeout(syncTimer);
+        syncTimer = setTimeout(async () => {
+            try {
+                const activeSess = JSON.parse(localStorage.getItem(ACTIVE_SESSION_KEY) || 'null');
+                if (!activeSess || !activeSess.email) return;
+
+                const snap = collectCurrentAppDataSnapshot();
+                const isPaid = typeof window.isFullHubPaidSteward === 'function' && window.isFullHubPaidSteward();
+                const currentTier = isPaid ? 'paid_steward' : (activeSess.tier || 'free_starter');
+
+                // 1. Save locally for instant offline access
+                const accounts = getLocalAccounts();
+                if (accounts[activeSess.email]) {
+                    accounts[activeSess.email].savedAppData = snap;
+                    accounts[activeSess.email].tier = currentTier;
+                    saveLocalAccounts(accounts);
+                }
+
+                // 2. Push to Supabase `hub_member_profiles` table
+                const sb = getSbClient();
+                if (sb && activeSess.id && !String(activeSess.id).startsWith('usr_')) {
+                    await sb.from('hub_member_profiles').upsert({
+                        id: activeSess.id,
+                        email: activeSess.email,
+                        username: activeSess.username,
+                        full_name: activeSess.name,
+                        tier: currentTier,
+                        saved_app_data: snap,
+                        updated_at: new Date().toISOString()
+                    }, { onConflict: 'id' });
+                }
+            } catch (e) {
+                console.warn('Supabase background sync notice:', e);
+            }
+        }, 350);
+    };
+
     function hideOldDuplicateLandingNavbarOnly() {
         const homeView = document.getElementById('view-home') || document.getElementById('view-food');
         const demoBtn = Array.from(document.querySelectorAll('button, a')).find(b => {
@@ -24721,7 +24756,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
     setTimeout(hideOldDuplicateLandingNavbarOnly, 200);
     setTimeout(hideOldDuplicateLandingNavbarOnly, 800);
 
-    // Cleanly transition from the Landing Page into the Hub Dashboard with zero blank space
     window.enterHubDashboardCleanly = function(accountObj) {
         const isPaidOrAdmin = accountObj.tier === 'paid_steward' || accountObj.email === FOUNDER_ADMIN_EMAIL;
         window._adminSimulateFreeTier = !isPaidOrAdmin;
@@ -24731,7 +24765,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                 localStorage.setItem('hh_full_hub_paid_steward', JSON.stringify({
                     unlocked: true,
                     unlockedAt: new Date().toISOString(),
-                    method: 'member_login'
+                    method: 'supabase_auth'
                 }));
             } else {
                 localStorage.removeItem('hh_full_hub_paid_steward');
@@ -24739,7 +24773,8 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             }
 
             localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify({
-                accountKey: accountObj.accountKey,
+                id: accountObj.id,
+                accountKey: accountObj.email,
                 name: accountObj.name,
                 username: accountObj.username,
                 email: accountObj.email,
@@ -24758,7 +24793,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             }
         } catch (err) {}
 
-        // Remove all auth/signup modals
         document.getElementById('hh-free-starter-signup-modal')?.remove();
         document.getElementById('hh-unified-member-login-modal')?.remove();
         document.getElementById('hh-public-attractive-landing-modal')?.remove();
@@ -24768,7 +24802,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
 
         const homeView = document.getElementById('view-home') || document.getElementById('view-food');
 
-        // Collapse the landing page wrapper and its 100vh height so there is zero blank space above the header
         const newLandingMaster = document.getElementById('hh-new-landing-master-wrap');
         if (newLandingMaster) {
             newLandingMaster.style.setProperty('display', 'none', 'important');
@@ -24789,7 +24822,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
 
         hideOldDuplicateLandingNavbarOnly();
 
-        // Make the in-app dashboard (#view-home) and in-app header visible
         let curr = homeView;
         while (curr && curr !== document.body && curr !== document.documentElement) {
             curr.classList.remove('hidden', 'd-none', 'is-hidden');
@@ -24808,7 +24840,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             headerRoot.style.setProperty('display', 'flex', 'important');
         }
 
-        // Re-render views so restored tasks, rooms & meal plans appear immediately
         ['updateAuthUI', 'initApp', 'renderAll', 'refreshAllFreemiumLocksAndUI'].forEach(fnName => {
             if (typeof window[fnName] === 'function') {
                 try { window[fnName](); } catch (err) {}
@@ -24818,13 +24849,12 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             try { window.switchMainView('home'); } catch (err) {}
         }
 
-        // Save initial snapshot for new accounts
-        setTimeout(window.saveCurrentUserProgressSnapshot, 300);
+        setTimeout(window.saveCurrentUserProgressSnapshot, 400);
         window.scrollTo({ top: 0, behavior: 'instant' });
     };
 
     // =========================================================================
-    // 1. UPGRADED FREE TIER SIGN-UP MODAL (WITH USERNAME, EMAIL & PASSWORD)
+    // 1. SUPABASE-CONNECTED FREE TIER SIGN-UP MODAL
     // =========================================================================
     window.openFreeStarterSignupModal = function() {
         document.getElementById('hh-free-starter-signup-modal')?.remove();
@@ -24843,7 +24873,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                             Create Your Free Account
                         </h3>
                         <p style="font-size:0.8rem; color:var(--text-muted); margin:0;">
-                            Create your username and password below so your daily room resets, checked tasks, and 7-day meal plans are always saved when you log back in!
+                            Create your username and password below so your daily room resets, checked tasks, and 7-day meal plans sync to your account across all devices.
                         </p>
                     </div>
                     <button type="button" onclick="document.getElementById('hh-free-starter-signup-modal').remove()" style="background:none; border:none; font-size:1.7rem; cursor:pointer; color:var(--text-muted);">&times;</button>
@@ -24867,15 +24897,11 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                 </div>
 
                 <div class="form-group" style="margin-bottom:14px;">
-                    <label style="font-size:0.78rem; font-weight:700; display:block; margin-bottom:4px;">Create a Password</label>
-                    <input type="password" id="hh-free-signup-password" placeholder="Create a password (min 4 characters)" autocomplete="new-password" onkeydown="if(event.key==='Enter') completeFreeStarterSignup(event)" style="width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:10px; font-size:0.9rem;">
+                    <label style="font-size:0.78rem; font-weight:700; display:block; margin-bottom:4px;">Create a Password (min 6 characters)</label>
+                    <input type="password" id="hh-free-signup-password" placeholder="At least 6 characters" autocomplete="new-password" onkeydown="if(event.key==='Enter') completeFreeStarterSignup(event)" style="width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:10px; font-size:0.9rem;">
                 </div>
 
-                <div style="background:#E8F2EC; border:1px solid #2E5A44; border-radius:12px; padding:10px 12px; margin-bottom:14px; font-size:0.77rem; color:#1F4230;">
-                    🌻 <strong>Saved to Your Account Forever:</strong> Your custom rooms, daily checklist progress, family-age portion scaling, and 7-day meal plans!
-                </div>
-
-                <button type="button" class="btn-primary" style="width:100%; padding:13px; font-size:0.92rem; font-weight:800; background:linear-gradient(135deg, #2E5A44 0%, #1F4230 100%); border-color:#173325; color:#fff; border-radius:12px;" onclick="completeFreeStarterSignup(event)">
+                <button type="button" id="hh-free-signup-submit-btn" class="btn-primary" style="width:100%; padding:13px; font-size:0.92rem; font-weight:800; background:linear-gradient(135deg, #2E5A44 0%, #1F4230 100%); border-color:#173325; color:#fff; border-radius:12px;" onclick="completeFreeStarterSignup(event)">
                     🌻 Create Free Account & Enter Hub &rarr;
                 </button>
 
@@ -24892,51 +24918,95 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         if (e && typeof e.preventDefault === 'function') {
             e.preventDefault();
             e.stopPropagation();
-            if (typeof e.stopImmediatePropagation === 'function') {
-                e.stopImmediatePropagation();
-            }
+            if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
         }
 
         if (window._freeSignupExecutionLock) return;
         window._freeSignupExecutionLock = true;
-        setTimeout(() => { window._freeSignupExecutionLock = false; }, 1000);
 
         const nameVal = (document.getElementById('hh-free-signup-name')?.value || '').trim() || 'Homestead Member';
         const userVal = (document.getElementById('hh-free-signup-username')?.value || '').trim().toLowerCase();
         const emailVal = (document.getElementById('hh-free-signup-email')?.value || '').trim().toLowerCase();
         const passVal = (document.getElementById('hh-free-signup-password')?.value || '');
         const errBox = document.getElementById('hh-free-signup-err');
+        const submitBtn = document.getElementById('hh-free-signup-submit-btn');
 
         if (!emailVal || !emailVal.includes('@')) {
-            if (errBox) {
-                errBox.textContent = 'Please enter a valid email address so we can save your account.';
-                errBox.style.display = 'block';
-            }
+            if (errBox) { errBox.textContent = 'Please enter a valid email address.'; errBox.style.display = 'block'; }
             window._freeSignupExecutionLock = false;
             return;
         }
-        if (!passVal || passVal.length < 4) {
-            if (errBox) {
-                errBox.textContent = 'Please create a password (at least 4 characters) so you can log back into your account.';
-                errBox.style.display = 'block';
-            }
+        if (!passVal || passVal.length < 6) {
+            if (errBox) { errBox.textContent = 'Supabase requires passwords to be at least 6 characters long.'; errBox.style.display = 'block'; }
             window._freeSignupExecutionLock = false;
             return;
         }
+
+        if (submitBtn) submitBtn.textContent = '⏳ Creating Your Cloud Account...';
 
         const effectiveUsername = userVal || emailVal.split('@')[0];
-        const accounts = getRegisteredAccounts();
+        const initialSnap = collectCurrentAppDataSnapshot();
+        let sbUserId = 'usr_free_' + Date.now();
+        let restoredSnap = null;
 
-        // Check if account already exists; if so, update password or log them in preserving their saved data!
-        const existingAcc = accounts[emailVal] || Object.values(accounts).find(a => a.username === effectiveUsername);
-        const accountObj = existingAcc ? {
-            ...existingAcc,
-            name: nameVal || existingAcc.name,
-            username: effectiveUsername,
-            email: emailVal,
-            password: passVal
-        } : {
-            id: 'usr_free_' + Date.now(),
+        const sb = getSbClient();
+        if (sb) {
+            try {
+                // 1. Register user in Supabase Auth
+                const { data, error } = await sb.auth.signUp({
+                    email: emailVal,
+                    password: passVal,
+                    options: {
+                        data: { full_name: nameVal, username: effectiveUsername, tier: 'free_starter' }
+                    }
+                });
+
+                if (error && /already registered/i.test(error.message)) {
+                    // If already registered in Supabase, sign them in with their password and load their profile!
+                    const signInRes = await sb.auth.signInWithPassword({ email: emailVal, password: passVal });
+                    if (signInRes.error) {
+                        if (errBox) {
+                            errBox.textContent = 'That email is already registered. Please click "Member Login" below or enter your existing password.';
+                            errBox.style.display = 'block';
+                        }
+                        if (submitBtn) submitBtn.innerHTML = '🌻 Create Free Account & Enter Hub &rarr;';
+                        window._freeSignupExecutionLock = false;
+                        return;
+                    }
+                    if (signInRes.data?.user) sbUserId = signInRes.data.user.id;
+                } else if (data?.user) {
+                    sbUserId = data.user.id;
+                }
+
+                // 2. Upsert their profile & app data into `public.hub_member_profiles`
+                if (sbUserId && !String(sbUserId).startsWith('usr_')) {
+                    const { data: existingProf } = await sb
+                        .from('hub_member_profiles')
+                        .select('*')
+                        .eq('id', sbUserId)
+                        .maybeSingle();
+
+                    if (existingProf && existingProf.saved_app_data && Object.keys(existingProf.saved_app_data).length > 0) {
+                        restoredSnap = existingProf.saved_app_data;
+                    } else {
+                        await sb.from('hub_member_profiles').upsert({
+                            id: sbUserId,
+                            email: emailVal,
+                            username: effectiveUsername,
+                            full_name: nameVal,
+                            tier: 'free_starter',
+                            saved_app_data: initialSnap,
+                            updated_at: new Date().toISOString()
+                        }, { onConflict: 'id' });
+                    }
+                }
+            } catch (err) {
+                console.warn('Supabase signup notice:', err);
+            }
+        }
+
+        const accountObj = {
+            id: sbUserId,
             accountKey: emailVal,
             name: nameVal,
             username: effectiveUsername,
@@ -24945,32 +25015,23 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             role: 'Free Starter Member',
             tier: 'free_starter',
             joinedAt: new Date().toISOString().slice(0, 10),
-            savedAppData: {}
+            savedAppData: restoredSnap || initialSnap
         };
 
+        const accounts = getLocalAccounts();
         accounts[emailVal] = accountObj;
-        saveRegisteredAccounts(accounts);
+        saveLocalAccounts(accounts);
 
-        // Also register with Supabase Auth if configured on the page
-        if (window.supabaseClient && window.supabaseClient.auth) {
-            try {
-                await window.supabaseClient.auth.signUp({
-                    email: emailVal,
-                    password: passVal,
-                    options: { data: { full_name: nameVal, username: effectiveUsername, tier: 'free_starter' } }
-                });
-            } catch (err) {}
+        if (restoredSnap) {
+            restoreAppDataSnapshot(restoredSnap);
         }
 
-        if (existingAcc && existingAcc.savedAppData) {
-            restoreUserProgressSnapshot(existingAcc);
-        }
-
+        window._freeSignupExecutionLock = false;
         window.enterHubDashboardCleanly(accountObj);
     };
 
     // =========================================================================
-    // 2. UNIFIED MEMBER LOGIN MODAL (SAME DESIGN FOR FREE & PAID MEMBERS)
+    // 2. SUPABASE-CONNECTED UNIFIED MEMBER LOGIN MODAL (EMAIL OR USERNAME)
     // =========================================================================
     window.openUnifiedMemberLoginModal = function() {
         document.getElementById('hh-free-starter-signup-modal')?.remove();
@@ -24989,7 +25050,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                             Member Login
                         </h3>
                         <p style="font-size:0.8rem; color:var(--text-muted); margin:0;">
-                            Sign in with your Username or Email and Password to load your saved rooms, daily tasks, and weekly meal plan.
+                            Sign in with your Username or Email and Password to load your saved rooms, daily tasks, and weekly meal plan from the cloud.
                         </p>
                     </div>
                     <button type="button" onclick="document.getElementById('hh-unified-member-login-modal').remove()" style="background:none; border:none; font-size:1.7rem; cursor:pointer; color:var(--text-muted);">&times;</button>
@@ -25007,7 +25068,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                     <input type="password" id="hh-login-password" placeholder="Enter your password" autocomplete="current-password" onkeydown="if(event.key==='Enter') submitUnifiedMemberLogin(event)" style="width:100%; padding:11px 12px; border:1.5px solid var(--border); border-radius:10px; font-size:0.9rem;">
                 </div>
 
-                <button type="button" class="btn-primary" style="width:100%; padding:13px; font-size:0.94rem; font-weight:800; background:linear-gradient(135deg, #2E5A44 0%, #1F4230 100%); border-color:#173325; color:#fff; border-radius:12px;" onclick="submitUnifiedMemberLogin(event)">
+                <button type="button" id="hh-member-login-submit-btn" class="btn-primary" style="width:100%; padding:13px; font-size:0.94rem; font-weight:800; background:linear-gradient(135deg, #2E5A44 0%, #1F4230 100%); border-color:#173325; color:#fff; border-radius:12px;" onclick="submitUnifiedMemberLogin(event)">
                     🌻 Log In to My Hub &rarr;
                 </button>
 
@@ -25020,13 +25081,8 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         document.body.appendChild(modal);
     };
 
-    // Route all "Member Login" / "Member Sign In" buttons on the landing page to the Unified Member Login Modal
-    window.triggerNativeHubLoginFromLanding = function() {
-        window.openUnifiedMemberLoginModal();
-    };
-    window.triggerOriginalMemberLogin = function() {
-        window.openUnifiedMemberLoginModal();
-    };
+    window.triggerNativeHubLoginFromLanding = function() { window.openUnifiedMemberLoginModal(); };
+    window.triggerOriginalMemberLogin = function() { window.openUnifiedMemberLoginModal(); };
 
     window.submitUnifiedMemberLogin = async function(e) {
         if (e && typeof e.preventDefault === 'function') {
@@ -25037,19 +25093,83 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         const idVal = (document.getElementById('hh-login-identifier')?.value || '').trim().toLowerCase();
         const passVal = (document.getElementById('hh-login-password')?.value || '');
         const errBox = document.getElementById('hh-member-login-err');
+        const loginBtn = document.getElementById('hh-member-login-submit-btn');
 
         if (!idVal || !passVal) {
-            if (errBox) {
-                errBox.textContent = 'Please enter both your email/username and password.';
-                errBox.style.display = 'block';
-            }
+            if (errBox) { errBox.textContent = 'Please enter both your email/username and password.'; errBox.style.display = 'block'; }
             return;
         }
 
-        const accounts = getRegisteredAccounts();
+        if (loginBtn) loginBtn.textContent = '⏳ Signing In & Syncing Your Hub...';
 
-        // 1. Check if logging in with Founder Admin credentials
-        if (idVal === FOUNDER_ADMIN_EMAIL || idVal === 'ashton_admin') {
+        const sb = getSbClient();
+        let targetEmail = idVal;
+
+        // 1. If the user typed a Username (no '@'), look up their Email in Supabase `hub_member_profiles` first!
+        if (!idVal.includes('@') && sb) {
+            try {
+                const { data: profLookup } = await sb
+                    .from('hub_member_profiles')
+                    .select('email')
+                    .ilike('username', idVal)
+                    .maybeSingle();
+                if (profLookup && profLookup.email) {
+                    targetEmail = profLookup.email.toLowerCase();
+                }
+            } catch (err) {}
+        }
+
+        // 2. Authenticate with Supabase Auth (`signInWithPassword`) and pull their saved cloud profile
+        if (sb && targetEmail.includes('@')) {
+            try {
+                const { data, error } = await sb.auth.signInWithPassword({
+                    email: targetEmail,
+                    password: passVal
+                });
+
+                if (!error && data?.user) {
+                    const sbUser = data.user;
+                    const meta = sbUser.user_metadata || {};
+
+                    // Fetch their saved tasks, rooms & meal plan from `public.hub_member_profiles`
+                    const { data: cloudProfile } = await sb
+                        .from('hub_member_profiles')
+                        .select('*')
+                        .eq('id', sbUser.id)
+                        .maybeSingle();
+
+                    const cloudSnap = cloudProfile?.saved_app_data || {};
+                    if (Object.keys(cloudSnap).length > 0) {
+                        restoreAppDataSnapshot(cloudSnap);
+                    }
+
+                    const tierVal = cloudProfile?.tier || meta.tier || (targetEmail === FOUNDER_ADMIN_EMAIL ? 'paid_steward' : 'free_starter');
+                    const loggedInAcc = {
+                        id: sbUser.id,
+                        accountKey: targetEmail,
+                        name: cloudProfile?.full_name || meta.full_name || targetEmail.split('@')[0],
+                        username: cloudProfile?.username || meta.username || targetEmail.split('@')[0],
+                        email: targetEmail,
+                        role: tierVal === 'paid_steward' ? 'Full Hub Steward' : 'Free Starter Member',
+                        tier: tierVal,
+                        savedAppData: cloudSnap
+                    };
+
+                    const accounts = getLocalAccounts();
+                    accounts[targetEmail] = loggedInAcc;
+                    saveLocalAccounts(accounts);
+
+                    window.enterHubDashboardCleanly(loggedInAcc);
+                    return;
+                }
+            } catch (err) {
+                console.warn('Supabase sign-in check:', err);
+            }
+        }
+
+        // 3. Fallback: Check local accounts vault (and Founder Admin credentials)
+        const accounts = getLocalAccounts();
+        if (idVal === FOUNDER_ADMIN_EMAIL) {
             const adminAcc = accounts[FOUNDER_ADMIN_EMAIL] || {
                 id: 'usr_admin_founder',
                 accountKey: FOUNDER_ADMIN_EMAIL,
@@ -25060,72 +25180,39 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                 tier: 'paid_steward',
                 savedAppData: {}
             };
-            accounts[FOUNDER_ADMIN_EMAIL] = adminAcc;
-            saveRegisteredAccounts(accounts);
-            if (adminAcc.savedAppData) restoreUserProgressSnapshot(adminAcc);
+            if (adminAcc.savedAppData) restoreAppDataSnapshot(adminAcc.savedAppData);
             window.enterHubDashboardCleanly(adminAcc);
             return;
         }
 
-        // 2. Look up user by Email or Username in the saved accounts vault
-        const matchedAcc = accounts[idVal] || Object.values(accounts).find(a =>
+        const localMatch = accounts[idVal] || Object.values(accounts).find(a =>
             (a.username && a.username.toLowerCase() === idVal) ||
             (a.email && a.email.toLowerCase() === idVal)
         );
 
-        if (matchedAcc) {
-            if (matchedAcc.password && matchedAcc.password !== passVal) {
-                if (errBox) {
-                    errBox.textContent = 'Incorrect password for that account. Please try again.';
-                    errBox.style.display = 'block';
-                }
+        if (localMatch) {
+            if (localMatch.password && localMatch.password !== passVal) {
+                if (errBox) { errBox.textContent = 'Incorrect password. Please try again.'; errBox.style.display = 'block'; }
+                if (loginBtn) loginBtn.innerHTML = '🌻 Log In to My Hub &rarr;';
                 return;
             }
-            // Restore all of their saved tasks, custom rooms, and 7-day meal plans!
-            restoreUserProgressSnapshot(matchedAcc);
-            window.enterHubDashboardCleanly(matchedAcc);
+            if (localMatch.savedAppData) restoreAppDataSnapshot(localMatch.savedAppData);
+            window.enterHubDashboardCleanly(localMatch);
             return;
         }
 
-        // 3. Also check Supabase Auth if the user registered on another device
-        if (window.supabaseClient && window.supabaseClient.auth && idVal.includes('@')) {
-            try {
-                const { data, error } = await window.supabaseClient.auth.signInWithPassword({
-                    email: idVal,
-                    password: passVal
-                });
-                if (!error && data?.user) {
-                    const meta = data.user.user_metadata || {};
-                    const sbAcc = {
-                        id: data.user.id,
-                        accountKey: idVal,
-                        name: meta.full_name || idVal.split('@')[0],
-                        username: meta.username || idVal.split('@')[0],
-                        email: idVal,
-                        password: passVal,
-                        role: meta.tier === 'paid_steward' ? 'Full Hub Steward' : 'Free Starter Member',
-                        tier: meta.tier || 'free_starter',
-                        savedAppData: {}
-                    };
-                    accounts[idVal] = sbAcc;
-                    saveRegisteredAccounts(accounts);
-                    window.enterHubDashboardCleanly(sbAcc);
-                    return;
-                }
-            } catch (err) {}
-        }
-
+        if (loginBtn) loginBtn.innerHTML = '🌻 Log In to My Hub &rarr;';
         if (errBox) {
-            errBox.innerHTML = `No account found matching <strong>${window.escapeSafeHtml ? window.escapeSafeHtml(idVal) : idVal}</strong>. Click <strong>"Create Free Account"</strong> below to set up your username and password!`;
+            errBox.innerHTML = `Invalid login credentials or no account found for <strong>${window.escapeSafeHtml ? window.escapeSafeHtml(idVal) : idVal}</strong>. Click <strong>"Create Free Account"</strong> below to register!`;
             errBox.style.display = 'block';
         }
     };
 
     // =========================================================================
-    // 3. AUTO-SAVE USER PROGRESS WHENEVER TASKS, ROOMS OR MEALS ARE UPDATED
+    // 3. AUTO-SYNC PROGRESS TO SUPABASE WHENEVER TASKS, ROOMS OR MEALS CHANGE
     // =========================================================================
     document.addEventListener('change', () => {
-        setTimeout(window.saveCurrentUserProgressSnapshot, 120);
+        window.saveCurrentUserProgressSnapshot();
     }, true);
 
     document.addEventListener('click', (e) => {
@@ -25138,8 +25225,80 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             window.openUnifiedMemberLoginModal();
             return;
         }
-        setTimeout(window.saveCurrentUserProgressSnapshot, 250);
+        window.saveCurrentUserProgressSnapshot();
     }, true);
+})();
+</script>
+
+<!-- ================= BLOCK 14: FREE TIER NAVIGATION CONDENSER & PAID PILLAR GATEKEEPER ================= -->
+<script>
+(function() {
+    const FOUNDER_ADMIN_EMAIL = 'contacthoneysuckleandco@gmail.com';
+
+    function isUserPaidOrAdmin() {
+        if (window._adminSimulateFreeTier) return false;
+        try {
+            const curr = typeof currentUser !== 'undefined' ? currentUser : JSON.parse(localStorage.getItem('hh_current_user') || localStorage.getItem('currentUser') || '{}');
+            const email = (curr?.email || localStorage.getItem('hh_logged_in_user_email') || '').trim().toLowerCase();
+            if (email === FOUNDER_ADMIN_EMAIL) return true;
+            if (curr?.tier === 'paid_steward' || curr?.role === 'Full Hub Steward') return true;
+            const paidStewardData = JSON.parse(localStorage.getItem('hh_full_hub_paid_steward') || '{}');
+            if (paidStewardData && paidStewardData.unlocked) return true;
+        } catch (e) {}
+        return false;
+    }
+
+    function enforceFreeTierNavigationAndHeader() {
+        const isPaid = isUserPaidOrAdmin();
+
+        // 1. Inject or manage the subtle "⭐ Upgrade" button in the top header for free users
+        const headerActions = Array.from(document.querySelectorAll('header div, .header-actions, nav')).find(el =>
+            (el.textContent || '').includes('Alerts') || (el.textContent || '').includes('Menu')
+        );
+
+        if (headerActions) {
+            let upgradeBtn = document.getElementById('hh-free-tier-upgrade-hdr-btn');
+            if (!isPaid) {
+                if (!upgradeBtn) {
+                    upgradeBtn = document.createElement('button');
+                    upgradeBtn.id = 'hh-free-tier-upgrade-hdr-btn';
+                    upgradeBtn.type = 'button';
+                    upgradeBtn.style.cssText = 'background:linear-gradient(135deg, #F59E0B 0%, #D97706 100%); color:#ffffff; border:1px solid #FDE68A; padding:5px 14px; font-size:0.75rem; font-weight:800; border-radius:999px; cursor:pointer; box-shadow:0 2px 8px rgba(245,158,11,0.25); margin-right:8px;';
+                    upgradeBtn.innerHTML = '⭐ Upgrade';
+                    upgradeBtn.onclick = () => {
+                        if (typeof window.openHubStewardUpgradeModal === 'function') {
+                            window.openHubStewardUpgradeModal('Full Hub Steward Membership');
+                        } else if (typeof window.openPublicAttractiveLandingPage === 'function') {
+                            window.openPublicAttractiveLandingPage();
+                        } else {
+                            alert('Unlock the Full Hub Steward membership to access all pillars, store brand guides, and recipes!');
+                        }
+                    };
+                    headerActions.prepend(upgradeBtn);
+                }
+            } else {
+                if (upgradeBtn) upgradeBtn.remove();
+            }
+        }
+
+        // 2. Condense the Pillar Jump Bar ("JUMP TO PILLAR") for Free Tier users
+        const pillarButtons = Array.from(document.querySelectorAll('button, a')).filter(el => {
+            const txt = (el.textContent || '').trim();
+            return txt.includes('Homestead OS') || txt.includes('Apothecary') || txt.includes('Homeschool') || txt.includes('The Table') || txt.includes('Reclaim Your Terrain');
+        });
+
+        pillarButtons.forEach(btn => {
+            const parentPillContainer = btn.closest('div, span, button') || btn;
+            if (!isPaid) {
+                parentPillContainer.style.setProperty('display', 'none', 'important');
+            } else {
+                parentPillContainer.style.removeProperty('display');
+            }
+        });
+    }
+
+    [150, 600, 1500].forEach(ms => setTimeout(enforceFreeTierNavigationAndHeader, ms));
+    document.addEventListener('click', () => setTimeout(enforceFreeTierNavigationAndHeader, 150));
 })();
 </script>
 
