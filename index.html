@@ -21449,643 +21449,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
 })();
 </script>
 
-<!-- ================= BLOCK 5 (FINAL FIXED): RECLAIM YOUR TERRAIN — ZERO FLICKER, WORKING TABS & CELEBRATION ENGINE ================= -->
-<script>
-(function() {
-    const FOUNDER_EMAIL = 'contacthoneysuckleandco@gmail.com';
-    window._activeTerrainCoachTab = window._activeTerrainCoachTab || 'habits'; // 'habits' | 'workout' | 'meals' | 'supplements'
-    window._adminDrawerExpanded = window._adminDrawerExpanded || false;
-    let isEnhancingTerrainCoach = false;
-
-    function isStrictFounderAdmin() {
-        if (typeof window.isInteractiveDemoSession === 'function' && window.isInteractiveDemoSession()) return false;
-        if (window.isDemoMode || window._isLiveDemoModeActive) return false;
-        const email = (typeof currentUser !== 'undefined' && currentUser?.email) ? currentUser.email.trim().toLowerCase() : '';
-        return email === FOUNDER_EMAIL;
-    }
-
-    function lockConsultCompletedFlags() {
-        localStorage.setItem('hh_terrain_consult_done_flag', 'true');
-        try {
-            const paid = JSON.parse(localStorage.getItem('hh_terrain_paid_unlock') || '{}');
-            if (!paid.consultCompleted || !paid.unlocked) {
-                paid.unlocked = true;
-                paid.consultCompleted = true;
-                paid.consultDone = true;
-                localStorage.setItem('hh_terrain_paid_unlock', JSON.stringify(paid));
-            }
-        } catch (e) {}
-    }
-
-    const COACH_AFFIRMATIONS = [
-        "🌻 You don't have to heal everything today. Just lay today's 5 gentle bricks—your body knows how to respond to safety and nourishment.",
-        "🌿 Consistency beats intensity every single time. An 85% week is an A+ in nervous-system healing!",
-        "💧 Every mineral elixir, slow breath, and protein-rich meal tells your adrenals: 'The emergency is over. You are safe.'",
-        "🕊️ Grace over perfectionism: if you miss a habit today, simply pick up the next brick tomorrow. You are building a lifelong foundation.",
-        "✨ Your energy, hormones, and digestion are rebuilding from the roots up—one peaceful day at a time."
-    ];
-
-    if (!document.getElementById('hh-terrain-coach-ux-styles')) {
-        const st = document.createElement('style');
-        st.id = 'hh-terrain-coach-ux-styles';
-        st.innerHTML = `
-            .hh-coach-step-map-wrap {
-                background: linear-gradient(135deg, #1E3F2E 0%, #142B1F 100%);
-                color: #FFFDF8;
-                border-radius: 20px;
-                padding: 20px 22px;
-                margin-bottom: 18px;
-                border: 2.5px solid #D9B36C;
-                box-shadow: 0 12px 30px rgba(20, 43, 31, 0.18);
-            }
-            .hh-stepping-stones-row {
-                display: flex;
-                gap: 6px;
-                overflow-x: auto;
-                padding: 8px 2px 10px 2px;
-                scrollbar-width: thin;
-            }
-            .hh-stone-pill {
-                flex: 0 0 auto;
-                padding: 6px 12px;
-                border-radius: 999px;
-                font-size: 0.73rem;
-                font-weight: 800;
-                display: inline-flex;
-                align-items: center;
-                gap: 5px;
-                border: 1.5px solid rgba(255,255,255,0.2);
-                background: rgba(255,255,255,0.08);
-                color: #D7E8DF;
-                transition: all 0.2s;
-            }
-            .hh-stone-pill.done {
-                background: #15803D;
-                border-color: #86EFAC;
-                color: #ffffff;
-            }
-            .hh-stone-pill.active {
-                background: #FEF5D8;
-                border: 2px solid #F59E0B;
-                color: #9A5B0A;
-                transform: scale(1.06);
-                box-shadow: 0 0 16px rgba(245, 158, 11, 0.55);
-            }
-            .hh-coach-nav-tabs {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-                gap: 10px;
-                margin-bottom: 18px;
-            }
-            .hh-coach-tab-card {
-                background: #FFFDF8;
-                border: 2px solid #EADBC0;
-                border-radius: 16px;
-                padding: 13px 14px;
-                text-align: left;
-                cursor: pointer;
-                user-select: none;
-                transition: transform 0.15s ease, border-color 0.15s ease;
-                display: flex;
-                flex-direction: column;
-                gap: 3px;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-            }
-            .hh-coach-tab-card:hover {
-                border-color: #2E5A44;
-                transform: translateY(-1px);
-            }
-            .hh-coach-tab-card.active {
-                background: linear-gradient(135deg, #2E5A44 0%, #1F4230 100%);
-                border-color: #173325;
-                color: #ffffff;
-                box-shadow: 0 10px 22px rgba(46, 90, 68, 0.25);
-            }
-            .hh-coach-tab-card .tab-step-num {
-                font-size: 0.68rem;
-                font-weight: 800;
-                text-transform: uppercase;
-                letter-spacing: 0.04em;
-                color: #B87612;
-            }
-            .hh-coach-tab-card.active .tab-step-num {
-                color: #FEF5D8;
-            }
-            .hh-coach-tab-card .tab-main-title {
-                font-size: 0.92rem;
-                font-weight: 800;
-                color: #2A1E14;
-            }
-            .hh-coach-tab-card.active .tab-main-title {
-                color: #ffffff;
-            }
-            .hh-habit-card-upgraded {
-                border-radius: 18px !important;
-                padding: 16px 18px !important;
-                margin-bottom: 14px !important;
-                transition: background 0.2s ease, border-color 0.2s ease !important;
-                box-shadow: 0 6px 18px rgba(0,0,0,0.04) !important;
-                cursor: pointer;
-                display: flex !important;
-                flex-direction: column !important;
-                align-items: stretch !important;
-            }
-            .hh-habit-card-done {
-                background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%) !important;
-                border: 2.5px solid #10B981 !important;
-                border-left: 8px solid #059669 !important;
-            }
-            @keyframes hhConfettiPop {
-                0% { transform: scale(0.96); opacity: 0; }
-                100% { transform: scale(1); opacity: 1; }
-            }
-            .hh-victory-banner {
-                animation: hhConfettiPop 0.25s ease-out forwards;
-            }
-        `;
-        document.head.appendChild(st);
-    }
-
-    function playHabitRewardChime(isAllFiveDone = false) {
-        try {
-            const AudioCtx = window.AudioContext || window.webkitAudioContext;
-            if (!AudioCtx) return;
-            const ctx = new AudioCtx();
-            const notes = isAllFiveDone ? [528, 660, 792, 1056] : [528, 660];
-            notes.forEach((freq, idx) => {
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.14);
-                gain.gain.setValueAtTime(0.14, ctx.currentTime + idx * 0.14);
-                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + idx * 0.14 + 0.35);
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-                osc.start(ctx.currentTime + idx * 0.14);
-                osc.stop(ctx.currentTime + idx * 0.14 + 0.36);
-            });
-        } catch (e) {}
-    }
-
-    window.switchTerrainCoachTab = function(tabKey) {
-        window._activeTerrainCoachTab = tabKey;
-        applyTerrainCoachLayout();
-    };
-
-    window.toggleAdminTerrainDrawer = function() {
-        window._adminDrawerExpanded = !window._adminDrawerExpanded;
-        applyTerrainCoachLayout();
-    };
-
-    function applyTerrainCoachLayout() {
-        if (isEnhancingTerrainCoach) return;
-        const container = document.getElementById('view-reclaim-terrain');
-        if (!container) return;
-
-        const tState = (typeof getTerrainState === 'function') ? getTerrainState() : null;
-        if (!tState || (!tState.unlocked && !isStrictFounderAdmin())) return;
-        if (!tState.consultCompleted && !isStrictFounderAdmin()) return;
-
-        const twoColGrid = Array.from(container.querySelectorAll('div')).find(el => {
-            const st = (el.getAttribute('style') || '').toLowerCase();
-            const txtUpper = (el.textContent || '').toUpperCase();
-            return (st.includes('grid-template-columns') || el.dataset.hhCoachGrid === 'true') &&
-                   txtUpper.includes('MICRO-HABITS') &&
-                   (txtUpper.includes('MEAL BLUEPRINT') || txtUpper.includes('PRACTITIONER DISPENSARY'));
-        });
-
-        if (!twoColGrid) return;
-        twoColGrid.dataset.hhCoachGrid = 'true';
-
-        lockConsultCompletedFlags();
-
-        container.querySelectorAll('button, a').forEach(btn => {
-            const bTxt = (btn.textContent || '').trim();
-            if (bTxt.includes('Start My 20-Question Functional Consult')) {
-                btn.remove();
-            }
-        });
-
-        isEnhancingTerrainCoach = true;
-        try {
-            const curStep = Math.max(1, Math.min(16, parseInt(tState.currentStep) || 1));
-            const phaseNum = curStep <= 4 ? 1 : (curStep <= 8 ? 2 : (curStep <= 12 ? 3 : 4));
-            const phaseNames = {
-                1: 'Phase 1: Calming the Alarm (Drainage, Hydration & Circadian Anchors)',
-                2: 'Phase 2: Gut & Bile Drainage (Microbiome, Stomach Acid & Liver Flow)',
-                3: 'Phase 3: Metabolic Fire & Muscle (Mitochondria, Thyroid & Strength)',
-                4: 'Phase 4: Hormone & Cycle Stewardship (Lifelong Rhythm & Peace)'
-            };
-
-            const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-            const todayDayIdx = (new Date().getDay() + 6) % 7;
-            const activeDayKey = tState.selectedViewDay || daysOfWeek[todayDayIdx];
-
-            // 1. Collapsible Admin Drawer (Admin Only)
-            if (isStrictFounderAdmin()) {
-                const adminSumBar = document.getElementById('btn-admin-clinical-summarizer');
-                const adminClientBox = Array.from(container.children).find(ch => ch.querySelector && ch.querySelector('button[onclick^="openAdminClientConsultViewer("]'));
-
-                if ((adminSumBar || adminClientBox) && !document.getElementById('hh-admin-collapsible-drawer-bar')) {
-                    const toggleBar = document.createElement('div');
-                    toggleBar.id = 'hh-admin-collapsible-drawer-bar';
-                    toggleBar.style.cssText = 'background:#FEF5D8; border:2px solid #B87612; border-radius:14px; padding:10px 16px; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; cursor:pointer;';
-                    toggleBar.onclick = window.toggleAdminTerrainDrawer;
-                    container.prepend(toggleBar);
-                }
-
-                const toggleBar = document.getElementById('hh-admin-collapsible-drawer-bar');
-                if (toggleBar) {
-                    toggleBar.innerHTML = `
-                        <div style="display:flex; align-items:center; gap:8px;">
-                            <span class="card-tag" style="background:#B87612; color:#fff; margin:0;">👑 ADMIN TOOLS</span>
-                            <strong style="font-size:0.88rem; color:var(--primary);">Ashton's Client Roster & Clinical Summarizer</strong>
-                        </div>
-                        <span class="btn-secondary" style="padding:5px 12px; font-size:0.76rem; pointer-events:none;">
-                            ${window._adminDrawerExpanded ? '▲ Hide Admin Client Roster (Preview Clean Member View)' : '▼ Expand Admin Client Roster & Summarizer'}
-                        </span>
-                    `;
-                    if (adminSumBar) adminSumBar.style.display = window._adminDrawerExpanded ? 'flex' : 'none';
-                    if (adminClientBox) adminClientBox.style.display = window._adminDrawerExpanded ? 'block' : 'none';
-                }
-            }
-
-            const leftCol = twoColGrid.children[0];
-            const rightCol = twoColGrid.children[1];
-            if (!leftCol || !rightCol) return;
-
-            // 2. Move Workout of the Day Studio into its own dedicated Tab 2 stage
-            let wodStage = document.getElementById('hh-terrain-dedicated-wod-stage');
-            if (!wodStage) {
-                wodStage = document.createElement('div');
-                wodStage.id = 'hh-terrain-dedicated-wod-stage';
-                wodStage.style.cssText = 'width: 100%; max-width: 960px; margin: 0 auto 20px auto; display: none;';
-                twoColGrid.insertAdjacentElement('beforebegin', wodStage);
-            }
-
-            const foundWodCard = document.getElementById('hh-terrain-ai-wod-studio-card') ||
-                document.getElementById('hh-terrain-wod-container') ||
-                Array.from(container.querySelectorAll('div')).find(d => {
-                    if (d === container || d === twoColGrid || d === leftCol || d === rightCol || d === wodStage) return false;
-                    const txt = (d.textContent || '');
-                    return txt.includes('WORKOUT OF THE DAY (WOD) STUDIO') && txt.includes('Generate My Workout of the Day') && d.children.length >= 2;
-                });
-
-            if (foundWodCard && foundWodCard.parentElement !== wodStage) {
-                wodStage.appendChild(foundWodCard);
-            }
-
-            // 3. Style each of the 5 Daily Habits in descending order
-            const habitColorThemes = [
-                {
-                    match: 'SPIRIT',
-                    num: 1,
-                    title: 'Habit 1 of 5 • Morning First-Fruits & 3-Breath Surrender',
-                    when: '🌅 Do First Thing Upon Waking (Takes 60 Seconds)',
-                    why: 'Calms morning cortisol spikes before your feet hit the floor so your nervous system starts in peace, not fight-or-flight.',
-                    bg: '#FFFBEB',
-                    border: '#D97706',
-                    tagBg: '#FEF3C7',
-                    tagColor: '#B45309'
-                },
-                {
-                    match: 'HYDRATION',
-                    num: 2,
-                    title: 'Habit 2 of 5 • Cellular Hydration & Adrenal Mineral Spark',
-                    when: '💧 Drink Within 15 Mins of Waking (Before Coffee!)',
-                    why: 'Replenishes cellular potassium and sodium depleted overnight so your adrenals don’t crash at 2:00 PM.',
-                    bg: '#F0F9FF',
-                    border: '#0284C7',
-                    tagBg: '#E0F2FE',
-                    tagColor: '#0369A1'
-                },
-                {
-                    match: 'NOURISHMENT',
-                    num: 3,
-                    title: 'Habit 3 of 5 • Blood-Sugar & Protein Nourishment Anchor',
-                    when: '🥩 Follow at Breakfast, Lunch & Dinner',
-                    why: 'Stabilizes blood sugar and protects your thyroid and hormones from stress-hormone rollercoasters.',
-                    bg: '#FFF7ED',
-                    border: '#EA580C',
-                    tagBg: '#FFEDD5',
-                    tagColor: '#C2410C'
-                },
-                {
-                    match: 'MOVEMENT',
-                    num: 4,
-                    title: 'Habit 4 of 5 • Gentle Lymphatic & Hormone-Safe Movement',
-                    when: '💪 8–20 Minutes Today (Or Use Tab 2: Guided Workout!)',
-                    why: 'Pumps your lymphatic drainage system and builds insulin-sensitive muscle without spiking adrenal exhaustion.',
-                    bg: '#F0FDF4',
-                    border: '#16A34A',
-                    tagBg: '#DCFCE7',
-                    tagColor: '#15803D',
-                    hasWorkoutBtn: true
-                },
-                {
-                    match: 'SOUL',
-                    num: 5,
-                    title: 'Habit 5 of 5 • Nervous System & Evening Vagus Nerve Reset',
-                    when: '🧠 Practice Throughout the Day & Before Bed',
-                    why: 'Signals safety to your vagus nerve so digestion, bile flow, and deep restorative sleep can turn back on.',
-                    bg: '#FDF2F8',
-                    border: '#DB2777',
-                    tagBg: '#FCE7F3',
-                    tagColor: '#BE185D'
-                },
-                {
-                    match: 'SUPPLEMENT',
-                    num: 6,
-                    title: 'Bonus Habit • Foundational Cellular Nutrients & Minerals',
-                    when: '💊 Take Alongside Breakfast or Lunch',
-                    why: 'Provides bioavailable trace minerals, whole-food vitamins, and clean omegas to rebuild cellular reserves.',
-                    bg: '#FFFBEB',
-                    border: '#B45309',
-                    tagBg: '#FEF3C7',
-                    tagColor: '#92400E'
-                }
-            ];
-
-            let completedTodayCount = 0;
-            const habitLabels = Array.from(leftCol.querySelectorAll('label.checklist-item'));
-
-            habitLabels.forEach((cardBox, idx) => {
-                const chk = cardBox.querySelector('input[type="checkbox"]');
-                if (!chk) return;
-
-                const cardTxt = (cardBox.textContent || '').toUpperCase();
-                const theme = habitColorThemes.find(t => cardTxt.includes(t.match)) || habitColorThemes[idx] || habitColorThemes[0];
-                const isDone = chk.checked;
-                if (isDone && idx < 5) completedTodayCount++;
-
-                cardBox.classList.add('hh-habit-card-upgraded');
-                if (isDone) {
-                    cardBox.classList.add('hh-habit-card-done');
-                } else {
-                    cardBox.classList.remove('hh-habit-card-done');
-                    cardBox.style.background = theme.bg;
-                    cardBox.style.border = `2px solid ${theme.border}`;
-                    cardBox.style.borderLeft = `8px solid ${theme.border}`;
-                }
-
-                chk.style.cssText = 'width: 24px; height: 24px; accent-color: #059669; cursor: pointer; flex-shrink: 0;';
-
-                let coachMeta = cardBox.querySelector('.hh-habit-coach-meta');
-                if (!coachMeta) {
-                    coachMeta = document.createElement('div');
-                    coachMeta.className = 'hh-habit-coach-meta';
-                    cardBox.prepend(coachMeta);
-                }
-
-                coachMeta.innerHTML = `
-                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:8px; padding-bottom:6px; border-bottom:1px dashed rgba(0,0,0,0.12);">
-                        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                            <span style="background:${isDone ? '#059669' : theme.tagBg}; color:${isDone ? '#ffffff' : theme.tagColor}; padding:4px 11px; border-radius:999px; font-size:0.74rem; font-weight:800; letter-spacing:0.02em;">
-                                ${isDone ? `✅ HABIT #${theme.num} COMPLETE!` : `📍 ${theme.title}`}
-                            </span>
-                            <span style="font-size:0.75rem; font-weight:700; color:#5A4634;">
-                                ${theme.when}
-                            </span>
-                        </div>
-                        <span style="font-size:0.75rem; font-weight:800; color:${isDone ? '#059669' : theme.tagColor};">
-                            ${isDone ? '🌟 Great job! Brick laid for today' : 'Tap checkbox below when done ➔'}
-                        </span>
-                    </div>
-                `;
-
-                let whyFooter = cardBox.querySelector('.hh-habit-why-footer');
-                if (!whyFooter) {
-                    whyFooter = document.createElement('div');
-                    whyFooter.className = 'hh-habit-why-footer';
-                    cardBox.appendChild(whyFooter);
-                }
-                whyFooter.innerHTML = `
-                    <div style="margin-top:8px; padding-top:8px; border-top:1px dashed rgba(0,0,0,0.1); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; font-size:0.77rem; color:#4A3728;">
-                        <span>💡 <strong>Why This Heals Your Terrain:</strong> <em>${theme.why}</em></span>
-                        ${theme.hasWorkoutBtn ? `
-                            <span role="button" tabindex="0" onclick="event.preventDefault(); event.stopPropagation(); switchTerrainCoachTab('workout');" style="background:#16A34A; color:#fff; border-radius:999px; padding:6px 14px; font-size:0.75rem; font-weight:800; cursor:pointer; display:inline-block;">
-                                💪 Open Tab 2: Today's Workout Studio & Timer &rarr;
-                            </span>
-                        ` : ''}
-                    </div>
-                `;
-            });
-
-            // 4. Render the 16-Step Map + 4 Immune `<div role="tab">` Navigation Cards
-            let coachMasterHeader = document.getElementById('hh-terrain-guided-coach-header');
-            if (!coachMasterHeader) {
-                coachMasterHeader = document.createElement('div');
-                coachMasterHeader.id = 'hh-terrain-guided-coach-header';
-                wodStage.insertAdjacentElement('beforebegin', coachMasterHeader);
-            }
-
-            const affirmationToday = COACH_AFFIRMATIONS[(curStep + todayDayIdx) % COACH_AFFIRMATIONS.length];
-            const activeTab = window._activeTerrainCoachTab || 'habits';
-
-            const stonesHtml = Array.from({ length: 16 }, (_, i) => {
-                const sNum = i + 1;
-                const isDone = sNum < curStep;
-                const isCurrent = sNum === curStep;
-                return `
-                    <div class="hh-stone-pill ${isDone ? 'done' : (isCurrent ? 'active' : '')}">
-                        ${isDone ? `✓ Step ${sNum}` : (isCurrent ? `📍 Step ${sNum} (You Are Here!)` : `🔒 Step ${sNum}`)}
-                    </div>
-                `;
-            }).join('');
-
-            coachMasterHeader.innerHTML = `
-                <div class="hh-coach-step-map-wrap">
-                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:8px;">
-                        <div>
-                            <span style="background:#FEF5D8; color:#9A5B0A; padding:4px 12px; border-radius:999px; font-size:0.72rem; font-weight:800; text-transform:uppercase;">
-                                🗺️ YOUR 16-STEP HEALING ROADMAP • ${escapeSafeHtml(phaseNames[phaseNum])}
-                            </span>
-                            <h3 style="font-family:var(--font-serif); font-size:1.4rem; color:#FEF5D8; margin:6px 0 2px 0;">
-                                Welcome to Step ${curStep} of 16 — Here Is Exactly How Your Coaching Works:
-                            </h3>
-                        </div>
-                        <div style="background:rgba(255,255,255,0.12); border:1.5px solid #D9B36C; border-radius:12px; padding:8px 14px; text-align:center;">
-                            <span style="font-size:0.7rem; text-transform:uppercase; color:#FEF5D8; display:block; font-weight:700;">Today's Daily Win Meter (${escapeSafeHtml(activeDayKey)})</span>
-                            <strong style="font-size:1.25rem; color:${completedTodayCount >= 5 ? '#86EFAC' : '#FEF5D8'};">${completedTodayCount} of 5 Daily Habits Done ⭐</strong>
-                        </div>
-                    </div>
-
-                    <div class="hh-stepping-stones-row">
-                        ${stonesHtml}
-                    </div>
-
-                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(230px, 1fr)); gap:10px; margin-top:10px; background:rgba(255,253,248,0.1); border-radius:14px; padding:12px 14px; font-size:0.8rem; color:#E8F2EC;">
-                        <div>
-                            <strong style="color:#FEF5D8; display:block;">1️⃣ Focus ONLY on Step ${curStep} Right Now:</strong>
-                            Don't worry about Steps ${Math.min(16, curStep + 1)}–16 yet! You only lay one gentle layer of habits at a time so your body never gets overwhelmed.
-                        </div>
-                        <div>
-                            <strong style="color:#FEF5D8; display:block;">2️⃣ Check Off Your 5 Daily Habits Below:</strong>
-                            Each day (${escapeSafeHtml(activeDayKey)}), check off your 5 color-coded Micro-Habits below as you complete them.
-                        </div>
-                        <div>
-                            <strong style="color:#FEF5D8; display:block;">3️⃣ Hit 85% Mastery to Unlock Step ${Math.min(16, curStep + 1)}:</strong>
-                            Practice Step ${curStep} for 7 days. Once your 7-Day Mastery Bar hits <strong>85%</strong>, click <em>"Weekly Check-In & Next Step Gate"</em> above to unlock your next step!
-                        </div>
-                    </div>
-
-                    <div style="margin-top:10px; font-size:0.82rem; color:#FEF5D8; font-style:italic; text-align:center; padding-top:8px; border-top:1px dashed rgba(254,245,216,0.25);">
-                        💬 <strong>Coach Ashton's Daily Note for You:</strong> "${escapeSafeHtml(affirmationToday)}"
-                    </div>
-                </div>
-
-                ${completedTodayCount >= 5 ? `
-                    <div class="hh-victory-banner" style="background:linear-gradient(135deg, #059669 0%, #047857 100%); color:#ffffff; border:3px solid #A7F3D0; border-radius:20px; padding:18px 22px; margin-bottom:18px; text-align:center; box-shadow:0 14px 32px rgba(5, 150, 105, 0.3);">
-                        <div style="font-size:2rem; margin-bottom:4px;">🎉🌟🌿🏆</div>
-                        <h3 style="font-family:var(--font-serif); font-size:1.5rem; color:#ffffff; margin:0 0 4px 0;">
-                            Amazing Job! You Completed All 5 of ${escapeSafeHtml(activeDayKey)}'s Healing Habits!
-                        </h3>
-                        <p style="font-size:0.88rem; color:#ECFDF5; margin:0;">
-                            You just laid another powerful brick in your foundation. Rest easy tonight—your nervous system, gut, and hormones are thanking you!
-                        </p>
-                    </div>
-                ` : ''}
-
-                <!-- IMMUNE DIV-BASED TABS -->
-                <div class="hh-coach-nav-tabs">
-                    <div role="tab" tabindex="0" class="hh-coach-tab-card ${activeTab === 'habits' ? 'active' : ''}" onclick="switchTerrainCoachTab('habits')">
-                        <span class="tab-step-num">☀️ PRIORITY #1 TODAY</span>
-                        <span class="tab-main-title">1. My 5 Daily Habits (${completedTodayCount}/5)</span>
-                        <span style="font-size:0.74rem; opacity:0.85;">Check off your 5 color-coded habits</span>
-                    </div>
-
-                    <div role="tab" tabindex="0" class="hh-coach-tab-card ${activeTab === 'workout' ? 'active' : ''}" onclick="switchTerrainCoachTab('workout')">
-                        <span class="tab-step-num">💪 PRIORITY #2 TODAY</span>
-                        <span class="tab-main-title">2. Guided Workout & Timer</span>
-                        <span style="font-size:0.74rem; opacity:0.85;">Phase ${phaseNum} WOD Studio & Rest Timer</span>
-                    </div>
-
-                    <div role="tab" tabindex="0" class="hh-coach-tab-card ${activeTab === 'meals' ? 'active' : ''}" onclick="switchTerrainCoachTab('meals')">
-                        <span class="tab-step-num">🍽️ PRIORITY #3 TODAY</span>
-                        <span class="tab-main-title">3. Step ${curStep} Meal Blueprint</span>
-                        <span style="font-size:0.74rem; opacity:0.85;">30g+ Protein Meals & Bonus Recipes</span>
-                    </div>
-
-                    <div role="tab" tabindex="0" class="hh-coach-tab-card ${activeTab === 'supplements' ? 'active' : ''}" onclick="switchTerrainCoachTab('supplements')">
-                        <span class="tab-step-num">🌿 RESOURCES & ROADMAP</span>
-                        <span class="tab-main-title">4. Dispensary & Full 16 Steps</span>
-                        <span style="font-size:0.74rem; opacity:0.85;">Minerals, Fullscript & All 16 Steps</span>
-                    </div>
-                </div>
-            `;
-
-            // 5. Switch between the 4 Guided Tabs cleanly (FIXED TAB #4 DISPLAY LOGIC)
-            twoColGrid.style.cssText = 'display: block; width: 100%; max-width: 960px; margin: 0 auto;';
-
-            if (activeTab === 'habits') {
-                wodStage.style.display = 'none';
-                twoColGrid.style.display = 'block';
-                leftCol.style.display = 'block';
-                rightCol.style.display = 'none';
-            } else if (activeTab === 'workout') {
-                wodStage.style.display = 'block';
-                twoColGrid.style.display = 'none';
-                if (wodStage.children.length === 0) {
-                    wodStage.innerHTML = `
-                        <div class="clinical-panel" style="border:2px solid var(--sage); text-align:center; padding:28px;">
-                            <span class="card-tag" style="background:var(--sage); color:#fff;">💪 Phase ${phaseNum} Guided Movement</span>
-                            <h3 style="font-size:1.5rem; margin:8px 0;">Step ${curStep} Prescribed Movement</h3>
-                            <p style="max-width:620px; margin:0 auto 16px auto;">Click below to open your step-by-step guided movement & breathing instructions for Step ${curStep}:</p>
-                            <button type="button" class="btn-primary" onclick="openTerrainGuidedWorkoutModal(${curStep})">💪 ▶ Open Step ${curStep} Guided Workout</button>
-                        </div>
-                    `;
-                }
-            } else if (activeTab === 'meals') {
-                wodStage.style.display = 'none';
-                twoColGrid.style.display = 'block';
-                leftCol.style.display = 'none';
-                rightCol.style.display = 'block';
-                Array.from(rightCol.children).forEach(ch => {
-                    const t = (ch.textContent || '').toUpperCase();
-                    ch.style.display = (t.includes('MEAL BLUEPRINT') || t.includes('DONE-FOR-YOU MEAL')) ? 'block' : 'none';
-                });
-            } else if (activeTab === 'supplements') {
-                wodStage.style.display = 'none';
-                twoColGrid.style.display = 'block';
-                leftCol.style.display = 'none';
-                rightCol.style.display = 'block';
-                Array.from(rightCol.children).forEach(ch => {
-                    const t = (ch.textContent || '').toUpperCase();
-                    // Show Dispensary card (and hide Meal Blueprint card)
-                    ch.style.display = (t.includes('MEAL BLUEPRINT') || t.includes('DONE-FOR-YOU MEAL')) ? 'none' : 'block';
-                });
-
-                if (!document.getElementById('hh-terrain-tab4-roadmap-card') && typeof RECLAIM_TERRAIN_16_STEPS !== 'undefined') {
-                    const rmCard = document.createElement('div');
-                    rmCard.id = 'hh-terrain-tab4-roadmap-card';
-                    rmCard.className = 'clinical-panel';
-                    rmCard.style.marginTop = '18px';
-                    rmCard.innerHTML = `
-                        <span class="card-tag">🗺️ Complete 16-Step Master Pathway</span>
-                        <h3 style="font-size:1.35rem; margin:4px 0 12px 0;">All 16 Sequential Steps in Reclaim Your Terrain</h3>
-                        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:10px;">
-                            ${RECLAIM_TERRAIN_16_STEPS.map(s => `
-                                <div style="background:${s.step === curStep ? '#FEF5D8' : 'var(--bg-warm-cream)'}; border:${s.step === curStep ? '2px solid var(--primary)' : '1px solid var(--border)'}; border-radius:12px; padding:12px;">
-                                    <span style="font-size:0.7rem; font-weight:800; color:var(--sage); text-transform:uppercase;">${s.step < curStep ? '✓ Completed' : s.step === curStep ? '📍 Active Now' : '🔒 Upcoming'} • ${escapeSafeHtml(s.phase.split('•')[0])}</span>
-                                    <strong style="display:block; font-size:0.9rem; color:var(--primary); margin:3px 0;">${escapeSafeHtml(s.title)}</strong>
-                                    <div style="font-size:0.76rem; color:var(--text-muted);">${escapeSafeHtml(s.movementHabit)}</div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    `;
-                    rightCol.appendChild(rmCard);
-                }
-            }
-        } finally {
-            isEnhancingTerrainCoach = false;
-        }
-    }
-
-    const _prevRenderTerrain = window.renderReclaimTerrainPillar;
-    if (typeof _prevRenderTerrain === 'function') {
-        window.renderReclaimTerrainPillar = function() {
-            _prevRenderTerrain();
-            applyTerrainCoachLayout();
-        };
-    }
-
-    window.toggleTerrainHabitCheck = function(chkKey, isChecked) {
-        const tState = window.getTerrainState();
-        if (!tState.weeklyChecks) tState.weeklyChecks = {};
-        tState.weeklyChecks[chkKey] = !!isChecked;
-        window.saveTerrainState(tState);
-        window.renderReclaimTerrainPillar();
-        if (isChecked) {
-            const container = document.getElementById('view-reclaim-terrain');
-            const nowChecked = container ? Array.from(container.querySelectorAll('label.checklist-item input[type="checkbox"]')).slice(0, 5).filter(c => c.checked).length : 1;
-            playHabitRewardChime(nowChecked >= 5);
-        }
-        if (typeof loadSubscriberDashboardForUser === 'function') loadSubscriberDashboardForUser();
-    };
-
-    const shieldObserver = new MutationObserver(() => {
-        const container = document.getElementById('view-reclaim-terrain');
-        if (!container) return;
-        const hasStepDashboard = (container.textContent || '').includes('Micro-Habits');
-        if (hasStepDashboard) {
-            container.querySelectorAll('button, a').forEach(btn => {
-                if ((btn.textContent || '').includes('Start My 20-Question Functional Consult')) {
-                    btn.remove();
-                }
-            });
-        }
-    });
-
-    setTimeout(() => {
-        applyTerrainCoachLayout();
-        const container = document.getElementById('view-reclaim-terrain');
-        if (container) {
-            shieldObserver.observe(container, { childList: true, subtree: true, characterData: true });
-        }
-    }, 250);
-})();
-</script>
-
 <!-- ================= BLOCK 6 (EXACT 1-TO-1 DISH MATCH EDITION): ALL-PILLAR VISUAL PHOTOGRAPHY ENGINE & ADMIN PHOTO STUDIO ================= -->
 <script>
 (function() {
@@ -24555,6 +23918,847 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
 
     [300, 900, 1800].forEach(ms => setTimeout(runPremiumMotionEnhancements, ms));
     document.addEventListener('click', () => setTimeout(runPremiumMotionEnhancements, 120));
+})();
+</script>
+
+<!-- ================= BLOCK 12: FIX FREE SIGNUP, HIDE KITCHEN ROI BOX, FIX KITCHEN SUBTABS, REMOVE LANDING BTN, ADD CATEGORIZED HOME & KIDS TASK PRINTING, & CONVERT RECLAIM TERRAIN TO INFO/PORTAL TAB ================= -->
+<script>
+(function() {
+    const FOUNDER_EMAIL = 'contacthoneysuckleandco@gmail.com';
+
+    // Global safe HTML helper so no modal or button ever fails on missing function reference
+    window.escapeSafeHtml = window.escapeSafeHtml || function(str) {
+        return String(str === undefined || str === null ? '' : str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    };
+
+    function isStrictFounderAdmin() {
+        if (typeof window.isInteractiveDemoSession === 'function' && window.isInteractiveDemoSession()) return false;
+        if (window.isDemoMode || window._isLiveDemoModeActive) return false;
+        const email = (typeof currentUser !== 'undefined' && currentUser?.email) ? currentUser.email.trim().toLowerCase() : (localStorage.getItem('hh_logged_in_user_email') || '');
+        return email === FOUNDER_EMAIL;
+    }
+
+    // Inject Scoped Styles for Hiding Redundant Elements & Print Bar
+    if (!document.getElementById('hh-block12-fixes-style')) {
+        const st = document.createElement('style');
+        st.id = 'hh-block12-fixes-style';
+        st.innerHTML = `
+            #hh-header-plans-guide-btn { display: none !important; }
+            .hh-hide-roi-banner { display: none !important; }
+            .hh-print-tasks-bar {
+                margin-top: 18px;
+                padding: 16px 20px;
+                background: linear-gradient(135deg, #FAF3E3 0%, #FFFDF8 100%);
+                border: 2px solid #D9B36C;
+                border-radius: 18px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                flex-wrap: wrap;
+                gap: 12px;
+                box-shadow: 0 6px 18px rgba(42, 30, 20, 0.05);
+            }
+        `;
+        document.head.appendChild(st);
+    }
+
+    // =========================================================================
+    // 1. FIX FREE STARTER ACCOUNT SIGN-UP BUTTON ("Enter Honeysuckle Hub for Free")
+    // =========================================================================
+    window.completeFreeStarterSignup = function() {
+        const nameInp = document.getElementById('hh-free-signup-name');
+        const emailInp = document.getElementById('hh-free-signup-email');
+        const nameVal = (nameInp ? nameInp.value : '').trim() || 'Homestead Friend';
+        let emailVal = (emailInp ? emailInp.value : '').trim().toLowerCase();
+
+        if (!emailVal || !emailVal.includes('@')) {
+            emailVal = 'free_' + Date.now() + '@honeysucklehub.com';
+        }
+
+        try {
+            localStorage.setItem('hh_free_starter_user', JSON.stringify({
+                name: nameVal,
+                email: emailVal,
+                tier: 'free_starter',
+                joinedAt: new Date().toISOString()
+            }));
+            localStorage.setItem('hh_logged_in_user_email', emailVal);
+        } catch (e) {}
+
+        // Set global user object so the app knows the user is authenticated
+        try {
+            window.currentUser = {
+                name: nameVal,
+                email: emailVal,
+                role: 'Free Starter Member',
+                tier: 'free_starter'
+            };
+        } catch (e) {}
+
+        // Save to Admin Directory if available
+        if (typeof getGlobalSharedData === 'function' && typeof setGlobalSharedData === 'function') {
+            try {
+                const dir = getGlobalSharedData('registered_hub_users', []) || [];
+                if (!dir.some(u => u && u.email && u.email.toLowerCase() === emailVal)) {
+                    dir.unshift({
+                        id: 'usr_free_' + Date.now(),
+                        name: nameVal,
+                        email: emailVal,
+                        role: 'Free Starter Member',
+                        tier: 'free_starter',
+                        joinedAt: new Date().toISOString().slice(0, 10)
+                    });
+                    setGlobalSharedData('registered_hub_users', dir);
+                }
+            } catch (e) {}
+        }
+
+        // Remove all signup/landing modals and overlays immediately
+        document.getElementById('hh-free-starter-signup-modal')?.remove();
+        document.getElementById('hh-public-attractive-landing-modal')?.remove();
+
+        const landingRoots = [
+            document.getElementById('hh-new-landing-master-wrap'),
+            document.getElementById('hh-replaced-main-landing-root'),
+            window._legacyLandingWrapperEl,
+            window._replacedOldLandingContainer
+        ];
+        landingRoots.forEach(el => { if (el) el.style.setProperty('display', 'none', 'important'); });
+
+        document.querySelectorAll('[id*="landing"], [id*="auth-modal"], [id*="login-modal"], .landing-overlay').forEach(el => {
+            if (el.tagName === 'DIV' && !el.id.includes('main') && !el.id.includes('view-')) {
+                el.style.setProperty('display', 'none', 'important');
+            }
+        });
+
+        // Ensure the main app shell and Home view are visible
+        document.querySelectorAll('header, main, #app-shell, .app-shell, .app-container, #main-app').forEach(el => {
+            if (el.style.display === 'none') el.style.display = '';
+        });
+
+        if (typeof window.switchMainView === 'function') {
+            try { window.switchMainView('home'); } catch (e) {}
+        }
+        const homeView = document.getElementById('view-home');
+        if (homeView) homeView.style.display = 'block';
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    // Direct capture-phase listener so clicking "Enter Honeysuckle Hub for Free" ALWAYS works even if another listener intercepts it
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('button');
+        if (!btn) return;
+        const txt = (btn.textContent || '').trim();
+        if (txt.includes('Enter Honeysuckle Hub for Free')) {
+            e.preventDefault();
+            e.stopPropagation();
+            window.completeFreeStarterSignup();
+        }
+    }, true);
+
+    // =========================================================================
+    // 2. REMOVE LANDING PAGE BUTTON, HIDE KITCHEN ROI BOX & FIX KITCHEN SUBTABS
+    // =========================================================================
+    function cleanKitchenAndHeaderUI() {
+        // A. Remove "🌻 Landing Page" button anywhere in the app header
+        document.getElementById('hh-header-plans-guide-btn')?.remove();
+        document.querySelectorAll('button').forEach(b => {
+            const t = (b.textContent || '').trim();
+            if (t === '🌻 Landing Page' || t === '🌻 Landing Page & Plans') {
+                b.remove();
+            }
+        });
+
+        // B. Hide the "Estimated Household Value Created This Month" / "SCRATCH-KITCHEN & HOMESTEAD ROI TRACKER" box
+        const allEls = Array.from(document.querySelectorAll('div, span, h3, h4, strong'));
+        const roiMarker = allEls.find(el =>
+            el.children.length === 0 && (
+                (el.textContent || '').includes('Estimated Household Value Created This Month') ||
+                (el.textContent || '').includes('SCRATCH-KITCHEN & HOMESTEAD ROI TRACKER')
+            )
+        );
+        if (roiMarker) {
+            let roiBox = roiMarker.parentElement;
+            while (roiBox && roiBox.parentElement && roiBox.parentElement.id !== 'view-food') {
+                const st = roiBox.getAttribute('style') || '';
+                if (roiBox.classList.contains('clinical-panel') || (st.includes('border') && st.includes('radius'))) {
+                    break;
+                }
+                roiBox = roiBox.parentElement;
+            }
+            if (roiBox && roiBox.id !== 'view-food') {
+                roiBox.classList.add('hh-hide-roi-banner');
+                roiBox.style.setProperty('display', 'none', 'important');
+            }
+        }
+
+        // C. Fix Kitchen Subtabs: ONLY show under "Meal Planner & Recipe Vault", hide on "Ditch & Switch" and "Inventory"
+        const subtabBtn = Array.from(document.querySelectorAll('button')).find(b =>
+            (b.textContent || '').includes('Smart Meal Planner & Shopping List') ||
+            (b.textContent || '').includes('Master & Community Recipe Vault')
+        );
+        const subtabBar = document.getElementById('hh-recipe-vault-subtabs-bar') || (subtabBtn ? subtabBtn.parentElement : null);
+
+        if (subtabBar) {
+            // Check which top-level Kitchen tab is currently active
+            const ditchPanel = document.getElementById('food-tab-ditch-switch');
+            const invPanel = document.getElementById('food-tab-inventory');
+            const mealPanel = document.getElementById('food-tab-meal-planner');
+
+            // Also check active classes/styles on the 3 top tab buttons
+            const topDitchBtn = Array.from(document.querySelectorAll('button')).find(b => (b.textContent || '').includes('"Ditch & Switch" Toxin Decoder'));
+            const topInvBtn = Array.from(document.querySelectorAll('button')).find(b => (b.textContent || '').includes('Food & Household Supply Inventory'));
+
+            const isDitchActive = (ditchPanel && ditchPanel.style.display !== 'none' && getComputedStyle(ditchPanel).display !== 'none') ||
+                                  (topDitchBtn && (topDitchBtn.classList.contains('active') || (topDitchBtn.getAttribute('style') || '').includes('#2E5A44') || (topDitchBtn.getAttribute('style') || '').includes('var(--sage)')));
+            const isInvActive = (invPanel && invPanel.style.display !== 'none' && getComputedStyle(invPanel).display !== 'none') ||
+                                (topInvBtn && (topInvBtn.classList.contains('active') || (topInvBtn.getAttribute('style') || '').includes('#2E5A44') || (topInvBtn.getAttribute('style') || '').includes('var(--sage)')));
+
+            if (isDitchActive || isInvActive) {
+                subtabBar.style.setProperty('display', 'none', 'important');
+                // Also ensure the meal planner / recipe vault / milling sub-containers are hidden when on Ditch & Switch or Inventory
+                ['tool-tab-meal-planner', 'tool-tab-recipe-vault', 'tool-tab-milling-studio'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el && mealPanel && !mealPanel.contains(el)) {
+                        el.style.setProperty('display', 'none', 'important');
+                    }
+                });
+            } else {
+                subtabBar.style.setProperty('display', 'flex', 'important');
+            }
+        }
+    }
+
+    // =========================================================================
+    // 3. PRINT DAILY CATEGORIZED HOME TASKS & PRINT KIDS' TASK LIST ON HOMEPAGE
+    // =========================================================================
+    const DEFAULT_KIDS_CHORE_ROSTER = [
+        {
+            childName: 'Older Kids (Grades 2–4)',
+            morning: ['Make bed neatly & put dirty pajamas in laundry basket', 'Brush teeth, get dressed & comb hair', 'Clear breakfast plate & help unload silverware from dishwasher'],
+            afternoon: ['Stack homeschool books, sharpen pencils & wipe school spot', '10-minute Zone helper task with Mom', 'Check waterers / gather eggs / outdoor chore'],
+            evening: ['Clear dinner plate & wipe dining table or sweep crumbs', '5-Minute Family Living Room Floor Pickup (shoes, books & toys away)']
+        },
+        {
+            childName: 'Middle Kids (Kindergarten – 1st Grade)',
+            morning: ['Pull up blanket & arrange pillow on bed', 'Get dressed & brush teeth', 'Carry breakfast bowl to the counter'],
+            afternoon: ['Put crayons, scissors & workbooks back in bin', 'Match clean socks or fold washcloths from laundry basket'],
+            evening: ['Clear dinner cup & silverware', 'Put living room toys & blocks into baskets before bedtime']
+        },
+        {
+            childName: 'Little Helpers (Preschool)',
+            morning: ['Put stuffed animals on pillow', 'Put dirty clothes in hamper with help'],
+            afternoon: ['Put picture books back on the low shelf'],
+            evening: ['Help pick up toys during the 5-Minute Evening Song']
+        }
+    ];
+
+    function getKidsChoreRoster() {
+        try {
+            const saved = JSON.parse(localStorage.getItem('hh_kids_daily_chores_v1') || 'null');
+            if (Array.isArray(saved) && saved.length > 0) return saved;
+        } catch (e) {}
+
+        // Also check if user has children saved in Homeschool students list
+        if (typeof getLocalData === 'function') {
+            const students = getLocalData('homeschool_students', []) || [];
+            if (Array.isArray(students) && students.length > 0) {
+                return students.map(st => ({
+                    childName: st.name || 'Child',
+                    morning: ['Make bed & put pajamas in hamper', 'Brush teeth & get dressed', 'Clear breakfast dish to sink'],
+                    afternoon: ['Tidy homeschool books & supplies', 'Help with 1 daily room or laundry task'],
+                    evening: ['Clear dinner spot at table', '5-Minute Family Floor Pickup before bed']
+                }));
+            }
+        }
+        return DEFAULT_KIDS_CHORE_ROSTER;
+    }
+
+    window.openCustomizeKidsChoresModal = function() {
+        const roster = getKidsChoreRoster();
+        const existingText = roster.map(k =>
+            `${k.childName}:\nMorning: ${(k.morning || []).join('; ')}\nAfternoon: ${(k.afternoon || []).join('; ')}\nEvening: ${(k.evening || []).join('; ')}`
+        ).join('\n\n');
+
+        document.getElementById('hh-kids-chores-edit-modal')?.remove();
+        const modal = document.createElement('div');
+        modal.id = 'hh-kids-chores-edit-modal';
+        modal.className = 'modal-overlay';
+        modal.style.cssText = 'display:flex; z-index:3100;';
+        modal.innerHTML = `
+            <div style="background:#FFFDF8; width:100%; max-width:600px; border-radius:22px; padding:24px; border:3px solid #2E5A44; box-shadow:0 24px 60px rgba(0,0,0,0.4);">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid var(--border); padding-bottom:10px; margin-bottom:12px;">
+                    <div>
+                        <span class="card-tag" style="background:#2E5A44; color:#fff;">👧👦 Customize Kids' Printable Chore Sheet</span>
+                        <h3 style="font-family:var(--font-serif, Georgia, serif); font-size:1.4rem; color:#1E3F2E; margin:4px 0 0 0;">Edit Kids' Names & Daily Tasks</h3>
+                    </div>
+                    <button type="button" onclick="document.getElementById('hh-kids-chores-edit-modal').remove()" style="background:none; border:none; font-size:1.7rem; cursor:pointer;">&times;</button>
+                </div>
+                <p style="font-size:0.8rem; color:#4A3728; margin:0 0 10px 0;">
+                    Enter each child's name (or age group) followed by their Morning, Afternoon, and Evening tasks separated by semicolons (<code>;</code>):
+                </p>
+                <textarea id="hh-kids-chores-textarea" rows="11" style="width:100%; padding:12px; border:1.5px solid var(--border); border-radius:12px; font-family:var(--font-sans); font-size:0.83rem; line-height:1.5; background:#fff; color:#1B4332;">${window.escapeSafeHtml(existingText)}</textarea>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px; gap:8px;">
+                    <button type="button" class="btn-secondary" style="font-size:0.76rem;" onclick="localStorage.removeItem('hh_kids_daily_chores_v1'); document.getElementById('hh-kids-chores-edit-modal').remove();">↺ Reset to Default</button>
+                    <div style="display:flex; gap:8px;">
+                        <button type="button" class="btn-secondary" onclick="document.getElementById('hh-kids-chores-edit-modal').remove()">Cancel</button>
+                        <button type="button" class="btn-primary" style="background:#2E5A44; border-color:#1E3F2E;" onclick="saveKidsChoresFromModal()">✓ Save & Print Preview</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    };
+
+    window.saveKidsChoresFromModal = function() {
+        const raw = (document.getElementById('hh-kids-chores-textarea')?.value || '').trim();
+        if (!raw) return;
+        const blocks = raw.split(/\n\s*\n/);
+        const parsed = [];
+        blocks.forEach(b => {
+            const lines = b.split('\n').map(l => l.trim()).filter(Boolean);
+            if (!lines.length) return;
+            const childName = lines[0].replace(/:$/, '').trim();
+            const morning = [], afternoon = [], evening = [];
+            lines.slice(1).forEach(line => {
+                if (/^morning:/i.test(line)) {
+                    morning.push(...line.replace(/^morning:/i, '').split(';').map(s => s.trim()).filter(Boolean));
+                } else if (/^afternoon:/i.test(line)) {
+                    afternoon.push(...line.replace(/^afternoon:/i, '').split(';').map(s => s.trim()).filter(Boolean));
+                } else if (/^evening:/i.test(line)) {
+                    evening.push(...line.replace(/^evening:/i, '').split(';').map(s => s.trim()).filter(Boolean));
+                } else {
+                    morning.push(...line.split(';').map(s => s.trim()).filter(Boolean));
+                }
+            });
+            parsed.push({ childName, morning, afternoon, evening });
+        });
+        if (parsed.length > 0) {
+            localStorage.setItem('hh_kids_daily_chores_v1', JSON.stringify(parsed));
+        }
+        document.getElementById('hh-kids-chores-edit-modal')?.remove();
+        window.printKidsDailyTaskList();
+    };
+
+    // Print Mom's Categorized Daily Home & Zone Task List (Styled in Deep Forest Green & Navy — Zero Black Ink Required!)
+    window.printCategorizedDailyHomeTasks = function() {
+        const container = document.getElementById('hh-upgraded-home-tasks-container');
+        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const todayStr = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+
+        // Extract current tasks directly from the homepage DOM so custom tasks & active zone are 100% included
+        const morningTasks = [], middayTasks = [], eveningTasks = [], zoneTasks = [];
+        if (container) {
+            const maintDiv = container.children[0];
+            const zoneDiv = container.children[1];
+
+            if (maintDiv) {
+                const sections = Array.from(maintDiv.querySelectorAll('div[style*="margin-bottom:18px"]'));
+                sections.forEach(sec => {
+                    const h4 = (sec.querySelector('h4')?.textContent || '').trim();
+                    const items = Array.from(sec.querySelectorAll('strong')).map(s => s.textContent.trim());
+                    if (h4.includes('Morning')) morningTasks.push(...items);
+                    else if (h4.includes('After-Meals')) middayTasks.push(...items);
+                    else eveningTasks.push(...items);
+                });
+            }
+            if (zoneDiv) {
+                zoneDiv.querySelectorAll('label.hh-home-task-card strong').forEach(s => {
+                    zoneTasks.push(s.textContent.trim());
+                });
+            }
+        }
+
+        const zoneHeaderTitle = document.querySelector('#hh-upgraded-home-tasks-container > div:nth-child(2) h3')?.textContent?.trim() || `${dayNames[new Date().getDay()]} Weekly Zone Focus`;
+
+        const w = window.open('', '_blank', 'width=880,height=920');
+        if (!w) { alert('Please allow pop-ups to print your Daily Task List!'); return; }
+
+        const renderSection = (title, subtitle, arr) => `
+            <div style="margin-bottom:16px; border:1.5px solid #2E5A44; border-radius:12px; padding:12px 16px; background:#FFFDF8; page-break-inside:avoid;">
+                <div style="border-bottom:1.5px dashed #B87612; padding-bottom:5px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:baseline;">
+                    <h3 style="margin:0; font-family:Georgia, serif; font-size:1.08rem; color:#1B4332;">${window.escapeSafeHtml(title)}</h3>
+                    <span style="font-size:0.75rem; color:#1E3A8A; font-weight:700;">${window.escapeSafeHtml(subtitle)}</span>
+                </div>
+                ${arr.map(item => `
+                    <div style="display:flex; align-items:flex-start; gap:10px; padding:5px 0; border-bottom:1px dotted #D9CBB5; font-size:0.88rem; color:#1B4332;">
+                        <span style="display:inline-block; width:15px; height:15px; border:2px solid #1B4332; border-radius:3px; flex-shrink:0; margin-top:2px;"></span>
+                        <span>${window.escapeSafeHtml(item)}</span>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+
+        w.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Daily Home & Zone Reset Checklist — ${window.escapeSafeHtml(todayStr)}</title>
+                <style>
+                    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #1B4332; background: #ffffff; margin: 0; padding: 24px 30px; }
+                    @media print {
+                        body { padding: 10px 14px; }
+                        .no-print-bar { display: none !important; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="no-print-bar" style="margin-bottom:16px; padding:10px 16px; background:#E8F2EC; border:1.5px solid #2E5A44; border-radius:10px; display:flex; justify-content:space-between; align-items:center;">
+                    <strong style="color:#1B4332;">🖨️ Ready to Print: Today's Categorized Home & Zone Task Sheet</strong>
+                    <button onclick="window.print()" style="background:#1B4332; color:#fff; border:none; border-radius:8px; padding:8px 18px; font-weight:800; cursor:pointer;">🖨️ Print Now</button>
+                </div>
+
+                <div style="border-bottom:2.5px solid #1B4332; padding-bottom:10px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:flex-end;">
+                    <div>
+                        <span style="font-size:0.74rem; font-weight:800; color:#9A5B0A; text-transform:uppercase; letter-spacing:0.05em;">🌻 Honeysuckle Hub • Daily Home Command</span>
+                        <h1 style="font-family:Georgia, serif; font-size:1.65rem; color:#1B4332; margin:2px 0 0 0;">Today's Home & Zone Reset Checklist</h1>
+                    </div>
+                    <div style="text-align:right; font-size:0.84rem; color:#1E3A8A; font-weight:700;">
+                        ${window.escapeSafeHtml(todayStr)}
+                    </div>
+                </div>
+
+                ${renderSection('🌅 Category 1: Morning Kitchen & Laundry Anchor', 'First Thing Upon Waking', morningTasks)}
+                ${renderSection('🍽️ Category 2: After-Meals Dining & Midday Reset', 'Midday Baseline', middayTasks)}
+                ${renderSection('🌙 Category 3: Evening Kitchen Closing & 5-Min House Reset', 'Before Bedtime', eveningTasks)}
+                ${renderSection('📍 Category 4: ' + zoneHeaderTitle, '15–20 Min Focused Zone Reset (Ignore Other Rooms!)', zoneTasks)}
+
+                <div style="margin-top:12px; text-align:center; font-size:0.78rem; color:#1E3A8A; font-style:italic;">
+                    "A peaceful home isn't built by cleaning everything at once—it's built by keeping your daily baseline and focusing on just ONE zone today."
+                </div>
+            </body>
+            </html>
+        `);
+        w.document.close();
+    };
+
+    // Print Kids' Daily Task & Chore List
+    window.printKidsDailyTaskList = function() {
+        const roster = getKidsChoreRoster();
+        const todayStr = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+        const daysShort = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+        const w = window.open('', '_blank', 'width=880,height=920');
+        if (!w) { alert('Please allow pop-ups to print the Kids Task List!'); return; }
+
+        w.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Kids' Daily Chore & Stewardship Checklist</title>
+                <style>
+                    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #1B4332; background: #ffffff; margin: 0; padding: 24px 30px; }
+                    @media print {
+                        body { padding: 10px 14px; }
+                        .no-print-bar { display: none !important; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="no-print-bar" style="margin-bottom:16px; padding:10px 16px; background:#FEF5D8; border:1.5px solid #B87612; border-radius:10px; display:flex; justify-content:space-between; align-items:center;">
+                    <strong style="color:#9A5B0A;">👧👦 Ready to Print: Kids' Daily Task & Chore Sheet</strong>
+                    <button onclick="window.print()" style="background:#1B4332; color:#fff; border:none; border-radius:8px; padding:8px 18px; font-weight:800; cursor:pointer;">🖨️ Print Kids' Sheet Now</button>
+                </div>
+
+                <div style="border-bottom:2.5px solid #1B4332; padding-bottom:10px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:flex-end;">
+                    <div>
+                        <span style="font-size:0.74rem; font-weight:800; color:#9A5B0A; text-transform:uppercase; letter-spacing:0.05em;">🌻 Honeysuckle Hub • Family Stewardship</span>
+                        <h1 style="font-family:Georgia, serif; font-size:1.65rem; color:#1B4332; margin:2px 0 0 0;">Kids' Daily Chore & Task Checklist</h1>
+                    </div>
+                    <div style="text-align:right; font-size:0.84rem; color:#1E3A8A; font-weight:700;">
+                        Week of: ${window.escapeSafeHtml(todayStr)}
+                    </div>
+                </div>
+
+                ${roster.map(kid => {
+                    const allRows = [
+                        ...(kid.morning || []).map(t => ({ time: '🌅 Morning', text: t })),
+                        ...(kid.afternoon || []).map(t => ({ time: '☀️ Afternoon', text: t })),
+                        ...(kid.evening || []).map(t => ({ time: '🌙 Evening', text: t }))
+                    ];
+                    return `
+                        <div style="margin-bottom:18px; border:2px solid #1B4332; border-radius:14px; padding:12px 16px; background:#FFFDF8; page-break-inside:avoid;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1.5px solid #B87612; padding-bottom:6px; margin-bottom:8px;">
+                                <h3 style="margin:0; font-family:Georgia, serif; font-size:1.15rem; color:#1B4332;">⭐ ${window.escapeSafeHtml(kid.childName)}</h3>
+                                <div style="display:flex; gap:10px; font-size:0.74rem; font-weight:800; color:#1E3A8A;">
+                                    ${daysShort.map(d => `<span style="width:26px; text-align:center;">${d}</span>`).join('')}
+                                </div>
+                            </div>
+                            ${allRows.map(r => `
+                                <div style="display:flex; justify-content:space-between; align-items:center; padding:5px 0; border-bottom:1px dotted #D9CBB5; font-size:0.86rem; color:#1B4332;">
+                                    <div style="padding-right:10px;">
+                                        <strong style="color:#9A5B0A; font-size:0.76rem; margin-right:6px;">[${r.time}]</strong>
+                                        <span>${window.escapeSafeHtml(r.text)}</span>
+                                    </div>
+                                    <div style="display:flex; gap:10px; flex-shrink:0;">
+                                        ${daysShort.map(() => `<span style="display:inline-block; width:16px; height:16px; border:1.8px solid #1B4332; border-radius:3px;"></span>`).join('')}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                }).join('')}
+            </body>
+            </html>
+        `);
+        w.document.close();
+    };
+
+    function injectPrintButtonsUnderHomepageTasks() {
+        const taskContainer = document.getElementById('hh-upgraded-home-tasks-container');
+        if (!taskContainer) return;
+
+        // Also remove the 4th "My Daily Terrain Habits" tab from the Home page since Reclaim Your Terrain is moving to its own standalone app!
+        const homeNavTabs = document.querySelector('.hh-home-nav-tabs');
+        if (homeNavTabs) {
+            Array.from(homeNavTabs.querySelectorAll('button')).forEach(btn => {
+                if ((btn.textContent || '').includes('My Daily Terrain Habits')) {
+                    btn.style.setProperty('display', 'none', 'important');
+                }
+            });
+        }
+
+        let printBar = document.getElementById('hh-home-print-tasks-bar');
+        if (!printBar) {
+            printBar = document.createElement('div');
+            printBar.id = 'hh-home-print-tasks-bar';
+            printBar.className = 'hh-print-tasks-bar no-print';
+            taskContainer.insertAdjacentElement('afterend', printBar);
+        }
+
+        printBar.innerHTML = `
+            <div>
+                <span class="card-tag" style="background:#2E5A44; color:#fff; margin-bottom:4px;">🖨️ Fridge-Ready Printable Checklists</span>
+                <strong style="font-family:var(--font-serif, Georgia, serif); font-size:1.15rem; color:var(--primary); display:block;">
+                    Print Today's Categorized Home Tasks & Kids' Chore Sheet
+                </strong>
+                <span style="font-size:0.78rem; color:var(--text-muted);">
+                    Formatted in deep forest green & navy (zero black ink required!) for your fridge or clipboard.
+                </span>
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                <button type="button" class="btn-primary" style="background:#2E5A44; border-color:#1E3F2E; padding:9px 15px; font-size:0.8rem;" onclick="printCategorizedDailyHomeTasks()">
+                    🖨️ Print Daily Home & Zone Tasks
+                </button>
+                <button type="button" class="btn-primary" style="background:#B87612; border-color:#9A5B0A; padding:9px 15px; font-size:0.8rem;" onclick="printKidsDailyTaskList()">
+                    👧👦 Print Kids' Task List
+                </button>
+                <button type="button" class="btn-secondary" style="padding:8px 12px; font-size:0.76rem;" onclick="openCustomizeKidsChoresModal()">
+                    ⚙️ Edit Kids' Tasks
+                </button>
+            </div>
+        `;
+    }
+
+    // =========================================================================
+    // 4. REPLACE "RECLAIM YOUR TERRAIN" WITH AN INFORMATION & STANDALONE APP PORTAL TAB
+    // =========================================================================
+    function getTerrainStandaloneAppUrl() {
+        return localStorage.getItem('hh_reclaim_terrain_standalone_url') || 'https://reclaimyourterrain.com';
+    }
+
+    window.openTerrainStandaloneAppPortal = function() {
+        const url = getTerrainStandaloneAppUrl();
+        window.open(url, '_blank');
+    };
+
+    window.openAdminSetTerrainAppUrlModal = function() {
+        if (!isStrictFounderAdmin()) return;
+        const cur = getTerrainStandaloneAppUrl();
+        const nextUrl = prompt('👑 Enter the URL for your standalone Reclaim Your Terrain web app:', cur);
+        if (nextUrl && nextUrl.trim()) {
+            localStorage.setItem('hh_reclaim_terrain_standalone_url', nextUrl.trim());
+            renderTerrainInfoOnlyTab(true);
+            alert('✅ Updated Reclaim Your Terrain App Portal URL!');
+        }
+    };
+
+    function renderTerrainInfoOnlyTab(forceRebuild = false) {
+        const terrainView = document.getElementById('view-reclaim-terrain');
+        if (!terrainView) return;
+        if (terrainView.dataset.hhInfoOnlyBuilt === 'true' && !forceRebuild) return;
+
+        terrainView.dataset.hhInfoOnlyBuilt = 'true';
+        const isAdmin = isStrictFounderAdmin();
+        const appUrl = getTerrainStandaloneAppUrl();
+
+        terrainView.innerHTML = `
+            <div style="max-width:1000px; margin:0 auto; padding:10px 4px 48px 4px;">
+
+                <!-- HERO BANNER FOR STANDALONE RECLAIM YOUR TERRAIN APP -->
+                <div style="background:linear-gradient(135deg, #1E3F2E 0%, #142B1F 100%); color:#FFFDF8; border-radius:24px; padding:38px 30px; border:3px solid #D9B36C; box-shadow:0 16px 38px rgba(20, 43, 31, 0.18); margin-bottom:24px; text-align:center;">
+                    <span style="background:#FEF5D8; color:#9A5B0A; padding:5px 14px; border-radius:999px; font-size:0.74rem; font-weight:800; text-transform:uppercase; letter-spacing:0.04em; display:inline-block; margin-bottom:12px;">
+                        🦋 Dedicated Clinical Coaching App • Accessible Through Your Hub
+                    </span>
+                    <h2 style="font-family:var(--font-serif, Georgia, serif); font-size:clamp(1.85rem, 3.6vw, 2.65rem); color:#FEF5D8; margin:0 0 12px 0; line-height:1.18;">
+                        Reclaim Your Terrain: 16-Step Nervous System, Gut & Hormone Restoration
+                    </h2>
+                    <p style="font-size:0.98rem; color:#E8F2EC; max-width:720px; margin:0 auto 24px auto; line-height:1.6;">
+                        To give your healing journey the calm, dedicated coaching space it deserves, <strong>Reclaim Your Terrain</strong> now lives in its own focused companion app—where your 16-step roadmap, daily color-coded habits, phase workouts, and clinical protocols are guided step-by-step.
+                    </p>
+
+                    <div style="display:flex; justify-content:center; gap:12px; flex-wrap:wrap; align-items:center;">
+                        <button type="button" onclick="openTerrainStandaloneAppPortal()" style="background:linear-gradient(135deg, #F59E0B 0%, #D97706 100%); color:#fff; border:2px solid #FDE68A; border-radius:999px; padding:14px 28px; font-size:0.96rem; font-weight:800; cursor:pointer; box-shadow:0 10px 24px rgba(245, 158, 11, 0.35);">
+                            🌿 Launch Reclaim Your Terrain App &rarr;
+                        </button>
+                        <button type="button" onclick="document.getElementById('hh-terrain-info-enrollment')?.scrollIntoView({behavior:'smooth'})" style="background:rgba(255,255,255,0.12); color:#FEF5D8; border:1.5px solid #D9B36C; border-radius:999px; padding:13px 22px; font-size:0.88rem; font-weight:800; cursor:pointer;">
+                            📖 View Program Phases & Enrollment Options &darr;
+                        </button>
+                        ${isAdmin ? `
+                            <button type="button" onclick="openAdminSetTerrainAppUrlModal()" style="background:#FEF5D8; color:#2A1E14; border:none; border-radius:999px; padding:10px 16px; font-size:0.76rem; font-weight:800; cursor:pointer;">
+                                👑 Admin: Set App URL (${window.escapeSafeHtml(appUrl)})
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+
+                <!-- THE 4 CLINICAL PHASES OVERVIEW -->
+                <div style="background:#FFFDF8; border:2px solid #EADBC0; border-radius:22px; padding:26px 24px; margin-bottom:24px;">
+                    <div style="text-align:center; max-width:680px; margin:0 auto 22px auto;">
+                        <span class="card-tag" style="background:#E8F2EC; color:#2E5A44;">🗺️ How the 16-Step Program Works</span>
+                        <h3 style="font-family:var(--font-serif, Georgia, serif); font-size:1.7rem; color:var(--primary); margin:6px 0 4px 0;">
+                            Built for Exhausted Women Who Need Hand-Holding, Not Another Crash Diet
+                        </h3>
+                        <p style="font-size:0.86rem; color:var(--text-muted); margin:0;">
+                            You never move to Step 2 until your body has mastered Step 1 at an 85% pace—laying one gentle brick at a time across 4 foundational phases:
+                        </p>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(215px, 1fr)); gap:14px;">
+                        <div style="background:#FFFBEB; border:1.5px solid #D97706; border-top:5px solid #D97706; border-radius:16px; padding:16px;">
+                            <span style="font-size:0.7rem; font-weight:800; color:#B45309; text-transform:uppercase;">Phase 1 • Steps 1–4</span>
+                            <h4 style="font-family:var(--font-serif, Georgia, serif); font-size:1.15rem; color:#2A1E14; margin:4px 0 6px 0;">Calming the Alarm</h4>
+                            <p style="font-size:0.8rem; color:#4A3728; line-height:1.5; margin:0;">
+                                Cellular hydration elixirs, morning porch sunlight, lymphatic drainage, and shifting your nervous system out of fight-or-flight before pushing detox.
+                            </p>
+                        </div>
+
+                        <div style="background:#F0F9FF; border:1.5px solid #0284C7; border-top:5px solid #0284C7; border-radius:16px; padding:16px;">
+                            <span style="font-size:0.7rem; font-weight:800; color:#0369A1; text-transform:uppercase;">Phase 2 • Steps 5–8</span>
+                            <h4 style="font-family:var(--font-serif, Georgia, serif); font-size:1.15rem; color:#2A1E14; margin:4px 0 6px 0;">Gut & Bile Drainage</h4>
+                            <p style="font-size:0.8rem; color:#4A3728; line-height:1.5; margin:0;">
+                                Restoring stomach acid, healthy bile flow, bloating relief, and gut-lining repair with soothing bone broths and targeted bitter herbs.
+                            </p>
+                        </div>
+
+                        <div style="background:#F0FDF4; border:1.5px solid #16A34A; border-top:5px solid #16A34A; border-radius:16px; padding:16px;">
+                            <span style="font-size:0.7rem; font-weight:800; color:#15803D; text-transform:uppercase;">Phase 3 • Steps 9–12</span>
+                            <h4 style="font-family:var(--font-serif, Georgia, serif); font-size:1.15rem; color:#2A1E14; margin:4px 0 6px 0;">Metabolic Fire & Muscle</h4>
+                            <p style="font-size:0.8rem; color:#4A3728; line-height:1.5; margin:0;">
+                                Rebuilding thyroid warmth, cellular energy, and insulin-sensitive muscle with 30g+ protein meals and cortisol-safe strength workouts.
+                            </p>
+                        </div>
+
+                        <div style="background:#FDF2F8; border:1.5px solid #DB2777; border-top:5px solid #DB2777; border-radius:16px; padding:16px;">
+                            <span style="font-size:0.7rem; font-weight:800; color:#BE185D; text-transform:uppercase;">Phase 4 • Steps 13–16</span>
+                            <h4 style="font-family:var(--font-serif, Georgia, serif); font-size:1.15rem; color:#2A1E14; margin:4px 0 6px 0;">Hormone Stewardship</h4>
+                            <p style="font-size:0.8rem; color:#4A3728; line-height:1.5; margin:0;">
+                                Follicular and luteal cycle nourishment, liver estrogen clearance, deep restorative sleep, and lifelong mineral rhythm.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ENROLLMENT & ACCESS OPTIONS -->
+                <div id="hh-terrain-info-enrollment" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:20px;">
+                    <div style="background:#FFFDF8; border:2px solid #2E5A44; border-radius:22px; padding:24px; display:flex; flex-direction:column; justify-content:space-between;">
+                        <div>
+                            <span style="background:#E8F2EC; color:#2E5A44; padding:4px 12px; border-radius:999px; font-size:0.72rem; font-weight:800; text-transform:uppercase;">
+                                🌿 Option 1 • Self-Paced App Access
+                            </span>
+                            <h3 style="font-family:var(--font-serif, Georgia, serif); font-size:1.5rem; color:#1E3F2E; margin:10px 0 4px 0;">
+                                Self-Paced 16-Step Terrain App
+                            </h3>
+                            <div style="font-family:var(--font-serif, Georgia, serif); font-size:2rem; font-weight:800; color:var(--primary); margin:4px 0 12px 0;">
+                                +$19/month <span style="font-size:0.82rem; font-weight:600; color:var(--text-muted);">add-on</span>
+                            </div>
+                            <div style="display:flex; flex-direction:column; gap:8px; font-size:0.83rem; color:#2A1E14; margin-bottom:20px;">
+                                <div>✅ Full access to the standalone <strong>Reclaim Your Terrain App</strong></div>
+                                <div>✅ Step-by-step daily habit coach & 85% mastery tracker</div>
+                                <div>✅ Phase-matched Workout Generator & Cortisol-Calm Timer</div>
+                                <div>✅ Done-for-you 30g+ protein meal blueprints & Fullscript dispensary</div>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-primary" style="width:100%; padding:13px; font-size:0.9rem; background:#2E5A44; border-color:#1E3F2E;" onclick="if(typeof launchStewardStripeCheckout==='function') launchStewardStripeCheckout('terrain_self_paced');">
+                            🌿 Unlock Self-Paced Terrain App (+$19/mo) &rarr;
+                        </button>
+                    </div>
+
+                    <div style="background:linear-gradient(155deg, #FFFDF8 0%, #FEF5D8 100%); border:2.5px solid #B87612; border-radius:22px; padding:24px; display:flex; flex-direction:column; justify-content:space-between;">
+                        <div>
+                            <span style="background:#B87612; color:#fff; padding:4px 12px; border-radius:999px; font-size:0.72rem; font-weight:800; text-transform:uppercase;">
+                                👑 Option 2 • 1-on-1 Custom Consult & Plan
+                            </span>
+                            <h3 style="font-family:var(--font-serif, Georgia, serif); font-size:1.5rem; color:var(--primary); margin:10px 0 4px 0;">
+                                Personal "Read" Consult & Custom Protocol Built by Ashton
+                            </h3>
+                            <div style="font-family:var(--font-serif, Georgia, serif); font-size:1.85rem; font-weight:800; color:#9A5B0A; margin:4px 0 12px 0;">
+                                $127 One-Time <span style="font-size:0.85rem; font-weight:700; color:#2E5A44;">+ $19/month after</span>
+                            </div>
+                            <div style="display:flex; flex-direction:column; gap:8px; font-size:0.83rem; color:#2A1E14; margin-bottom:20px;">
+                                <div>🌟 <strong>Includes Everything in the Terrain App, PLUS:</strong></div>
+                                <div>✅ Comprehensive intake & symptom history reviewed personally by Ashton</div>
+                                <div>✅ Custom-built starting phase, drainage pace & targeted supplement blueprint</div>
+                                <div>✅ Ongoing monthly access ($19/mo after) to track your 16 steps inside the app</div>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-primary" style="width:100%; padding:13px; font-size:0.9rem; background:#B87612; border-color:#9A5B0A;" onclick="if(typeof launchStewardStripeCheckout==='function') launchStewardStripeCheckout('terrain_consult_vip');">
+                            👑 Book $127 Custom Consult & Plan (+ $19/mo after) &rarr;
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        `;
+    }
+
+    function runBlock12AllUpdates() {
+        cleanKitchenAndHeaderUI();
+        injectPrintButtonsUnderHomepageTasks();
+        renderTerrainInfoOnlyTab(false);
+    }
+
+    [100, 350, 800, 1600].forEach(ms => setTimeout(runBlock12AllUpdates, ms));
+    document.addEventListener('click', () => setTimeout(runBlock12AllUpdates, 80));
+})();
+</script>
+
+<!-- ================= BLOCK 13: BULLETPROOF FREE TIER SIGNUP BUTTON & SESSION ENTRY FIX ================= -->
+<script>
+(function() {
+    window.completeFreeStarterSignup = function(e) {
+        if (e && typeof e.preventDefault === 'function') {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        const nameInp = document.getElementById('hh-free-signup-name');
+        const emailInp = document.getElementById('hh-free-signup-email');
+        const nameVal = (nameInp ? nameInp.value : '').trim() || 'Ashton';
+        const emailVal = (emailInp ? emailInp.value : '').trim().toLowerCase();
+
+        if (!emailVal || !emailVal.includes('@')) {
+            alert('Please enter a valid email address to start your free account.');
+            return;
+        }
+
+        const freeUserObj = {
+            id: 'usr_free_' + Date.now(),
+            name: nameVal,
+            email: emailVal,
+            role: 'Free Starter Member',
+            tier: 'free_starter',
+            joinedAt: new Date().toISOString().slice(0, 10)
+        };
+
+        // 1. Force Free Tier simulation ON (and clear any cached paid flags) so Free Tier locks can be tested
+        window._adminSimulateFreeTier = true;
+        try {
+            localStorage.removeItem('hh_full_hub_paid_steward');
+            localStorage.removeItem('hh_terrain_paid_unlock');
+            localStorage.setItem('hh_free_starter_user', JSON.stringify(freeUserObj));
+            localStorage.setItem('hh_logged_in_user_email', emailVal);
+            localStorage.setItem('hh_current_user', JSON.stringify(freeUserObj));
+        } catch (err) {}
+
+        // 2. Update both window.currentUser AND the top-level lexical `let currentUser` variable
+        window.currentUser = freeUserObj;
+        try {
+            if (typeof currentUser !== 'undefined') {
+                currentUser = freeUserObj;
+            }
+        } catch (err) {}
+
+        // 3. Safely log to user directory without crashing if cloud sync is uninitialized
+        try {
+            if (typeof getGlobalSharedData === 'function' && typeof setGlobalSharedData === 'function') {
+                const rawDir = getGlobalSharedData('registered_hub_users', []);
+                const dir = Array.isArray(rawDir) ? rawDir : [];
+                if (!dir.some(u => u && u.email && u.email.toLowerCase() === emailVal)) {
+                    dir.unshift(freeUserObj);
+                    setGlobalSharedData('registered_hub_users', dir);
+                }
+            }
+        } catch (err) {
+            console.warn('Directory sync skipped during free signup:', err);
+        }
+
+        // 4. Close the Free Starter modal and any open auth/landing modals immediately
+        document.getElementById('hh-free-starter-signup-modal')?.remove();
+        document.getElementById('hh-public-attractive-landing-modal')?.remove();
+        document.querySelectorAll('#auth-modal, #login-modal, [id*="auth-modal"], [id*="login-modal"]').forEach(el => {
+            el.style.setProperty('display', 'none', 'important');
+        });
+
+        // 5. Hide the Landing Page without hiding the main application shell
+        const newLandingWrap = document.getElementById('hh-new-landing-master-wrap');
+        if (newLandingWrap) {
+            newLandingWrap.style.setProperty('display', 'none', 'important');
+        }
+        const replacedRoot = document.getElementById('hh-replaced-main-landing-root');
+        if (replacedRoot && !replacedRoot.querySelector('#view-home, #view-food')) {
+            replacedRoot.style.setProperty('display', 'none', 'important');
+        }
+        if (window._legacyLandingWrapperEl && !window._legacyLandingWrapperEl.querySelector('#view-home, #view-food')) {
+            window._legacyLandingWrapperEl.style.setProperty('display', 'none', 'important');
+        }
+
+        // Hide any standalone landing overlays that do not wrap the main views
+        document.querySelectorAll('[id*="landing"], .landing-overlay').forEach(el => {
+            if (!el.querySelector('#view-home, #view-food')) {
+                el.style.setProperty('display', 'none', 'important');
+            }
+        });
+
+        // 6. Unhide all main app containers and activate the Home Command view
+        document.querySelectorAll('header, nav, main, #app-shell, #main-app, .app-container, .app-shell').forEach(el => {
+            if (!el.id || !el.id.includes('landing')) {
+                el.style.display = '';
+            }
+        });
+
+        const homeView = document.getElementById('view-home');
+        if (homeView) {
+            homeView.style.display = 'block';
+            if (homeView.parentElement) {
+                homeView.parentElement.style.display = '';
+            }
+        }
+
+        // Trigger native view/UI refresh functions if present
+        ['updateAuthUI', 'initApp', 'renderAll', 'refreshAllFreemiumLocksAndUI'].forEach(fnName => {
+            if (typeof window[fnName] === 'function') {
+                try { window[fnName](); } catch (err) {}
+            }
+        });
+        if (typeof window.switchMainView === 'function') {
+            try { window.switchMainView('home'); } catch (err) {}
+        } else if (typeof window.switchView === 'function') {
+            try { window.switchView('home'); } catch (err) {}
+        } else if (typeof window.switchTab === 'function') {
+            try { window.switchTab('home'); } catch (err) {}
+        }
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    // Capture-phase click listener so clicking "Enter Honeysuckle Hub for Free" always fires
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('button');
+        if (!btn) return;
+        const txt = (btn.textContent || '').trim();
+        if (txt.includes('Enter Honeysuckle Hub for Free') || btn.closest('#hh-free-starter-signup-modal')) {
+            if (txt.includes('Enter Honeysuckle Hub') || btn.classList.contains('btn-primary')) {
+                window.completeFreeStarterSignup(e);
+            }
+        }
+    }, true);
 })();
 </script>
 
