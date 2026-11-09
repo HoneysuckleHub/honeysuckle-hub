@@ -24629,10 +24629,9 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
 })();
 </script>
 
-<!-- ================= BLOCK 13 (FIXED): SINGLE-EXECUTION LOCK & DEEP APP SHELL UNHIDER ================= -->
+<!-- ================= BLOCK 13 (UPDATED): FREE TIER SIGNUP + COLLAPSE BLANK LANDING SPACER & DUPLICATE HEADER ================= -->
 <script>
 (function() {
-    // Cache typed name & email as the user types so it is never lost if a modal closes early
     window._cachedFreeSignupName = '';
     window._cachedFreeSignupEmail = '';
 
@@ -24645,6 +24644,63 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         }
     }, true);
 
+    // Helper: Completely collapse the old landing page header ("Demo the App Free" / "See Plans & Join") and its 100vh blank box
+    function collapseLandingSpacerAndDuplicateHeader() {
+        // 1. Hide our injected landing wrapper
+        const newLandingMaster = document.getElementById('hh-new-landing-master-wrap');
+        if (newLandingMaster) {
+            newLandingMaster.style.setProperty('display', 'none', 'important');
+        }
+
+        // 2. Find the public landing top bar ("Demo the App Free" / "Member Sign In" / "See Plans & Join") and collapse its wrapper
+        const allBtns = Array.from(document.querySelectorAll('button, a'));
+        const demoBtn = allBtns.find(b => {
+            const t = (b.textContent || '').trim();
+            return t.includes('Demo the App Free') || t.includes('See Plans & Join');
+        });
+
+        const homeView = document.getElementById('view-home') || document.getElementById('view-food');
+
+        if (demoBtn) {
+            // Hide the public header bar itself
+            const pubHeader = demoBtn.closest('header, nav, div');
+            if (pubHeader && (!homeView || !pubHeader.contains(homeView))) {
+                pubHeader.style.setProperty('display', 'none', 'important');
+            }
+
+            // Walk up to the landing page's 100vh wrapper (stopping before any container that holds #view-home)
+            let landingBox = demoBtn.parentElement;
+            while (landingBox && landingBox !== document.body) {
+                if (homeView && landingBox.contains(homeView)) break;
+                landingBox.style.setProperty('display', 'none', 'important');
+                landingBox.style.setProperty('min-height', '0', 'important');
+                landingBox.style.setProperty('height', '0', 'important');
+                landingBox.style.setProperty('padding', '0', 'important');
+                landingBox.style.setProperty('margin', '0', 'important');
+                landingBox.style.setProperty('overflow', 'hidden', 'important');
+                landingBox = landingBox.parentElement;
+            }
+        }
+
+        // 3. Also collapse any saved legacy landing containers if they don't wrap #view-home
+        [
+            document.getElementById('hh-replaced-main-landing-root'),
+            window._legacyLandingWrapperEl,
+            window._replacedOldLandingContainer
+        ].forEach(wrapEl => {
+            if (!wrapEl) return;
+            if (homeView && wrapEl.contains(homeView)) {
+                wrapEl.style.setProperty('min-height', '0', 'important');
+                wrapEl.style.setProperty('padding-top', '0', 'important');
+                wrapEl.style.setProperty('margin-top', '0', 'important');
+            } else {
+                wrapEl.style.setProperty('display', 'none', 'important');
+                wrapEl.style.setProperty('min-height', '0', 'important');
+                wrapEl.style.setProperty('height', '0', 'important');
+            }
+        });
+    }
+
     window.completeFreeStarterSignup = function(e) {
         if (e && typeof e.preventDefault === 'function') {
             e.preventDefault();
@@ -24654,7 +24710,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             }
         }
 
-        // Prevent duplicate listeners in Block 7 / Block 12 from running this function twice on one click
         if (window._freeSignupExecutionLock) return;
         window._freeSignupExecutionLock = true;
         setTimeout(() => { window._freeSignupExecutionLock = false; }, 1200);
@@ -24674,7 +24729,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             joinedAt: new Date().toISOString().slice(0, 10)
         };
 
-        // 1. Activate Free Tier state and save session keys
+        // 1. Save Free Starter session
         window._adminSimulateFreeTier = true;
         try {
             localStorage.removeItem('hh_full_hub_paid_steward');
@@ -24692,102 +24747,52 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             }
         } catch (err) {}
 
-        // 2. Remove the signup modal & any popup modals
+        // 2. Remove modals
         document.getElementById('hh-free-starter-signup-modal')?.remove();
         document.getElementById('hh-public-attractive-landing-modal')?.remove();
         document.querySelectorAll('#auth-modal, #login-modal, [id*="auth-modal"], [id*="login-modal"]').forEach(el => {
             el.style.setProperty('display', 'none', 'important');
         });
 
-        // 3. Locate the core dashboard elements inside index.html
-        const homeView = document.getElementById('view-home')
-            || document.getElementById('view-food')
-            || document.querySelector('main')
-            || Array.from(document.querySelectorAll('div, section')).find(el =>
-                (el.textContent || '').includes("Today's Home & Room Reset") ||
-                (el.textContent || '').includes('Active Meal Plan Snapshot')
-            );
-
-        // 4. Hide ONLY landing containers that do NOT wrap the main dashboard views
-        const newLandingMaster = document.getElementById('hh-new-landing-master-wrap');
-        if (newLandingMaster) {
-            newLandingMaster.style.setProperty('display', 'none', 'important');
+        // 3. Unhide ONLY the real in-app dashboard (#view-home) and the real in-app header ("Alerts" / "Menu")
+        const homeView = document.getElementById('view-home') || document.getElementById('view-food');
+        let curr = homeView;
+        while (curr && curr !== document.body && curr !== document.documentElement) {
+            curr.classList.remove('hidden', 'd-none', 'is-hidden');
+            if (curr.style.display === 'none' || window.getComputedStyle(curr).display === 'none') {
+                curr.style.setProperty('display', 'block', 'important');
+            }
+            curr = curr.parentElement;
         }
 
-        [
-            document.getElementById('hh-replaced-main-landing-root'),
-            window._legacyLandingWrapperEl,
-            window._replacedOldLandingContainer
-        ].forEach(wrapEl => {
-            if (!wrapEl) return;
-            if (homeView && wrapEl.contains(homeView)) {
-                // This element wraps the entire app—keep it visible!
-                wrapEl.style.setProperty('display', 'block', 'important');
-            } else {
-                wrapEl.style.setProperty('display', 'none', 'important');
-            }
+        const inAppHeader = Array.from(document.querySelectorAll('header, div')).find(el => {
+            const t = (el.textContent || '');
+            return t.includes('Alerts') && t.includes('Menu') && !t.includes('See Plans & Join');
         });
-
-        document.querySelectorAll('[id*="landing"], .landing-overlay').forEach(el => {
-            if (homeView && el.contains(homeView)) {
-                el.style.setProperty('display', 'block', 'important');
-            } else {
-                el.style.setProperty('display', 'none', 'important');
-            }
-        });
-
-        // 5. Walk up from the Home view to document.body and force every parent container visible
-        function forceVisibleUpToBody(startEl) {
-            let curr = startEl;
-            while (curr && curr !== document.body && curr !== document.documentElement) {
-                curr.classList.remove('hidden', 'd-none', 'is-hidden');
-                const tag = curr.tagName.toLowerCase();
-                const displayMode = (tag === 'header') ? 'flex' : 'block';
-                if (curr.style.display === 'none' || window.getComputedStyle(curr).display === 'none') {
-                    curr.style.setProperty('display', displayMode, 'important');
-                }
-                // Also unhide the main app header & navigation bars inside the app shell
-                Array.from(curr.children).forEach(child => {
-                    const cTag = child.tagName.toLowerCase();
-                    if (cTag === 'header' || cTag === 'nav' || child.classList.contains('app-header') || child.classList.contains('nav-tabs')) {
-                        if (child.id !== 'hh-new-landing-master-wrap') {
-                            child.style.setProperty('display', cTag === 'header' ? 'flex' : 'block', 'important');
-                        }
-                    }
-                });
-                curr = curr.parentElement;
-            }
+        if (inAppHeader) {
+            const headerRoot = inAppHeader.closest('header') || inAppHeader;
+            headerRoot.style.setProperty('display', 'flex', 'important');
         }
 
-        if (homeView) {
-            forceVisibleUpToBody(homeView);
-        }
+        // 4. Collapse the top landing bar and its 100vh blank space
+        collapseLandingSpacerAndDuplicateHeader();
 
-        const mainTag = document.querySelector('main');
-        if (mainTag) {
-            forceVisibleUpToBody(mainTag);
-        }
-
-        const appHeader = Array.from(document.querySelectorAll('header')).find(h => !h.closest('#hh-new-landing-master-wrap'));
-        if (appHeader) {
-            forceVisibleUpToBody(appHeader);
-            appHeader.style.setProperty('display', 'flex', 'important');
-        }
-
-        // 6. Trigger the Home view & Freemium UI locks
         if (typeof window.switchMainView === 'function') {
             try { window.switchMainView('home'); } catch (err) {}
-        } else if (typeof window.switchView === 'function') {
-            try { window.switchView('home'); } catch (err) {}
-        } else if (typeof window.switchTab === 'function') {
-            try { window.switchTab('home'); } catch (err) {}
         }
 
-        const vHome = document.getElementById('view-home');
-        if (vHome) vHome.style.setProperty('display', 'block', 'important');
-
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        window.scrollTo({ top: 0, behavior: 'instant' });
     };
+
+    // Automatically collapse the blank landing space whenever the in-app dashboard ("Today's Household Rhythm") is visible on screen
+    function autoCleanBlankSpaceWhenInApp() {
+        const homeView = document.getElementById('view-home');
+        if (homeView && window.getComputedStyle(homeView).display !== 'none') {
+            collapseLandingSpacerAndDuplicateHeader();
+        }
+    }
+
+    setInterval(autoCleanBlankSpaceWhenInApp, 300);
 })();
 </script>
 
