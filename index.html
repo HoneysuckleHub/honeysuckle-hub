@@ -16285,1656 +16285,16 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
     })();
     </script>
 
-<!-- ================= HONEYSUCKLE HUB UNIFIED SMART CAMERA, VOICE BRAIN DUMP, HOMESCHOOL SCHEDULER, AI WORKOUT OF THE DAY & CLINICAL ADMIN SUITE ================= -->
-<script>
-(function() {
-    const FOUNDER_ADMIN_EMAIL = 'contacthoneysuckleandco@gmail.com';
-    let activeCameraStream = null;
-    let isInjectingTerrainWod = false;
-    window._adminTerrainSubtab = window._adminTerrainSubtab || 'all';
-    window._adminShowConsultPreview = false;
-
-    function isStrictFounderAdmin() {
-        if (typeof window.isInteractiveDemoSession === 'function' && window.isInteractiveDemoSession()) return false;
-        if (window.isDemoMode || window._isLiveDemoModeActive) return false;
-        const email = (typeof currentUser !== 'undefined' && currentUser?.email) ? currentUser.email.trim().toLowerCase() : '';
-        return email === FOUNDER_ADMIN_EMAIL;
-    }
-
-    // =========================================================================
-    // 0. LAYOUT FIXES & PERSISTENT TERRAIN UNLOCK + CONSULT COMPLETION HELPERS
-    // =========================================================================
-    if (!document.getElementById('hh-header-and-subtab-layout-fix')) {
-        const fixStyle = document.createElement('style');
-        fixStyle.id = 'hh-header-and-subtab-layout-fix';
-        fixStyle.innerHTML = `
-            .coach-subtabs, #kitchen-tool-subtabs, #apo-category-tabs {
-                display: flex !important; flex-wrap: wrap !important; overflow-x: visible !important; gap: 8px !important; padding-bottom: 12px !important;
-            }
-            .coach-subtab-btn { white-space: normal !important; text-align: center; line-height: 1.3; }
-            .hh-compact-topbar-row {
-                display: flex !important; flex-wrap: wrap !important; justify-content: space-between !important; align-items: center !important; gap: 8px 10px !important; width: 100% !important;
-            }
-            @media (max-width: 680px) {
-                .top-nav-bar { padding: 10px 12px !important; }
-                .brand-title { font-size: 1.32rem !important; }
-                .hh-active-view-pill { font-size: 0.72rem !important; padding: 3px 9px !important; }
-                #hh-level-stars-btn { font-size: 0.74rem !important; padding: 5px 10px !important; }
-                .hh-menu-toggle-btn { padding: 6px 11px !important; font-size: 0.78rem !important; }
-            }
-        `;
-        document.head.appendChild(fixStyle);
-    }
-
-    function getPersistentUnlockRecord() {
-        try {
-            const raw = localStorage.getItem('hh_terrain_paid_unlock');
-            if (!raw) return null;
-            const parsed = JSON.parse(raw);
-            if (!parsed || !parsed.unlocked) return null;
-            const curEmail = (typeof currentUser !== 'undefined' && currentUser?.email) ? currentUser.email.trim().toLowerCase() : '';
-            if (parsed.email && curEmail && parsed.email !== curEmail) return null;
-            return parsed;
-        } catch (e) {
-            return null;
-        }
-    }
-
-    function savePersistentUnlockRecord(tier = 'vip') {
-        const curEmail = (typeof currentUser !== 'undefined' && currentUser?.email) ? currentUser.email.trim().toLowerCase() : '';
-        const curUid = (typeof currentUser !== 'undefined' && currentUser?.id) ? currentUser.id : '';
-        const existing = getPersistentUnlockRecord() || {};
-        const rec = {
-            unlocked: true,
-            tier: tier === 'vip' ? 'vip' : 'guided',
-            consultCompleted: existing.consultCompleted || false,
-            email: curEmail,
-            uid: curUid,
-            ts: Date.now()
-        };
-        localStorage.setItem('hh_terrain_paid_unlock', JSON.stringify(rec));
-        localStorage.setItem('hh_just_started_terrain_checkout', JSON.stringify(rec));
-    }
-
-    function markConsultCompletedPermanently() {
-        const rec = getPersistentUnlockRecord() || { unlocked: true };
-        rec.consultCompleted = true;
-        rec.completedAt = new Date().toISOString();
-        localStorage.setItem('hh_terrain_paid_unlock', JSON.stringify(rec));
-
-        if (typeof getTerrainState === 'function' && typeof saveTerrainState === 'function') {
-            const tState = getTerrainState();
-            tState.consultCompleted = true;
-            tState.unlocked = true;
-            if (!tState.currentStep) tState.currentStep = 1;
-            saveTerrainState(tState);
-        }
-
-        if (typeof currentUser !== 'undefined' && currentUser?.id && typeof getGlobalSharedData === 'function') {
-            const registry = getGlobalSharedData('terrain_admin_clients_registry', {});
-            const client = registry[currentUser.id] || {};
-            const answers = typeof getLocalData === 'function' ? getLocalData('terrain_consult_answers', {}) : {};
-            registry[currentUser.id] = {
-                ...client,
-                userId: currentUser.id,
-                name: (typeof currentDisplayName !== 'undefined' && currentDisplayName) ? currentDisplayName : (currentUser.email || 'Member'),
-                email: currentUser.email || '',
-                consult: answers,
-                state: { ...(client.state || {}), unlocked: true, consultCompleted: true, currentStep: 1 },
-                updatedAt: new Date().toLocaleString()
-            };
-            if (typeof setGlobalSharedData === 'function') {
-                setGlobalSharedData('terrain_admin_clients_registry', registry);
-            }
-            syncClientToSupabaseTerrainTable(registry[currentUser.id]);
-        }
-    }
-
-    // Wrap getTerrainState so cloud fetch cannot overwrite completion
-    const _baseGetTerrainState = window.getTerrainState;
-    if (typeof _baseGetTerrainState === 'function') {
-        window.getTerrainState = function() {
-            const st = _baseGetTerrainState() || {};
-            const paidRec = getPersistentUnlockRecord();
-            if (paidRec && paidRec.unlocked) {
-                st.unlocked = true;
-                st.tier = paidRec.tier || st.tier || 'vip';
-                st.planTier = st.tier;
-                if (paidRec.consultCompleted) {
-                    st.consultCompleted = true;
-                }
-            }
-            return st;
-        };
-    }
-
-    function getDeletedClientIds() {
-        return typeof getGlobalSharedData === 'function' ? getGlobalSharedData('terrain_deleted_client_ids', []) : [];
-    }
-
-    function purgeDeletedClientsFromRegistry() {
-        if (typeof getGlobalSharedData !== 'function') return {};
-        const deletedIds = getDeletedClientIds();
-        const registry = getGlobalSharedData('terrain_admin_clients_registry', {});
-        let modified = false;
-        deletedIds.forEach(id => {
-            if (registry[id]) {
-                delete registry[id];
-                modified = true;
-            }
-        });
-        if (modified && typeof setGlobalSharedData === 'function') {
-            setGlobalSharedData('terrain_admin_clients_registry', registry);
-        }
-        return registry;
-    }
-
-    async function syncClientToSupabaseTerrainTable(clientObj) {
-        try {
-            if (typeof supabaseClient === 'undefined' || !supabaseClient || !clientObj || !clientObj.userId) return;
-            await supabaseClient.from('terrain_clients').upsert({
-                user_id: String(clientObj.userId),
-                name: clientObj.name || 'Member',
-                email: clientObj.email || '',
-                plan_tier: clientObj.planTier || clientObj.state?.tier || 'guided',
-                current_step: parseInt(clientObj.state?.currentStep) || 1,
-                consult_answers: clientObj.consult || {},
-                client_state: clientObj.state || {},
-                wod_logs: clientObj.wodLogs || [],
-                biofeedback_logs: clientObj.biofeedback || [],
-                updated_at: new Date().toISOString()
-            });
-        } catch (e) {}
-    }
-
-    // =========================================================================
-    // 0B. AUTOMATIC TERRAIN UNLOCK ON PAYMENT (NO CODE!) & ADMIN CLIENT TOOLS
-    // =========================================================================
-    window.unlockAndLoadTerrainConsultNow = function(planTier = 'vip', silent = false) {
-        if (typeof getTerrainState !== 'function' || typeof saveTerrainState !== 'function') return;
-        const pStr = String(planTier || '').toLowerCase();
-        const normalizedTier = (pStr.includes('vip') || pStr.includes('custom') || pStr.includes('127') || pStr.includes('149') || pStr.includes('1-on-1')) ? 'vip' : 'guided';
-
-        savePersistentUnlockRecord(normalizedTier);
-
-        const tState = getTerrainState() || {};
-        tState.unlocked = true;
-        tState.tier = normalizedTier;
-        tState.planTier = normalizedTier;
-        tState.unlockedAt = tState.unlockedAt || new Date().toISOString();
-
-        if (typeof currentUser !== 'undefined' && currentUser && currentUser.id && typeof getGlobalSharedData === 'function') {
-            const delList = getDeletedClientIds().filter(id => id !== currentUser.id);
-            setGlobalSharedData('terrain_deleted_client_ids', delList);
-
-            const registry = getGlobalSharedData('terrain_admin_clients_registry', {});
-            const existing = registry[currentUser.id] || {};
-            registry[currentUser.id] = {
-                ...existing,
-                userId: currentUser.id,
-                name: (typeof currentDisplayName !== 'undefined' && currentDisplayName) ? currentDisplayName : (currentUser.email || 'Member'),
-                email: currentUser.email || '',
-                tier: normalizedTier,
-                planTier: normalizedTier,
-                state: { ...(existing.state || {}), ...tState, unlocked: true, tier: normalizedTier, planTier: normalizedTier },
-                updatedAt: new Date().toLocaleString()
-            };
-            setGlobalSharedData('terrain_admin_clients_registry', registry);
-            syncClientToSupabaseTerrainTable(registry[currentUser.id]);
-        }
-
-        saveTerrainState(tState);
-        if (typeof switchView === 'function') switchView('reclaim-terrain');
-        if (typeof renderReclaimTerrainPillar === 'function') renderReclaimTerrainPillar();
-
-        if (!silent) {
-            const terrainEl = document.getElementById('view-reclaim-terrain');
-            if (terrainEl) terrainEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-    };
-
-    // Intercept any prompt() asking for an access code
-    const _nativePrompt = window.prompt.bind(window);
-    window.prompt = function(message, defaultVal) {
-        const msgStr = String(message || '').toLowerCase();
-        if (msgStr.includes('code') && (msgStr.includes('terrain') || msgStr.includes('ashton') || msgStr.includes('unlock') || msgStr.includes('access'))) {
-            const isVip = msgStr.includes('127') || msgStr.includes('vip') || msgStr.includes('custom');
-            setTimeout(() => window.unlockAndLoadTerrainConsultNow(isVip ? 'vip' : 'guided', false), 30);
-            return 'AUTO-UNLOCK';
-        }
-        return _nativePrompt(message, defaultVal);
-    };
-
-    // GLOBAL CAPTURE-PHASE INTERCEPTOR: Hooks checkout clicks AND catches the Consult Submission button
-    document.addEventListener('click', function(e) {
-        const btnOrLink = e.target.closest('button, a');
-        if (!btnOrLink) return;
-
-        const txt = (btnOrLink.textContent || '').trim().toLowerCase();
-        const onclickStr = (btnOrLink.getAttribute('onclick') || '').toLowerCase();
-
-        // CATCH: Finish 20-Question Consult Button
-        if (txt.includes('submit consult') || txt.includes('finish consult') || txt.includes('complete consult') || onclickStr.includes('submitterrainconsult') || (txt.includes('save') && txt.includes('finish') && btnOrLink.closest('#view-reclaim-terrain'))) {
-            markConsultCompletedPermanently();
-            setTimeout(() => {
-                if (typeof renderReclaimTerrainPillar === 'function') renderReclaimTerrainPillar();
-                const step1El = document.querySelector('#view-reclaim-terrain .clinical-panel') || document.getElementById('hh-terrain-ai-wod-studio-card');
-                if (step1El) step1El.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }, 100);
-            return;
-        }
-
-        // CATCH: Checkout & Unlock Buttons
-        const inTerrain = btnOrLink.closest('#view-reclaim-terrain');
-        if (!inTerrain) return;
-
-        const tState = typeof getTerrainState === 'function' ? getTerrainState() : {};
-        if (tState.unlocked || isStrictFounderAdmin()) return;
-
-        const hrefStr = (btnOrLink.getAttribute('href') || '').toLowerCase();
-        const cardText = (btnOrLink.closest('div[style*="border"]')?.textContent || '').toLowerCase();
-
-        const isVipAction = txt.includes('127') || txt.includes('149') || txt.includes('custom') || txt.includes('1-on-1') || txt.includes('vip') || onclickStr.includes('vip') || onclickStr.includes('custom') || cardText.includes('$127');
-        const isGuidedAction = txt.includes('19') || txt.includes('guided') || txt.includes('self-paced') || onclickStr.includes('guided') || cardText.includes('$19');
-        const isUnlockAction = txt.includes('unlock') || txt.includes('enroll') || txt.includes('join') || txt.includes('start') || txt.includes('code') || hrefStr.includes('stripe.com');
-
-        if (isVipAction || isGuidedAction || isUnlockAction) {
-            const chosenTier = isVipAction ? 'vip' : 'guided';
-            savePersistentUnlockRecord(chosenTier);
-            setTimeout(() => {
-                window.unlockAndLoadTerrainConsultNow(chosenTier, false);
-            }, 60);
-        }
-    }, true);
-
-    function checkAndSyncTerrainEnrollmentStatus() {
-        if (typeof getTerrainState !== 'function' || typeof saveTerrainState !== 'function') return;
-        purgeDeletedClientsFromRegistry();
-        const tState = getTerrainState();
-        if (!tState) return;
-
-        const urlParams = new URLSearchParams(window.location.search);
-        const terrainParam = (urlParams.get('terrain') || urlParams.get('plan') || '').toLowerCase();
-        const justStartedRaw = localStorage.getItem('hh_just_started_terrain_checkout');
-        const paidRec = getPersistentUnlockRecord();
-
-        if (terrainParam.includes('unlock') || terrainParam.includes('terrain') || terrainParam.includes('guided') || terrainParam.includes('custom') || terrainParam.includes('vip') || justStartedRaw) {
-            let tier = 'vip';
-            if (justStartedRaw) {
-                try { tier = JSON.parse(justStartedRaw).tier || 'vip'; } catch (e) {}
-                localStorage.removeItem('hh_just_started_terrain_checkout');
-            } else if (terrainParam.includes('guided') || terrainParam.includes('19')) {
-                tier = 'guided';
-            }
-            window.unlockAndLoadTerrainConsultNow(tier, false);
-            return;
-        }
-
-        if (paidRec && paidRec.unlocked) {
-            let modified = false;
-            if (!tState.unlocked || tState.tier !== paidRec.tier) {
-                tState.unlocked = true;
-                tState.tier = paidRec.tier || 'vip';
-                tState.planTier = tState.tier;
-                modified = true;
-            }
-            if (paidRec.consultCompleted && !tState.consultCompleted) {
-                tState.consultCompleted = true;
-                modified = true;
-            }
-            if (modified) {
-                saveTerrainState(tState);
-                if (typeof renderReclaimTerrainPillar === 'function') renderReclaimTerrainPillar();
-            }
-        }
-
-        if (typeof currentUser !== 'undefined' && currentUser?.id && typeof getGlobalSharedData === 'function') {
-            const deletedIds = getDeletedClientIds();
-            if (deletedIds.includes(currentUser.id)) return;
-            const registry = getGlobalSharedData('terrain_admin_clients_registry', {});
-            const myRecord = registry[currentUser.id];
-            if (myRecord && (myRecord.state?.unlocked || myRecord.consult || myRecord.planTier)) {
-                const cloudTier = myRecord.planTier || myRecord.tier || myRecord.state?.tier || 'vip';
-                savePersistentUnlockRecord(cloudTier);
-                let changed = false;
-                if (!tState.unlocked) {
-                    tState.unlocked = true;
-                    tState.tier = cloudTier;
-                    tState.planTier = cloudTier;
-                    changed = true;
-                }
-                if (myRecord.consult && Object.keys(myRecord.consult).length > 0) {
-                    tState.consultCompleted = true;
-                    setLocalData('terrain_consult_answers', myRecord.consult);
-                    changed = true;
-                }
-                if (changed) {
-                    saveTerrainState(tState);
-                    if (typeof renderReclaimTerrainPillar === 'function') renderReclaimTerrainPillar();
-                }
-            }
-        }
-    }
-
-    function isClientVipCustom(clientObj, cardText = '') {
-        const explicit = String(clientObj?.planTier || clientObj?.tier || clientObj?.state?.planTier || clientObj?.state?.tier || '').toLowerCase();
-        if (explicit === 'guided' || explicit === 'self_paced' || explicit === '19') return false;
-        if (explicit === 'vip' || explicit === 'custom' || explicit === 'custom_1on1' || explicit === '127') return true;
-        return cardText.includes('127') || cardText.includes('VIP');
-    }
-
-    window.setAdminTerrainClientSubtab = function(tabKey) {
-        window._adminTerrainSubtab = tabKey;
-        if (typeof renderReclaimTerrainPillar === 'function') renderReclaimTerrainPillar();
-    };
-
-    window.openAdminEditTerrainClientModal = function(uid = null) {
-        if (!isStrictFounderAdmin()) return;
-        const registry = getGlobalSharedData('terrain_admin_clients_registry', {});
-        const existing = uid ? registry[uid] : null;
-        const curTier = existing ? (isClientVipCustom(existing) ? 'vip' : 'guided') : 'vip';
-        const curStep = existing?.state?.currentStep || 1;
-        const curNote = existing?.state?.customPractitionerNote || '';
-
-        openUniversalModal(existing ? `✏️ Edit Client: ${existing.name}` : '➕ Add Terrain Coaching Client', [
-            { name: 'name', label: '1. Client / Household Name', value: existing?.name || '', placeholder: 'e.g. Sarah Jenkins' },
-            { name: 'email', label: '2. Client Email Address', type: 'email', value: existing?.email || '', placeholder: 'client@example.com' },
-            {
-                name: 'tier',
-                label: '3. Program Track ($19/mo Self-Paced vs $127 Custom VIP)',
-                type: 'select',
-                value: curTier,
-                options: [
-                    { value: 'vip', label: '👑 $127 Custom VIP Client (Needs Ashton)' },
-                    { value: 'guided', label: '🌱 $19/mo Self-Paced Guided Client' }
-                ]
-            },
-            { name: 'step', label: '4. Current Step (1 to 16)', type: 'number', value: curStep },
-            { name: 'note', label: '5. Personal Practitioner Note (Visible on Client Dashboard)', type: 'textarea', rows: 4, value: curNote }
-        ], async (vals) => {
-            const targetId = uid || ('client_' + Date.now());
-            const chosenTier = (vals.tier === 'guided' || String(vals.tier).toLowerCase().includes('19') || String(vals.tier).toLowerCase().includes('self')) ? 'guided' : 'vip';
-            const stepNum = Math.max(1, Math.min(16, parseInt(vals.step) || 1));
-
-            const delList = getDeletedClientIds().filter(id => id !== targetId);
-            await setGlobalSharedData('terrain_deleted_client_ids', delList);
-
-            const prev = registry[targetId] || {};
-            const updatedClient = {
-                ...prev,
-                userId: targetId,
-                name: (vals.name || prev.name || 'Client').trim(),
-                email: (vals.email || prev.email || '').trim().toLowerCase(),
-                tier: chosenTier,
-                planTier: chosenTier,
-                state: {
-                    ...(prev.state || {}),
-                    unlocked: true,
-                    tier: chosenTier,
-                    planTier: chosenTier,
-                    currentStep: stepNum,
-                    customPractitionerNote: vals.note || ''
-                },
-                updatedAt: new Date().toLocaleString()
-            };
-            registry[targetId] = updatedClient;
-            await setGlobalSharedData('terrain_admin_clients_registry', registry);
-            await syncClientToSupabaseTerrainTable(updatedClient);
-
-            if (typeof currentUser !== 'undefined' && currentUser?.id === targetId && typeof getTerrainState === 'function') {
-                const myState = getTerrainState();
-                myState.tier = chosenTier;
-                myState.planTier = chosenTier;
-                myState.currentStep = stepNum;
-                myState.customPractitionerNote = vals.note || '';
-                saveTerrainState(myState);
-            }
-            if (typeof renderReclaimTerrainPillar === 'function') renderReclaimTerrainPillar();
-            alert(`✅ Saved client settings for ${updatedClient.name}!`);
-        });
-    };
-
-    window.deleteAdminTerrainClient = async function(uid) {
-        if (!isStrictFounderAdmin() || !uid) return;
-        const registry = getGlobalSharedData('terrain_admin_clients_registry', {});
-        const clientName = registry[uid]?.name || 'this client';
-        if (!confirm(`🗑️ Are you sure you want to remove "${clientName}" from your Reclaim Your Terrain client portal?`)) return;
-
-        const delList = getDeletedClientIds();
-        if (!delList.includes(uid)) delList.push(uid);
-        await setGlobalSharedData('terrain_deleted_client_ids', delList);
-
-        delete registry[uid];
-        await setGlobalSharedData('terrain_admin_clients_registry', registry);
-        try {
-            if (typeof supabaseClient !== 'undefined' && supabaseClient) {
-                await supabaseClient.from('terrain_clients').delete().eq('user_id', String(uid));
-            }
-        } catch (e) {}
-
-        if (typeof renderReclaimTerrainPillar === 'function') renderReclaimTerrainPillar();
-    };
-
-    // =========================================================================
-    // 0C. APOTHECARY ESSENTIAL OILS "LEARN MORE" EXTERNAL LINK + ADMIN EDITOR
-    // =========================================================================
-    function getEssentialOilEducationUrl() {
-        return getGlobalSharedData('hh_essential_oils_learn_more_url', localStorage.getItem('hh_essential_oils_learn_more_url') || 'https://www.doterra.com');
-    }
-
-    window.openAdminEditEssentialOilLinkModal = function() {
-        if (!isStrictFounderAdmin()) return;
-        const currentUrl = getEssentialOilEducationUrl();
-        const nextUrl = _nativePrompt(
-            '💧 Essential Oils "Learn More" Destination URL\n\n' +
-            'Paste the link where members should go when they click "💧 Learn More About Essential Oils" inside the Apothecary:',
-            currentUrl
-        );
-        if (nextUrl !== null && nextUrl.trim()) {
-            let cleanUrl = nextUrl.trim();
-            if (!/^https?:\/\//i.test(cleanUrl)) cleanUrl = 'https://' + cleanUrl;
-            localStorage.setItem('hh_essential_oils_learn_more_url', cleanUrl);
-            if (typeof setGlobalSharedData === 'function') {
-                setGlobalSharedData('hh_essential_oils_learn_more_url', cleanUrl);
-            }
-            injectApothecaryEssentialOilLearnMoreBtn();
-            alert('✅ Essential Oils "Learn More" link updated for all members!');
-        }
-    };
-
-    function injectApothecaryEssentialOilLearnMoreBtn() {
-        const apoView = document.getElementById('view-apothecary');
-        if (!apoView) return;
-
-        const oilUrl = getEssentialOilEducationUrl();
-        const existingBanner = document.getElementById('hh-essential-oils-learn-more-banner');
-        if (existingBanner) {
-            const linkEl = existingBanner.querySelector('#hh-eo-learn-more-anchor');
-            if (linkEl) linkEl.href = oilUrl;
-            return;
-        }
-
-        const targetAnchor = document.getElementById('apo-category-tabs') || apoView.querySelector('.coach-subtabs') || apoView.firstElementChild;
-        if (!targetAnchor) return;
-
-        const banner = document.createElement('div');
-        banner.id = 'hh-essential-oils-learn-more-banner';
-        banner.style.cssText = 'background: linear-gradient(135deg, #FFFDF8 0%, #FEF5D8 100%); border: 2px solid var(--border); border-left: 5px solid var(--sage); border-radius: 16px; padding: 14px 18px; margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; box-shadow: var(--shadow-soft);';
-        banner.innerHTML = `
-            <div>
-                <span class="card-tag" style="background:var(--sage); color:#fff;">💧 Pure Essential Oils & Natural Home Education</span>
-                <h4 style="font-size:1.12rem; color:var(--primary); margin:3px 0 2px 0;">Want to Learn More About Sourcing & Using Pure Essential Oils?</h4>
-                <p style="font-size:0.82rem; color:var(--text-main); margin:0;">Explore Ashton's step-by-step essential oil education, dilution guides, and trusted sourcing for your family.</p>
-            </div>
-            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                <a id="hh-eo-learn-more-anchor" href="${escapeSafeHtml(oilUrl)}" target="_blank" rel="noopener noreferrer" class="btn-primary" style="text-decoration:none; display:inline-flex; align-items:center; gap:6px; font-size:0.84rem; padding:10px 16px;">
-                    💧 Learn More About Essential Oils &rarr;
-                </a>
-                ${isStrictFounderAdmin() ? `
-                    <button type="button" class="btn-secondary" style="font-size:0.76rem; padding:8px 12px;" onclick="openAdminEditEssentialOilLinkModal()">
-                        🔗 Set Oil Link (Admin)
-                    </button>
-                ` : ''}
-            </div>
-        `;
-        targetAnchor.insertAdjacentElement('afterend', banner);
-    }
-
-    // =========================================================================
-    // 1. IMAGE COMPRESSOR & SMART CAMERA MODAL
-    // =========================================================================
-    function compressImageFileToBase64(file, maxWidth = 1024, quality = 0.78) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const img = new Image();
-                img.onload = function() {
-                    let w = img.width, h = img.height;
-                    if (w > maxWidth) { h = Math.round((h * maxWidth) / w); w = maxWidth; }
-                    const canvas = document.createElement('canvas');
-                    canvas.width = w; canvas.height = h;
-                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-                    const dataUrl = canvas.toDataURL('image/jpeg', quality);
-                    resolve({ base64Data: dataUrl.split(',')[1], mimeType: 'image/jpeg', previewUrl: dataUrl });
-                };
-                img.onerror = () => reject(new Error('Could not read image file.'));
-                img.src = e.target.result;
-            };
-            reader.onerror = () => reject(new Error('File reader error.'));
-            reader.readAsDataURL(file);
-        });
-    }
-
-    window.stopActiveCameraStream = function() {
-        if (activeCameraStream) {
-            activeCameraStream.getTracks().forEach(track => track.stop());
-            activeCameraStream = null;
-        }
-    };
-
-    window.closeSmartCameraModal = function() {
-        window.stopActiveCameraStream();
-        document.getElementById('hh-live-camera-modal')?.remove();
-    };
-
-    window.openOnTheSpotCameraModal = function(scannerTitle, scannerSubtitle, onImageCapturedCallback) {
-        if (typeof window.isInteractiveDemoSession === 'function' && window.isInteractiveDemoSession()) {
-            if (typeof window.openDemoUpgradeLockModal === 'function') window.openDemoUpgradeLockModal('use the Smart Camera Scanner');
-            else alert('🌻 Join Honeysuckle Hub to unlock the Smart Camera Scanner!');
-            return;
-        }
-        window.closeSmartCameraModal();
-
-        const modal = document.createElement('div');
-        modal.id = 'hh-live-camera-modal';
-        modal.className = 'modal-overlay';
-        modal.style.cssText = 'display:flex; z-index:2920;';
-        modal.innerHTML = `
-            <div style="background:#ffffff; width:100%; max-width:500px; border-radius:22px; padding:22px; text-align:center; border:3px solid var(--sage); box-shadow:0 24px 60px rgba(0,0,0,0.38); max-height:94vh; overflow-y:auto;">
-                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1.5px solid var(--border); padding-bottom:10px; margin-bottom:12px;">
-                    <div style="text-align:left;">
-                        <span class="card-tag">📷 Smart Household Camera</span>
-                        <h3 style="font-size:1.35rem; color:var(--primary); margin:2px 0 0 0;">${escapeSafeHtml(scannerTitle)}</h3>
-                    </div>
-                    <button type="button" onclick="closeSmartCameraModal()" style="background:none; border:none; font-size:1.6rem; cursor:pointer;">&times;</button>
-                </div>
-                <p style="font-size:0.83rem; color:var(--text-main); margin-bottom:12px;">${escapeSafeHtml(scannerSubtitle)}</p>
-                <div id="hh-cam-video-wrap" style="position:relative; width:100%; aspect-ratio:4/3; background:#1E1610; border-radius:14px; overflow:hidden; margin-bottom:14px; display:flex; align-items:center; justify-content:center; border:2px solid var(--border);">
-                    <video id="hh-cam-video-el" autoplay playsinline muted style="width:100%; height:100%; object-fit:cover; display:none;"></video>
-                    <div id="hh-cam-fallback-msg" style="color:#FEF5D8; padding:16px; font-size:0.85rem;">📷 Starting your rear camera...<br><span style="font-size:0.76rem; opacity:0.8;">(Or tap "Open Phone Camera" below!)</span></div>
-                </div>
-                <button type="button" id="hh-cam-shutter-btn" class="btn-primary" style="width:100%; margin-bottom:10px; padding:13px 20px; font-size:0.95rem; display:none; background:linear-gradient(135deg, #2E5A44 0%, #1F4230 100%); border-color:#173325;">📸 Snap Photo Now</button>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-                    <label class="btn-primary" style="margin:0; padding:10px 12px; font-size:0.82rem; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
-                        📱 Open Phone Camera <input type="file" id="hh-native-cam-capture" accept="image/*" capture="environment" style="display:none;">
-                    </label>
-                    <label class="btn-secondary" style="margin:0; padding:10px 12px; font-size:0.82rem; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
-                        🖼️ Upload from Gallery <input type="file" id="hh-gallery-file-pick" accept="image/*" style="display:none;">
-                    </label>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modal);
-
-        const handleFileSelect = async (e) => {
-            const file = e.target.files?.[0];
-            if (!file) return;
-            window.closeSmartCameraModal();
-            try { onImageCapturedCallback(await compressImageFileToBase64(file)); }
-            catch (err) { alert('⚠️ Could not process photo: ' + err.message); }
-        };
-        document.getElementById('hh-native-cam-capture')?.addEventListener('change', handleFileSelect);
-        document.getElementById('hh-gallery-file-pick')?.addEventListener('change', handleFileSelect);
-
-        if (navigator.mediaDevices?.getUserMedia) {
-            navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 960 } }, audio: false }).then(stream => {
-                activeCameraStream = stream;
-                const videoEl = document.getElementById('hh-cam-video-el');
-                const msgEl = document.getElementById('hh-cam-fallback-msg');
-                const shutterBtn = document.getElementById('hh-cam-shutter-btn');
-                if (videoEl) { videoEl.srcObject = stream; videoEl.style.display = 'block'; videoEl.play().catch(() => {}); }
-                if (msgEl) msgEl.style.display = 'none';
-                if (shutterBtn) {
-                    shutterBtn.style.display = 'block';
-                    shutterBtn.onclick = () => {
-                        if (!videoEl) return;
-                        let w = videoEl.videoWidth || 800, h = videoEl.videoHeight || 600;
-                        if (w > 1024) { h = Math.round((h * 1024) / w); w = 1024; }
-                        const canvas = document.createElement('canvas');
-                        canvas.width = w; canvas.height = h;
-                        canvas.getContext('2d').drawImage(videoEl, 0, 0, w, h);
-                        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-                        window.closeSmartCameraModal();
-                        onImageCapturedCallback({ base64Data: dataUrl.split(',')[1], mimeType: 'image/jpeg', previewUrl: dataUrl });
-                    };
-                }
-            }).catch(() => {
-                const msgEl = document.getElementById('hh-cam-fallback-msg');
-                if (msgEl) msgEl.innerHTML = '📱 Tap <strong>"Open Phone Camera"</strong> below to snap your photo on the spot!';
-            });
-        }
-    };
-
-    // =========================================================================
-    // 2. SECURE SCANNER & TEXT ENGINE (NETLIFY FUNCTION + ADMIN FALLBACK)
-    // =========================================================================
-    window.openAdminGeminiKeyModal = function() {
-        if (!isStrictFounderAdmin()) return;
-        const existingKey = localStorage.getItem('hh_admin_local_gemini_key') || '';
-        const keyInput = _nativePrompt('🔑 Admin Scanner Key (Optional local key):', existingKey);
-        if (keyInput !== null) {
-            if (keyInput.trim()) { localStorage.setItem('hh_admin_local_gemini_key', keyInput.trim()); alert('✅ Saved!'); }
-            else { localStorage.removeItem('hh_admin_local_gemini_key'); alert('Removed local key.'); }
-        }
-    };
-
-    async function callHoneysuckleScannerEngine(promptText, base64Data = null, mimeType = 'image/jpeg') {
-        let serverErrorDetail = '';
-        try {
-            const res = await fetch('/.netlify/functions/gemini-scan', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt: promptText, imageBase64: base64Data || 'NONE', mimeType: mimeType || 'image/jpeg' })
-            });
-            const data = await res.json().catch(() => ({}));
-            if (res.ok && data?.resultText) return data.resultText;
-            serverErrorDetail = data?.error || `HTTP ${res.status}`;
-        } catch (e) { serverErrorDetail = e.message || 'Network error'; }
-
-        const localKey = localStorage.getItem('hh_admin_local_gemini_key');
-        if (localKey) return callDirectWithKey(localKey, promptText, base64Data, mimeType);
-        throw new Error(`Scanner notice (${serverErrorDetail || 'Busy'}). Please try again!`);
-    }
-
-    async function callDirectWithKey(apiKey, promptText, base64Data, mimeType) {
-        const cleanKey = apiKey.trim().replace(/^["']|["']$/g, '');
-        const modelsToTry = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.0-flash'];
-        const parts = [{ text: promptText }];
-        if (base64Data && base64Data !== 'NONE') parts.push({ inline_data: { mime_type: mimeType || 'image/jpeg', data: base64Data } });
-        let lastErr = 'Request failed';
-        for (const modelName of modelsToTry) {
-            try {
-                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${cleanKey}`, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts }] })
-                });
-                const data = await res.json();
-                const textOut = data?.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('').trim();
-                if (res.ok && textOut) return textOut;
-                lastErr = data?.error?.message || `HTTP ${res.status}`;
-            } catch (err) { lastErr = err.message; }
-        }
-        throw new Error(lastErr);
-    }
-
-    function extractCleanJson(rawText) {
-        const cleaned = String(rawText || '').replace(/```json/gi, '').replace(/```/g, '').trim();
-        const firstBracket = cleaned.search(/[\[{]/);
-        const lastBracket = Math.max(cleaned.lastIndexOf(']'), cleaned.lastIndexOf('}'));
-        if (firstBracket !== -1 && lastBracket !== -1) return JSON.parse(cleaned.slice(firstBracket, lastBracket + 1));
-        return JSON.parse(cleaned);
-    }
-
-    function addDaysToTodayIso(days) {
-        if (!days || parseInt(days) <= 0) return '';
-        const d = new Date(); d.setDate(d.getDate() + parseInt(days));
-        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    }
-
-    function showScannerProgressModal(title, subtitle) {
-        document.getElementById('hh-scanner-progress-modal')?.remove();
-        const m = document.createElement('div');
-        m.id = 'hh-scanner-progress-modal';
-        m.className = 'modal-overlay';
-        m.style.cssText = 'display:flex; z-index:2950;';
-        m.innerHTML = `
-            <div style="background:#ffffff; width:100%; max-width:440px; border-radius:20px; padding:28px; text-align:center; border:3px solid var(--sage); box-shadow:0 24px 60px rgba(0,0,0,0.35);">
-                <div style="font-size:2.6rem; margin-bottom:10px;">✨🌿</div>
-                <h3 style="font-size:1.45rem; color:var(--primary); margin-bottom:6px;">${escapeSafeHtml(title)}</h3>
-                <p style="font-size:0.86rem; color:var(--text-main); margin-bottom:14px;">${escapeSafeHtml(subtitle)}</p>
-                <div class="progress-track" style="height:10px;"><div class="progress-fill" style="width:85%;"></div></div>
-            </div>
-        `;
-        document.body.appendChild(m);
-    }
-
-    // =========================================================================
-    // 3. ALL 6 SMART CAMERA SCANNERS
-    // =========================================================================
-    window.triggerAiInventoryPhotoPicker = function() {
-        openOnTheSpotCameraModal('Snap Fridge, Freezer, Pantry or Receipt', 'Point your camera at your open fridge, freezer, pantry shelf, or paper grocery receipt to automatically log your stock!', processCapturedInventoryImage);
-    };
-
-    async function processCapturedInventoryImage({ base64Data, mimeType, previewUrl }) {
-        showScannerProgressModal('📷 Reading Your Fridge, Pantry or Receipt...', 'Identifying food & household items, quantities, and shelf life...');
-        try {
-            const prompt = `Examine this image (open refrigerator, freezer, pantry, or grocery receipt). Identify every distinct food or household item visible. Return ONLY a valid JSON array of objects: [{"name":"Item Name","zone":"fridge, deep_freezer, dry_pantry, root_cellar, household_paper, household_clean, or homestead_barn","qty":1,"par":1,"unit":"lbs, eggs, tbsp, oz, cups, rolls, whole, bags, or bales","shelfLifeDays":7,"notes":"Note"}]`;
-            const items = extractCleanJson(await callHoneysuckleScannerEngine(prompt, base64Data, mimeType));
-            document.getElementById('hh-scanner-progress-modal')?.remove();
-            if (!Array.isArray(items) || !items.length) { alert('🤔 Could not spot clear items. Try a closer photo!'); return; }
-            openScannedInventoryReviewModal(items, previewUrl);
-        } catch (err) { document.getElementById('hh-scanner-progress-modal')?.remove(); alert('⚠️ Scanner Error: ' + err.message); }
-    }
-
-    function openScannedInventoryReviewModal(scannedItems, previewUrl) {
-        document.getElementById('hh-scan-review-modal')?.remove();
-        const zoneOptions = [
-            { val: 'fridge', lbl: '🥛 Fridge & Dairy' }, { val: 'deep_freezer', lbl: '❄️ Deep Freezer' },
-            { val: 'dry_pantry', lbl: '🫙 Dry Pantry' }, { val: 'root_cellar', lbl: '🥕 Cellar / Canned' },
-            { val: 'household_paper', lbl: '🧻 Paper Goods' }, { val: 'household_clean', lbl: '🧴 Cleaning / Apothecary' },
-            { val: 'homestead_barn', lbl: '🌾 Barn & Feed' }
-        ];
-        const unitOptions = ['whole', 'lbs', 'eggs', 'oz', 'cups', 'tbsp', 'rolls', 'bags', 'bales'];
-        const rowsHtml = scannedItems.map((item, idx) => `
-            <div style="background:var(--bg-warm-cream); border:1.5px solid var(--border); border-radius:12px; padding:10px 12px; margin-bottom:8px; display:grid; grid-template-columns: 28px 1.6fr 90px 95px 1.2fr 135px; gap:8px; align-items:center;">
-                <input type="checkbox" class="scan-inv-chk" data-idx="${idx}" checked style="width:18px; height:18px; accent-color:var(--sage);">
-                <input type="text" class="scan-inv-name" data-idx="${idx}" value="${escapeSafeHtml(item.name || 'Item')}" style="padding:6px 8px; border:1px solid var(--border); border-radius:8px; font-weight:700; font-size:0.84rem; background:#fff; width:100%;">
-                <input type="number" step="any" min="0.1" class="scan-inv-qty" data-idx="${idx}" value="${parseFloat(item.qty) || 1}" style="padding:6px; border:1px solid var(--border); border-radius:8px; font-weight:700; font-size:0.84rem; background:#fff; text-align:center; width:100%;">
-                <select class="scan-inv-unit" data-idx="${idx}" style="padding:6px; border:1px solid var(--border); border-radius:8px; font-size:0.8rem; background:#fff; width:100%;">${unitOptions.map(u => `<option value="${u}" ${item.unit === u ? 'selected' : ''}>${u}</option>`).join('')}</select>
-                <select class="scan-inv-zone" data-idx="${idx}" style="padding:6px; border:1px solid var(--border); border-radius:8px; font-size:0.78rem; background:#fff; width:100%;">${zoneOptions.map(z => `<option value="${z.val}" ${item.zone === z.val ? 'selected' : ''}>${z.lbl}</option>`).join('')}</select>
-                <input type="date" class="scan-inv-exp" data-idx="${idx}" value="${addDaysToTodayIso(item.shelfLifeDays)}" style="padding:5px 6px; border:1px solid var(--border); border-radius:8px; font-size:0.75rem; background:#fff; width:100%;">
-            </div>
-        `).join('');
-
-        const modal = document.createElement('div');
-        modal.id = 'hh-scan-review-modal';
-        modal.className = 'modal-overlay';
-        modal.style.cssText = 'display:flex; z-index:2900;';
-        modal.innerHTML = `
-            <div style="background:#ffffff; width:100%; max-width:920px; border-radius:22px; padding:26px; max-height:92vh; overflow-y:auto; box-shadow:0 25px 60px rgba(0,0,0,0.38); border:3px solid var(--sage);">
-                <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid var(--border); padding-bottom:12px; margin-bottom:14px; gap:12px;">
-                    <div style="display:flex; gap:14px; align-items:center;">
-                        <img src="${previewUrl}" alt="Scanned" style="width:68px; height:68px; object-fit:cover; border-radius:12px; border:2px solid var(--primary);">
-                        <div>
-                            <span class="card-tag" style="background:var(--sage); color:#fff;">✨ Photo Scan Complete • Found ${scannedItems.length} Items</span>
-                            <h3 style="font-size:1.55rem; color:var(--primary); margin:2px 0 0 0;">Review & Adjust Your Scanned Inventory</h3>
-                        </div>
-                    </div>
-                    <button type="button" onclick="document.getElementById('hh-scan-review-modal').remove()" style="background:none; border:none; font-size:1.7rem; cursor:pointer;">&times;</button>
-                </div>
-                <div style="max-height:420px; overflow-y:auto; padding-right:4px;">${rowsHtml}</div>
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:18px; padding-top:14px; border-top:2px solid var(--border); flex-wrap:wrap; gap:10px;">
-                    <button type="button" class="btn-secondary" onclick="document.getElementById('hh-scan-review-modal').remove()">Cancel</button>
-                    <button type="button" class="btn-primary" onclick="commitScannedInventoryItems()">✓ Add Selected Items to My Storage & Update Meal Planner</button>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modal);
-    }
-
-    window.commitScannedInventoryItems = function() {
-        const inv = getLocalData('homestead_inventory_list', DEFAULT_INVENTORY);
-        let addedCount = 0;
-        document.querySelectorAll('.scan-inv-chk').forEach(chk => {
-            if (!chk.checked) return;
-            const idx = chk.getAttribute('data-idx');
-            const name = (document.querySelector(`.scan-inv-name[data-idx="${idx}"]`)?.value || '').trim();
-            const qty = parseFloat(document.querySelector(`.scan-inv-qty[data-idx="${idx}"]`)?.value) || 1;
-            const unit = document.querySelector(`.scan-inv-unit[data-idx="${idx}"]`)?.value || 'whole';
-            const zone = document.querySelector(`.scan-inv-zone[data-idx="${idx}"]`)?.value || 'fridge';
-            const expDate = document.querySelector(`.scan-inv-exp[data-idx="${idx}"]`)?.value || '';
-            if (!name) return;
-            const existing = inv.find(i => i.name.trim().toLowerCase() === name.toLowerCase());
-            if (existing) {
-                existing.qty = Math.round(((parseFloat(existing.qty) || 0) + qty) * 100) / 100;
-                if (expDate) existing.expirationDate = expDate;
-            } else {
-                inv.unshift({ id: 'inv_scan_' + Date.now() + '_' + idx, zone, name, qty, par: Math.max(1, Math.round(qty * 0.35)), unit, expirationDate: expDate, expAlertDays: 3, notes: '📷 Scanned via Camera' });
-            }
-            addedCount++;
-        });
-        setLocalData('homestead_inventory_list', inv);
-        document.getElementById('hh-scan-review-modal')?.remove();
-        renderInventoryGrid(); evaluateLowStockAlerts(); generateAnimalBasedPlan();
-        if (typeof window.awardHubStars === 'function') window.awardHubStars(15, `Scanned & logged ${addedCount} items!`);
-        alert(`🎉 Added/updated ${addedCount} item(s) in your household inventory!`);
-    };
-
-    window.triggerAiToxinLabelScanner = function() {
-        openOnTheSpotCameraModal('Scan Product Ingredient Label', 'Point your camera at any product ingredient list for an instant Level 1–4 rating & Honeysuckle Hub DIY swap!', processCapturedToxinLabelScan);
-    };
-
-    async function processCapturedToxinLabelScan({ base64Data, mimeType }) {
-        showScannerProgressModal('🔍 Reading Product Ingredient Label...', 'Checking for seed oils, synthetic fragrances, parabens, and matching to your Honeysuckle Hub Vault...');
-        try {
-            const lvl = window.getCurrentHubLevel ? window.getCurrentHubLevel() : 1;
-            const cleanersList = getLocalData('apothecary_cleaners', DEFAULT_CLEANERS).slice(0, 15).map(c => `${c.title}: ${c.formula}`).join('\n');
-            const prompt = `You are the Low-Toxin Ingredient Decoder for Honeysuckle Hub (Comfort Level ${lvl} of 4). DIY Formulas: ${cleanersList}. Examine this product label photo and return ONLY JSON: {"productName":"Name","verdict":"🟢 Clean & Approved, 🟡 Caution (Transition Swap), or 🔴 Ditch (High Toxin Load)","flaggedIngredients":["list"],"plainEnglishWhy":"Warm 2-sentence explanation","cleanSwap":"Exact DIY formula or clean store swap","suppliesToBuy":[{"name":"Supply","qty":1,"unit":"whole","category":"Household & Cleaning Supplies"}]}`;
-            const resObj = extractCleanJson(await callHoneysuckleScannerEngine(prompt, base64Data, mimeType));
-            document.getElementById('hh-scanner-progress-modal')?.remove();
-            openUniversalModal(`🔍 Label Decoder: ${resObj.productName || 'Product Analysis'}`, [
-                { name: 'verdict', label: `1. Verdict (Level ${lvl})`, value: resObj.verdict || '🟡 Caution' },
-                { name: 'flagged', label: '2. Flagged Ingredients', value: (resObj.flaggedIngredients || []).join(', ') || 'None spotted!' },
-                { name: 'why', label: '3. Why It Matters', type: 'textarea', rows: 3, value: resObj.plainEnglishWhy || '' },
-                { name: 'swap', label: '4. ✨ Clean Switch (Click Save to add to Ditch & Switch Vault)', type: 'textarea', rows: 4, value: resObj.cleanSwap || '' }
-            ], vals => {
-                const list = getLocalData('ditch_switch_list', DEFAULT_DITCH_SWITCH);
-                list.unshift({ id: 'ds_scan_' + Date.now(), minLevel: 1, ditch: `${resObj.productName || 'Scanned Product'} (${vals.flagged})`, category: '📷 Scanned Label', why: vals.why, swap: vals.swap, shoppingItems: Array.isArray(resObj.suppliesToBuy) ? resObj.suppliesToBuy : [] });
-                setLocalData('ditch_switch_list', list); renderDitchSwitchGrid(); alert('✨ Saved to your Ditch & Switch Vault!');
-            });
-        } catch (err) { document.getElementById('hh-scanner-progress-modal')?.remove(); alert('⚠️ Label Scan Error: ' + err.message); }
-    }
-
-    window.triggerApothecaryPhotoScanner = function() {
-        openOnTheSpotCameraModal('Snap Herb, Essential Oil or Symptom Matcher', 'Point your camera at an herb, essential oil bottle, or first-aid need to find matching protocols in your Apothecary Cabinet!', processApothecaryPhotoScan);
-    };
-
-    async function processApothecaryPhotoScan({ base64Data, mimeType }) {
-        showScannerProgressModal('🌿 Matching Your Apothecary Cabinet...', 'Identifying botanicals, essential oils, and traditional family remedies...');
-        try {
-            const remediesSample = getLocalData('apothecary_remedies', DEFAULT_REMEDIES).slice(0, 25).map(r => `${r.name} (${r.uses})`).join('; ');
-            const prompt = `You are the Traditional Folk Apothecary Assistant for Honeysuckle Hub. Cabinet includes: ${remediesSample}. Examine this photo and return ONLY JSON: {"identifiedSubject":"What you see","matchingRemedyTitle":"Best matching remedy","traditionalUses":"Uses","stepByStepPreparation":"Step-by-step preparation & dilution","safetyNote":"Child/pregnancy safety note"}`;
-            const resObj = extractCleanJson(await callHoneysuckleScannerEngine(prompt, base64Data, mimeType));
-            document.getElementById('hh-scanner-progress-modal')?.remove();
-            openUniversalModal(`🌿 Apothecary Match: ${resObj.identifiedSubject || 'Botanical Match'}`, [
-                { name: 'name', label: '1. Recommended Protocol', value: resObj.matchingRemedyTitle || 'Custom Botanical Remedy' },
-                { name: 'uses', label: '2. Traditional Uses', type: 'textarea', rows: 2, value: resObj.traditionalUses || '' },
-                { name: 'dosing', label: '3. Preparation & Dilution (Save to add to Cabinet)', type: 'textarea', rows: 5, value: `${resObj.stepByStepPreparation || ''}\n\n👶 Safety: ${resObj.safetyNote || 'Always dilute properly.'}` }
-            ], vals => {
-                const list = getLocalData('apothecary_remedies', DEFAULT_REMEDIES);
-                list.unshift({ id: 'rem_scan_' + Date.now(), name: vals.name, category: '📷 Scanned Apothecary Match', uses: vals.uses, dosing: vals.dosing, shoppingItems: [] });
-                setLocalData('apothecary_remedies', list); renderMateriaMedicaGrid(); alert('🌿 Saved to your Natural Medicine Cabinet!');
-            });
-        } catch (err) { document.getElementById('hh-scanner-progress-modal')?.remove(); alert('⚠️ Apothecary Scan Error: ' + err.message); }
-    }
-
-    window.triggerAiRecipePhotoScanner = function() {
-        openOnTheSpotCameraModal('Snap Handwritten Recipe Card or Cookbook Page', 'Point your camera at Grandma’s recipe card or any cookbook page to extract scaled ingredients and steps!', processCapturedRecipeCardScan);
-    };
-
-    async function processCapturedRecipeCardScan({ base64Data, mimeType }) {
-        showScannerProgressModal('📖 Reading Recipe Card / Cookbook Page...', 'Extracting title, scaling ingredients to a 1-Adult base, and building step-by-step instructions...');
-        try {
-            const prompt = `Examine this recipe image. Scale ingredient quantities to a 1-Adult serving base (if serves 4, divide by 4). Return ONLY JSON: {"title":"Recipe Title","category":"breakfast, lunch, dinner, or snack","prepCookTime":"25 Mins","toolsNeeded":"Skillet, bowl","stoveTemp":"Medium Heat","steps":["Step 1...","Step 2..."],"ingredients":[{"name":"Ingredient","qty":0.4,"unit":"lbs, eggs, cups, tbsp, oz, or whole","category":"Meats & Organs, Eggs & Raw Dairy, Fruits & Produce, or Animal Fats & Pantry"}]}`;
-            const rec = extractCleanJson(await callHoneysuckleScannerEngine(prompt, base64Data, mimeType));
-            document.getElementById('hh-scanner-progress-modal')?.remove();
-            const cleanSteps = Array.isArray(rec.steps) && rec.steps.length ? rec.steps : ['Gather ingredients and cook until golden and tender.'];
-            const newRecipe = {
-                id: 'rec_scan_' + Date.now(), title: rec.title || 'Scanned Family Recipe',
-                category: ['breakfast', 'lunch', 'dinner', 'snack'].includes(rec.category) ? rec.category : 'dinner',
-                cutType: 'balanced', visibility: 'private', author: currentDisplayName,
-                prepCookTime: rec.prepCookTime || '25 Mins', toolsNeeded: rec.toolsNeeded || 'Skillet & mixing bowl',
-                stoveTemp: rec.stoveTemp || 'Medium Heat', steps: cleanSteps,
-                desc: cleanSteps.map((s, i) => `Step ${i + 1}: ${s}`).join(' '),
-                ingredients: Array.isArray(rec.ingredients) && rec.ingredients.length ? rec.ingredients : [{ name: '80/20 Ground Beef', qty: 0.4, unit: 'lbs', category: 'Meats & Organs' }]
-            };
-            const priv = getLocalData('private_household_recipes', []);
-            priv.unshift(newRecipe); setLocalData('private_household_recipes', priv);
-            renderRecipeVault(); generateAnimalBasedPlan();
-            if (typeof window.openRecipeModal === 'function') window.openRecipeModal(newRecipe.id);
-            else alert(`📸 Scanned & imported "${newRecipe.title}" into your Recipe Vault!`);
-        } catch (err) { document.getElementById('hh-scanner-progress-modal')?.remove(); alert('⚠️ Recipe Scan Error: ' + err.message); }
-    }
-
-    window.triggerHomeschoolTocScanner = function() {
-        openOnTheSpotCameraModal('Snap Workbook Table of Contents', 'Point your camera at the Table of Contents page of any homeschool workbook to auto-schedule your term!', processHomeschoolTocImage);
-    };
-
-    async function processHomeschoolTocImage({ base64Data, mimeType }) {
-        showScannerProgressModal('📚 Reading Table of Contents...', 'Extracting lesson numbers, unit titles, and building your Master Teacher Plan-Book...');
-        try {
-            const prompt = `Examine this homeschool workbook Table of Contents image. Return ONLY JSON: {"bookTitle":"Title","subject":"Math, Language Arts, Reading / Phonics, Science, History, or Bible","totalLessons":120,"lessonsList":[{"lessonNum":1,"title":"Lesson Title","pages":"pp. 1-4"}]}`;
-            const tocData = extractCleanJson(await callHoneysuckleScannerEngine(prompt, base64Data, mimeType));
-            document.getElementById('hh-scanner-progress-modal')?.remove();
-            openHomeschoolTocReviewModal(tocData);
-        } catch (err) { document.getElementById('hh-scanner-progress-modal')?.remove(); alert('⚠️ Table of Contents Scan Error: ' + err.message); }
-    }
-
-    function openHomeschoolTocReviewModal(tocData) {
-        document.getElementById('hh-toc-schedule-modal')?.remove();
-        window._lastScannedTocData = tocData;
-        const students = getLocalData('homeschool_students', DEFAULT_STUDENTS);
-        const modal = document.createElement('div');
-        modal.id = 'hh-toc-schedule-modal';
-        modal.className = 'modal-overlay';
-        modal.style.cssText = 'display:flex; z-index:2900;';
-        modal.innerHTML = `
-            <div style="background:#ffffff; width:100%; max-width:760px; border-radius:22px; padding:26px; max-height:92vh; overflow-y:auto; box-shadow:0 25px 60px rgba(0,0,0,0.38); border:3px solid var(--sage);">
-                <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid var(--border); padding-bottom:12px; margin-bottom:14px;">
-                    <div><span class="card-tag" style="background:var(--sage); color:#fff;">📚 Table of Contents Auto-Scheduler</span><h3 style="font-size:1.55rem; color:var(--primary); margin:2px 0 0 0;">Map Workbook to Your Child's School Days</h3></div>
-                    <button type="button" onclick="document.getElementById('hh-toc-schedule-modal').remove()" style="background:none; border:none; font-size:1.7rem; cursor:pointer;">&times;</button>
-                </div>
-                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:12px; margin-bottom:14px;">
-                    <div class="form-group" style="margin-bottom:0;"><label>1. Assign to Child</label><select id="toc-student-sel">${students.map(s => `<option value="${escapeSafeHtml(s.name)}">${escapeSafeHtml(s.name)} (${escapeSafeHtml(s.grade)})</option>`).join('')}</select></div>
-                    <div class="form-group" style="margin-bottom:0;"><label>2. Subject</label><input type="text" id="toc-subject-inp" value="${escapeSafeHtml(tocData.subject || 'Language Arts')}"></div>
-                    <div class="form-group" style="margin-bottom:0;"><label>3. Total Lessons</label><input type="number" id="toc-total-inp" value="${parseInt(tocData.totalLessons) || 120}"></div>
-                    <div class="form-group" style="margin-bottom:0; grid-column: 1 / -1;"><label>4. Curriculum Title</label><input type="text" id="toc-title-inp" value="${escapeSafeHtml(tocData.bookTitle || 'Scanned Workbook')}"></div>
-                </div>
-                <div style="background:var(--bg-warm-cream); border:1px solid var(--border); border-radius:12px; padding:12px; margin-bottom:14px;">
-                    <strong style="font-size:0.84rem; color:var(--primary); display:block; margin-bottom:8px;">🗓️ 5. Active School Days:</strong>
-                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                        ${['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].map(d => `<label class="filter-chip"><input type="checkbox" class="toc-day-chk" value="${d}" ${d !== 'Wed' ? 'checked' : ''} onchange="updateTocSchedulePreview()" style="accent-color:var(--sage);"> ${d}</label>`).join('')}
-                    </div>
-                </div>
-                <div style="background:#FFFDF8; border:1.5px solid var(--border); border-radius:14px; padding:14px; margin-bottom:16px; max-height:240px; overflow-y:auto;"><div id="toc-preview-schedule-list"></div></div>
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <button type="button" class="btn-secondary" onclick="document.getElementById('hh-toc-schedule-modal').remove()">Cancel</button>
-                    <button type="button" class="btn-primary" onclick="commitHomeschoolTocSchedule()">✓ Save Curriculum & Schedule</button>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modal);
-        updateTocSchedulePreview();
-    }
-
-    window.updateTocSchedulePreview = function() {
-        const previewEl = document.getElementById('toc-preview-schedule-list');
-        if (!previewEl || !window._lastScannedTocData) return;
-        const selectedDays = Array.from(document.querySelectorAll('.toc-day-chk:checked')).map(c => c.value);
-        const activeDays = selectedDays.length ? selectedDays : ['Mon', 'Tue', 'Thu', 'Fri'];
-        const lessons = Array.isArray(window._lastScannedTocData.lessonsList) && window._lastScannedTocData.lessonsList.length
-            ? window._lastScannedTocData.lessonsList : Array.from({ length: 12 }, (_, i) => ({ lessonNum: i + 1, title: `Lesson ${i + 1}`, pages: '' }));
-        previewEl.innerHTML = lessons.map((les, idx) => `<div style="padding:5px 0; border-bottom:1px dashed var(--border); font-size:0.82rem; display:flex; justify-content:space-between;"><span><strong>Week ${Math.floor(idx / activeDays.length) + 1} • ${activeDays[idx % activeDays.length]}:</strong> Lesson #${les.lessonNum || (idx + 1)} — ${escapeSafeHtml(les.title || '')}</span><span style="color:var(--text-muted);">${escapeSafeHtml(les.pages || '')}</span></div>`).join('');
-    };
-
-    window.commitHomeschoolTocSchedule = function() {
-        const student = document.getElementById('toc-student-sel')?.value || 'Student';
-        const subject = (document.getElementById('toc-subject-inp')?.value || 'Math').trim();
-        const title = (document.getElementById('toc-title-inp')?.value || 'Scanned Workbook').trim();
-        const totalLessons = parseInt(document.getElementById('toc-total-inp')?.value) || 120;
-        const selectedDays = Array.from(document.querySelectorAll('.toc-day-chk:checked')).map(c => c.value);
-        const currList = getLocalData('homeschool_curriculum_list', DEFAULT_CURRICULUM);
-        currList.unshift({ id: 'cur_toc_' + Date.now(), student, subject, title, currentLesson: 1, totalLessons, scheduledDays: selectedDays, tocLessons: window._lastScannedTocData?.lessonsList || [] });
-        setLocalData('homeschool_curriculum_list', currList);
-        document.getElementById('hh-toc-schedule-modal')?.remove();
-        renderCurriculumRoster(); renderStudentPlanner();
-        alert(`📚 Added "${title}" for ${student}!`);
-    };
-
-    window.triggerHomesteadDiagnosticScanner = function(mode = 'garden') {
-        const isFlock = mode === 'flock';
-        openOnTheSpotCameraModal(isFlock ? 'Snap Chick or Livestock Symptom Identifier' : 'Snap Garden Leaf, Pest or Soil Identifier', 'Point your camera at the issue for organic homestead remedies matched to your inventory!', (imgData) => processHomesteadDiagnosticScan(imgData, mode));
-    };
-
-    async function processHomesteadDiagnosticScan({ base64Data, mimeType }, mode) {
-        showScannerProgressModal(mode === 'flock' ? '🐓 Analyzing Barnyard Photo...' : '🌱 Analyzing Garden Leaf & Pest Photo...', 'Checking your Barn, Pantry & Apothecary stock for organic fixes...');
-        try {
-            const invNames = getLocalData('homestead_inventory_list', DEFAULT_INVENTORY).map(i => i.name).join(', ');
-            const prompt = `You are the Master Homesteader Advisor for Honeysuckle Hub. User owns: ${invNames}. Examine this photo (${mode}) and return ONLY JSON: {"identification":"Name of issue","whatIsHappening":"2-sentence explanation","organicFixUsingYourStock":"Step-by-step fix","choreToAdd":"Actionable task for checklist"}`;
-            const diag = extractCleanJson(await callHoneysuckleScannerEngine(prompt, base64Data, mimeType));
-            document.getElementById('hh-scanner-progress-modal')?.remove();
-            openUniversalModal(`🌱 Homestead Diagnosis: ${diag.identification || 'Observation'}`, [
-                { name: 'idTitle', label: '1. Identified Issue', value: diag.identification || '' },
-                { name: 'why', label: '2. What Is Happening', type: 'textarea', rows: 2, value: diag.whatIsHappening || '' },
-                { name: 'fix', label: '3. ✨ Organic Homestead Fix', type: 'textarea', rows: 4, value: diag.organicFixUsingYourStock || '' },
-                { name: 'chore', label: '4. Action Step (Save to add to Homestead Checklist)', value: diag.choreToAdd || '' }
-            ], vals => {
-                if (vals.chore) {
-                    const hTasks = getLocalData('homestead_tasks', DEFAULT_HOMESTEAD_TASKS);
-                    hTasks.unshift({ id: 'ht_diag_' + Date.now(), tier: 'daily', zoneId: mode === 'flock' ? 'hz_flock' : 'hz_garden', text: `🌱 [${vals.idTitle}] ${vals.chore}`, done: false });
-                    setLocalData('homestead_tasks', hTasks);
-                    if (typeof renderHomesteadTasksOrganizer === 'function') renderHomesteadTasksOrganizer();
-                    alert('🌾 Added to your Daily Homestead Checklist!');
-                }
-            });
-        } catch (err) { document.getElementById('hh-scanner-progress-modal')?.remove(); alert('⚠️ Homestead Scanner Error: ' + err.message); }
-    }
-
-    // =========================================================================
-    // 4. 🎙️ HANDS-FULL "VOICE BRAIN DUMP"
-    // =========================================================================
-    window.openBrainDumpModal = function() {
-        document.getElementById('hh-voice-brain-dump-modal')?.remove();
-        const modal = document.createElement('div');
-        modal.id = 'hh-voice-brain-dump-modal';
-        modal.className = 'modal-overlay';
-        modal.style.cssText = 'display:flex; z-index:2900;';
-        modal.innerHTML = `
-            <div style="background:#ffffff; width:100%; max-width:580px; border-radius:22px; padding:26px; max-height:92vh; overflow-y:auto; box-shadow:0 24px 55px rgba(0,0,0,0.35); border:3px solid var(--sage);">
-                <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid var(--border); padding-bottom:12px; margin-bottom:14px;">
-                    <div><span class="card-tag" style="background:var(--sage); color:#fff;">🎙️ Hands-Full Voice & Multi-Task Brain Dump</span><h3 style="font-size:1.5rem; color:var(--primary); margin:2px 0 0 0;">Speak or Type Everything on Your Mind</h3></div>
-                    <button type="button" onclick="document.getElementById('hh-voice-brain-dump-modal').remove()" style="background:none; border:none; font-size:1.7rem; cursor:pointer;">&times;</button>
-                </div>
-                <div style="display:flex; gap:10px; align-items:stretch; margin-bottom:14px;">
-                    <textarea id="hh-brain-dump-textarea" rows="4" placeholder="Tap the microphone to speak, or type your brain dump here..." style="flex:1; padding:12px; border:1.5px solid var(--border); border-radius:12px; font-family:inherit; font-size:0.92rem; background:var(--bg-warm-cream);"></textarea>
-                    <button type="button" id="hh-brain-dump-mic-btn" onclick="startHandsFreeBrainDumpMic()" style="background:var(--sage); color:#fff; border:none; border-radius:16px; width:74px; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; font-weight:700; font-size:0.75rem;">
-                        <span style="font-size:1.6rem;">🎙️</span><span id="hh-brain-dump-mic-lbl">Speak</span>
-                    </button>
-                </div>
-                <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border); padding-top:14px;">
-                    <button type="button" class="btn-secondary" onclick="document.getElementById('hh-voice-brain-dump-modal').remove()">Cancel</button>
-                    <button type="button" class="btn-primary" onclick="executeSmartMultiActionBrainDump()">✨ Auto-Sort & File All Actions &rarr;</button>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modal);
-    };
-
-    window.startHandsFreeBrainDumpMic = function() {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRecognition) { alert('Voice dictation is supported on Safari, Chrome, and mobile browsers.'); return; }
-        const btn = document.getElementById('hh-brain-dump-mic-btn'), lbl = document.getElementById('hh-brain-dump-mic-lbl'), ta = document.getElementById('hh-brain-dump-textarea');
-        const rec = new SpeechRecognition(); rec.lang = 'en-US';
-        if (btn) btn.style.background = '#B91C1C'; if (lbl) lbl.textContent = 'Listening';
-        rec.onresult = (e) => { if (ta) ta.value = (ta.value ? ta.value + ' ' : '') + e.results[0][0].transcript; };
-        rec.onerror = rec.onend = () => { if (btn) btn.style.background = 'var(--sage)'; if (lbl) lbl.textContent = 'Speak'; };
-        rec.start();
-    };
-
-    window.executeSmartMultiActionBrainDump = async function() {
-        const rawText = (document.getElementById('hh-brain-dump-textarea')?.value || '').trim();
-        if (!rawText) { alert('Please speak or type what is on your mind first!'); return; }
-        showScannerProgressModal('🧠 Sorting Your Brain Dump...', 'Filing shopping list items, homeschool lessons, and household reminders...');
-        try {
-            const students = getLocalData('homeschool_students', DEFAULT_STUDENTS).map(s => s.name).join(', ');
-            const curr = getLocalData('homeschool_curriculum_list', DEFAULT_CURRICULUM).map(c => `${c.student} - ${c.subject} (${c.title}, Lesson ${c.currentLesson})`).join('; ');
-            const prompt = `Break this household brain dump into structured actions. Students: ${students}. Curriculum: ${curr}. Input: "${rawText}". Return ONLY JSON: {"shoppingItems":[{"name":"Item","qty":1,"unit":"whole","category":"Household & Cleaning Supplies"}],"homeschoolUpdates":[{"studentKeyword":"4th","subjectKeyword":"math","newLessonNumber":15}],"nightBellReminders":["Reminder"],"roomTasks":["Chore"],"homesteadTasks":["Outdoor chore"]}`;
-            const parsed = extractCleanJson(await callHoneysuckleScannerEngine(prompt, null));
-            document.getElementById('hh-scanner-progress-modal')?.remove();
-            const actionsSummary = [];
-
-            if (Array.isArray(parsed.shoppingItems) && parsed.shoppingItems.length) {
-                const extras = getLocalData('extra_shopping_items', []), checkedMap = getLocalData('ab_checked_groceries', {});
-                parsed.shoppingItems.forEach(si => {
-                    if (!si.name) return;
-                    extras.push({ name: si.name.trim(), qty: parseFloat(si.qty) || 1, unit: si.unit || 'whole', category: si.category || 'Household & Cleaning Supplies' });
-                    checkedMap[si.name.trim()] = false;
-                    actionsSummary.push(`🛒 Shopping List: ${si.qty || 1} ${si.name}`);
-                });
-                setLocalData('ab_checked_groceries', checkedMap, true); setLocalData('extra_shopping_items', extras);
-                if (typeof renderAbGroceryList === 'function') renderAbGroceryList();
-            }
-            if (Array.isArray(parsed.homeschoolUpdates) && parsed.homeschoolUpdates.length) {
-                const currList = getLocalData('homeschool_curriculum_list', DEFAULT_CURRICULUM);
-                parsed.homeschoolUpdates.forEach(hu => {
-                    const stKw = String(hu.studentKeyword || '').toLowerCase(), subKw = String(hu.subjectKeyword || '').toLowerCase();
-                    const match = currList.find(c => (stKw && c.student.toLowerCase().includes(stKw)) || (subKw && (c.subject.toLowerCase().includes(subKw) || c.title.toLowerCase().includes(subKw))));
-                    if (match) {
-                        const targetLesson = parseInt(hu.newLessonNumber);
-                        match.currentLesson = !isNaN(targetLesson) ? targetLesson + 1 : (parseInt(match.currentLesson) || 1) + 1;
-                        actionsSummary.push(`📚 ${match.student} ${match.subject} now on Lesson #${match.currentLesson}`);
-                    }
-                });
-                setLocalData('homeschool_curriculum_list', currList);
-                if (typeof renderCurriculumRoster === 'function') renderCurriculumRoster();
-                if (typeof renderStudentPlanner === 'function') renderStudentPlanner();
-            }
-            if (Array.isArray(parsed.nightBellReminders) && parsed.nightBellReminders.length) {
-                const bellExtras = getLocalData('custom_night_bell_items', []);
-                parsed.nightBellReminders.forEach(nb => { if (nb) { bellExtras.unshift(nb); actionsSummary.push(`🔔 8 PM Bell: ${nb}`); } });
-                setLocalData('custom_night_bell_items', bellExtras);
-                if (typeof renderNightBeforeKitchenBell === 'function') renderNightBeforeKitchenBell();
-            }
-            if (Array.isArray(parsed.roomTasks) && parsed.roomTasks.length) {
-                const rTasks = getLocalData('home_room_tasks', DEFAULT_ROOM_TASKS);
-                parsed.roomTasks.forEach(rt => { if (rt) { rTasks.unshift({ id: 'rt_bd_' + Date.now() + Math.random(), tier: 'daily', roomName: 'Brain Dump', text: rt, done: false }); actionsSummary.push(`🧹 Room Task: ${rt}`); } });
-                setLocalData('home_room_tasks', rTasks);
-                if (typeof renderRoomTasksOrganizer === 'function') renderRoomTasksOrganizer();
-            }
-            if (Array.isArray(parsed.homesteadTasks) && parsed.homesteadTasks.length) {
-                const hTasks = getLocalData('homestead_tasks', DEFAULT_HOMESTEAD_TASKS);
-                parsed.homesteadTasks.forEach(ht => { if (ht) { hTasks.unshift({ id: 'ht_bd_' + Date.now() + Math.random(), tier: 'daily', zoneId: 'hz_garden', text: ht, done: false }); actionsSummary.push(`🌾 Homestead: ${ht}`); } });
-                setLocalData('homestead_tasks', hTasks);
-                if (typeof renderHomesteadTasksOrganizer === 'function') renderHomesteadTasksOrganizer();
-            }
-            if (typeof loadSubscriberDashboardForUser === 'function') loadSubscriberDashboardForUser();
-            document.getElementById('hh-voice-brain-dump-modal')?.remove();
-            alert(`✨ Brain Dump Sorted & Filed!\n\n${actionsSummary.join('\n') || 'Filed to your Daily Checklist!'}`);
-        } catch (err) { document.getElementById('hh-scanner-progress-modal')?.remove(); alert('⚠️ Brain Dump Error: ' + err.message); }
-    };
-
-    // =========================================================================
-    // 5. 👩‍⚕️ ADMIN CLINICAL SUMMARIZER & 💪 AI WORKOUT OF THE DAY (WOD) STUDIO
-    // =========================================================================
-    window.generatePractitionerClinicalSummary = async function(clientUserId = null) {
-        if (!isStrictFounderAdmin()) return;
-        const registry = getGlobalSharedData('terrain_admin_clients_registry', {});
-        const client = (clientUserId && registry[clientUserId]) ? registry[clientUserId] : null;
-        const consultAnswers = client ? (client.consult || {}) : getLocalData('terrain_consult_answers', {});
-        const clientName = client ? client.name : currentDisplayName;
-        const qaText = (typeof RECLAIM_TERRAIN_CONSULT_QUESTIONS !== 'undefined' ? RECLAIM_TERRAIN_CONSULT_QUESTIONS : []).map(q => `${q.question}\nAnswer: ${consultAnswers[q.id] || 'Not answered'}`).join('\n\n');
-
-        showScannerProgressModal(`👩‍⚕️ Drafting Clinical Summary for ${clientName}...`, 'Analyzing all 20 functional consult answers & pre-drafting protocol...');
-        try {
-            const prompt = `You are the Clinical Functional Nutrition Assistant for Ashton at Honeysuckle Hub. Analyze the 20-Q Consult for "${clientName}":\n${qaText}\nReturn ONLY JSON: {"primaryRootCauses":"Top 2-3 patterns","clinicalSummaryForAshton":"1-page practitioner overview","draftedClientWelcomeNote":"Warm 1-paragraph Practitioner Note in Ashton's voice","recommendedTrack":"Recommended Track","step1CustomAdjustment":"Specific Step 1 tweak"}`;
-            const sum = extractCleanJson(await callHoneysuckleScannerEngine(prompt, null));
-            document.getElementById('hh-scanner-progress-modal')?.remove();
-            openUniversalModal(`👩‍⚕️ 1-Page Clinical Summary: ${clientName}`, [
-                { name: 'rootCauses', label: '1. Primary Root-Cause Terrain Patterns', type: 'textarea', rows: 2, value: sum.primaryRootCauses || '' },
-                { name: 'clinicalSummary', label: '2. Practitioner Clinical Breakdown (For Ashton)', type: 'textarea', rows: 4, value: sum.clinicalSummaryForAshton || '' },
-                { name: 'track', label: '3. Recommended Specialty Track', value: sum.recommendedTrack || '' },
-                { name: 'step1Adj', label: '4. Step 1 Custom Adjustment', type: 'textarea', rows: 3, value: sum.step1CustomAdjustment || '' },
-                { name: 'clientNote', label: '5. Personal Practitioner Note (Save to publish to Client Dashboard)', type: 'textarea', rows: 4, value: sum.draftedClientWelcomeNote || '' }
-            ], vals => {
-                if (client && clientUserId) {
-                    client.state = client.state || {};
-                    client.state.customPractitionerNote = `${vals.clientNote}\n\n🎯 Focus Adjustment: ${vals.step1Adj}`;
-                    registry[clientUserId] = client;
-                    setGlobalSharedData('terrain_admin_clients_registry', registry);
-                    syncClientToSupabaseTerrainTable(client);
-                }
-                if (typeof renderReclaimTerrainPillar === 'function') renderReclaimTerrainPillar();
-                alert(`✅ Published custom Practitioner Note for ${clientName}!`);
-            });
-        } catch (err) { document.getElementById('hh-scanner-progress-modal')?.remove(); alert('⚠️ Clinical Summary Error: ' + err.message); }
-    };
-
-    let wodCountdownInterval = null, wodRemainingSeconds = 60;
-    function playGentleTerrainChime() {
-        try {
-            const AudioCtx = window.AudioContext || window.webkitAudioContext;
-            if (!AudioCtx) return;
-            const ctx = new AudioCtx();
-            [528, 660].forEach((freq, idx) => {
-                const osc = ctx.createOscillator(), gain = ctx.createGain();
-                osc.type = 'sine'; osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.22);
-                gain.gain.setValueAtTime(0.18, ctx.currentTime + idx * 0.22);
-                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + idx * 0.22 + 0.45);
-                osc.connect(gain); gain.connect(ctx.destination);
-                osc.start(ctx.currentTime + idx * 0.22); osc.stop(ctx.currentTime + idx * 0.22 + 0.46);
-            });
-        } catch (e) {}
-    }
-
-    function formatTimerMmSs(totalSec) {
-        const s = Math.max(0, parseInt(totalSec) || 0);
-        return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
-    }
-
-    window.startTerrainWodTimer = function(seconds, labelText = 'Interval Timer Running...') {
-        clearInterval(wodCountdownInterval); wodRemainingSeconds = parseInt(seconds) || 60;
-        const disp = document.getElementById('hh-wod-timer-display'), status = document.getElementById('hh-wod-timer-status');
-        if (disp) { disp.textContent = formatTimerMmSs(wodRemainingSeconds); disp.style.color = 'var(--sage)'; }
-        if (status) status.textContent = `⏱️ ${labelText}`;
-        wodCountdownInterval = setInterval(() => {
-            wodRemainingSeconds--;
-            const dEl = document.getElementById('hh-wod-timer-display'), sEl = document.getElementById('hh-wod-timer-status');
-            if (!dEl) { clearInterval(wodCountdownInterval); return; }
-            dEl.textContent = formatTimerMmSs(wodRemainingSeconds);
-            if (wodRemainingSeconds <= 0) {
-                clearInterval(wodCountdownInterval); dEl.style.color = 'var(--primary)';
-                if (sEl) sEl.textContent = '✨ Time Complete! Take a slow nasal breath.';
-                playGentleTerrainChime();
-            }
-        }, 1000);
-    };
-
-    window.stopTerrainWodTimer = function() {
-        clearInterval(wodCountdownInterval); wodRemainingSeconds = 60;
-        const disp = document.getElementById('hh-wod-timer-display'), status = document.getElementById('hh-wod-timer-status');
-        if (disp) { disp.textContent = '01:00'; disp.style.color = 'var(--primary)'; }
-        if (status) status.textContent = 'Tap any preset to time your set or rest';
-    };
-
-    window.toggleTerrainWodRoundPill = function(roundNum) {
-        const btn = document.getElementById(`hh-wod-round-pill-${roundNum}`);
-        if (!btn) return;
-        const isDone = btn.dataset.done === 'true';
-        btn.dataset.done = isDone ? 'false' : 'true';
-        btn.style.background = isDone ? '#ffffff' : 'var(--sage)';
-        btn.style.color = isDone ? 'var(--text-main)' : '#ffffff';
-        btn.textContent = isDone ? `⬜ Round ${roundNum}` : `✓ Round ${roundNum} Done`;
-    };
-
-    window.getTerrainPhaseProfile = function(stepNum, selectedGradTier = 'phase_matched') {
-        const s = Math.max(1, Math.min(16, parseInt(stepNum) || 1));
-        const tState = typeof getTerrainState === 'function' ? getTerrainState() : {};
-        const isGraduate = s >= 16 || tState.graduated16Steps === true;
-        if (selectedGradTier === 'advanced') return { phaseNum: 5, isGraduate: true, tierKey: 'advanced', badge: '🎓 16-Step Graduate • 🔥 Advanced Tier (25–30 Mins)', focus: 'Advanced Metabolic Recomposition, Tempo Supersets & Finisher', duration: '25–30 Minutes', intensityRule: '4 compound strength & core supersets with 3-second eccentric lowers, loaded carries, and a 4-minute nasal-breathing finisher.' };
-        if (selectedGradTier === 'intermediate' || (isGraduate && selectedGradTier === 'phase_matched')) return { phaseNum: 5, isGraduate: true, tierKey: 'intermediate', badge: '🎓 16-Step Graduate • 🌟 Intermediate Tier (20–25 Mins)', focus: 'Intermediate Progressive Overload Strength & Core Stability', duration: '20–25 Minutes', intensityRule: '3 rounds of compound functional strength (Squat, Hinge, Push, Row, Carry) with moderate weights and pelvic-floor-safe core work.' };
-        if (s <= 4) return { phaseNum: 1, isGraduate: false, tierKey: 'phase1', badge: `🌱 Phase 1 (Step ${s} of 16) • Calming the Alarm & Lymphatic Flow`, focus: 'Parasympathetic Nervous System Reset, Breathwork & Gentle Circulation', duration: '8–10 Minutes', intensityRule: 'Zero HIIT, zero adrenal spiking! Focus on nasal rib-cage breathing, lymphatic heel drops, thoracic openers, slow box squats, and restorative release.' };
-        if (s <= 8) return { phaseNum: 2, isGraduate: false, tierKey: 'phase2', badge: `🫙 Phase 2 (Step ${s} of 16) • Deep Core, Mobility & Bodyweight Strength`, focus: 'Pelvic-Floor Safe Core Ignition, Mobility & Bodyweight Strength', duration: '12–15 Minutes', intensityRule: '2-3 unhurried rounds of glute bridges, bird-dogs, incline push-ups, reverse lunges, dead-bugs, and farmer carries.' };
-        if (s <= 12) return { phaseNum: 3, isGraduate: false, tierKey: 'phase3', badge: `🔥 Phase 3 (Step ${s} of 16) • Metabolic Fire & Functional Muscle`, focus: 'Insulin-Sensitive Muscle Building (Squat, Hinge, Push, Row, Carry)', duration: '20 Minutes', intensityRule: '3 controlled rounds of goblet squats, Romanian deadlifts, overhead presses, rows, and carries with 3s slow lowers and 60s rest.' };
-        return { phaseNum: 4, isGraduate: false, tierKey: 'phase4', badge: `🦋 Phase 4 (Step ${s} of 16) • Hormone-Synced Strength & Stewardship`, focus: 'Cycle-Synced / Hormone-Season Functional Strength & Core Mobility', duration: '20 Minutes', intensityRule: '3 rounds of hormone-supportive functional strength with deep core work and a note on scaling down during luteal/menstrual days.' };
-    };
-
-    window.setTerrainGraduateWodTier = function(tierKey) {
-        const tState = getTerrainState(); tState.graduateWodTier = tierKey;
-        saveTerrainState(tState); renderReclaimTerrainPillar();
-    };
-
-    window.generateAiTerrainWorkoutOfTheDay = async function(customEquipOverride = null) {
-        const tState = getTerrainState();
-        const curStepNum = Math.max(1, Math.min(16, parseInt(tState.currentStep) || 1));
-        const gradTier = document.getElementById('hh-wod-grad-tier-sel')?.value || tState.graduateWodTier || (curStepNum >= 16 ? 'intermediate' : 'phase_matched');
-        const equipChoice = customEquipOverride || document.getElementById('hh-wod-equip-sel')?.value || tState.preferredWodEquip || 'Dumbbells, Kettlebell or Household Water Jugs';
-        tState.graduateWodTier = gradTier; tState.preferredWodEquip = equipChoice;
-
-        const phaseProf = window.getTerrainPhaseProfile(curStepNum, gradTier);
-        const consult = getLocalData('terrain_consult_answers', {});
-        const activeStepObj = typeof getEffectiveTerrainStepForState === 'function' ? getEffectiveTerrainStepForState(tState, curStepNum) : (RECLAIM_TERRAIN_16_STEPS.find(s => s.step === curStepNum) || RECLAIM_TERRAIN_16_STEPS[0]);
-
-        showScannerProgressModal(`💪 Crafting Your Workout of the Day...`, `Matching Step ${curStepNum} (${phaseProf.focus}) & your equipment...`);
-        try {
-            const prompt = `Generate a fresh "Workout of the Day (WOD)" for Step ${curStepNum} of 16 (${activeStepObj.title}). Phase: ${phaseProf.badge}. Focus: ${phaseProf.focus}. Duration: ${phaseProf.duration}. Rule: ${phaseProf.intensityRule}. Equipment: ${equipChoice}. Hormone season: ${consult.q13_hormone_season || 'General'}. Return ONLY JSON: {"workoutTitle":"Warm Title","phaseBadge":"${phaseProf.badge}","duration":"${phaseProf.duration}","equipment":"${equipChoice}","clinicalWhy":"1-2 sentences","warmUp":["Warm-up 1","Warm-up 2"],"mainCircuitRounds":"Complete 3 Unhurried Rounds (Rest 60s)","exercises":[{"name":"Exercise","reps":"10-12 slow reps","formCue":"Cue"}],"coolDown":["Cool-down 1"]}`;
-            const wodObj = extractCleanJson(await callHoneysuckleScannerEngine(prompt, null));
-            document.getElementById('hh-scanner-progress-modal')?.remove();
-            const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-            const activeDayKey = tState.selectedViewDay || daysOfWeek[(new Date().getDay() + 6) % 7];
-            tState.todaysGeneratedWod = { ...wodObj, generatedDate: new Date().toLocaleDateString(), dayKey: activeDayKey, step: curStepNum, tierKey: phaseProf.tierKey };
-            saveTerrainState(tState); renderReclaimTerrainPillar();
-        } catch (err) { document.getElementById('hh-scanner-progress-modal')?.remove(); alert('⚠️ Could not generate Workout: ' + err.message); }
-    };
-
-    const _preWodSaveTerrainState = window.saveTerrainState;
-    if (typeof _preWodSaveTerrainState === 'function') {
-        window.saveTerrainState = function(stateObj) {
-            const paidRec = getPersistentUnlockRecord();
-            if (paidRec && paidRec.unlocked && stateObj) {
-                stateObj.unlocked = true;
-                stateObj.tier = stateObj.tier || paidRec.tier || 'vip';
-                stateObj.planTier = stateObj.tier;
-                if (paidRec.consultCompleted) {
-                    stateObj.consultCompleted = true;
-                }
-            }
-            _preWodSaveTerrainState(stateObj);
-            purgeDeletedClientsFromRegistry();
-            if (currentUser && currentUser.email && !window.isInteractiveDemoSession()) {
-                const deletedIds = getDeletedClientIds();
-                if (deletedIds.includes(currentUser.id)) return;
-                const registry = getGlobalSharedData('terrain_admin_clients_registry', {});
-                if (registry[currentUser.id]) {
-                    registry[currentUser.id].wodLogs = getLocalData('terrain_wod_history_logs', []);
-                    setGlobalSharedData('terrain_admin_clients_registry', registry);
-                    syncClientToSupabaseTerrainTable(registry[currentUser.id]);
-                }
-            }
-        };
-    }
-
-    window.openAdminClientWodLogModal = function(uid) {
-        const registry = getGlobalSharedData('terrain_admin_clients_registry', {});
-        const client = registry[uid];
-        if (!client) return;
-        const wodLogs = Array.isArray(client.wodLogs) ? client.wodLogs : [];
-        const bioLogs = Array.isArray(client.biofeedback) ? client.biofeedback : [];
-        openUniversalModal(`🏆 Workout & Compliance Log: ${client.name}`, [
-            { name: 'wodList', label: `💪 Completed Workouts (${wodLogs.length} Logged)`, type: 'textarea', rows: 8, value: wodLogs.length ? wodLogs.map((w, i) => `${i + 1}. ${w.date} (${w.dayKey}) • Step ${w.step} — ${w.title} [${w.duration}]`).join('\n') : 'No workouts logged yet.' },
-            { name: 'bioList', label: `📊 Weekly Bio-Feedback Check-Ins (${bioLogs.length})`, type: 'textarea', rows: 6, value: bioLogs.length ? bioLogs.map(b => `• Step ${b.step} (${b.date} • ${b.compliancePct}%): Energy ${b.energy}/10 | Sleep ${b.sleep}/10 | Gut ${b.digestion}/10 | Peace ${b.peace}/10`).join('\n') : 'No bio-feedback scores logged yet.' }
-        ], () => {});
-    };
-
-    window.toggleCompleteTerrainWodToday = function(isChecked) {
-        const tState = getTerrainState();
-        const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-        const activeDayKey = tState.selectedViewDay || daysOfWeek[(new Date().getDay() + 6) % 7];
-        if (!tState.weeklyChecks) tState.weeklyChecks = {};
-        tState.weeklyChecks[`${activeDayKey}_movement`] = !!isChecked;
-        const wodLogs = getLocalData('terrain_wod_history_logs', []);
-        if (isChecked) {
-            const curWod = tState.todaysGeneratedWod;
-            wodLogs.unshift({ id: 'wod_' + Date.now(), date: new Date().toLocaleDateString(), dayKey: activeDayKey, step: tState.currentStep || 1, title: curWod?.workoutTitle || `Step ${tState.currentStep || 1} Movement`, duration: curWod?.duration || '15–20 Mins', badge: curWod?.phaseBadge || `Step ${tState.currentStep || 1}` });
-            setLocalData('terrain_wod_history_logs', wodLogs.slice(0, 60));
-            if (typeof window.awardHubStars === 'function') window.awardHubStars(10, `Logged your Workout of the Day!`);
-        }
-        if (parseInt(tState.currentStep) >= 16) tState.graduated16Steps = true;
-        saveTerrainState(tState); renderReclaimTerrainPillar();
-        if (typeof loadSubscriberDashboardForUser === 'function') loadSubscriberDashboardForUser();
-    };
-
-    // =========================================================================
-    // 6. ENHANCE TERRAIN ADMIN PORTAL (SUBTABS, EDIT/DELETE CLIENTS, HIDE REDUNDANT CONSULT)
-    // =========================================================================
-    function upgradeTerrainPortalAndConsultDOM() {
-        const container = document.getElementById('view-reclaim-terrain');
-        if (!container) return;
-
-        purgeDeletedClientsFromRegistry();
-
-        // A. Remove "Enter Code from Ashton" inputs
-        container.querySelectorAll('input').forEach(inp => {
-            const ph = (inp.getAttribute('placeholder') || '').toLowerCase();
-            if (ph.includes('code') || (inp.id || '').toLowerCase().includes('code')) {
-                const parentBox = inp.closest('div');
-                if (parentBox) parentBox.style.display = 'none';
-            }
-        });
-
-        // Wire buttons on the Terrain screen
-        container.querySelectorAll('button, a').forEach(el => {
-            const txt = (el.textContent || '').toLowerCase();
-            const onclickAttr = (el.getAttribute('onclick') || '').toLowerCase();
-
-            if (isStrictFounderAdmin() && (txt.includes('test') && txt.includes('consult'))) {
-                if (!el.dataset.hhAdminTestWired) {
-                    el.dataset.hhAdminTestWired = 'true';
-                    el.onclick = (e) => {
-                        e.preventDefault();
-                        window._adminShowConsultPreview = !window._adminShowConsultPreview;
-                        if (typeof renderReclaimTerrainPillar === 'function') renderReclaimTerrainPillar();
-                    };
-                }
-                return;
-            }
-
-            if (el.dataset.hhTerrainUpgraded) return;
-            if (txt.includes('code') || onclickAttr.includes('code')) {
-                el.dataset.hhTerrainUpgraded = 'true';
-                el.removeAttribute('onclick');
-                el.textContent = '📋 Start My 20-Question Functional Consult Now →';
-                el.className = 'btn-primary';
-                el.onclick = (e) => { e.preventDefault(); window.unlockAndLoadTerrainConsultNow('vip', false); };
-            }
-        });
-
-        // B. HIDE REDUNDANT BOTTOM 20-QUESTION CONSULT BOX IN ADMIN ACCOUNT
-        if (isStrictFounderAdmin()) {
-            Array.from(container.children).forEach(topChild => {
-                if (topChild.id === 'btn-admin-clinical-summarizer' || topChild.id === 'hh-terrain-ai-wod-studio-card') return;
-                if (topChild.querySelector('button[onclick^="openAdminClientConsultViewer("]')) return;
-                const txt = topChild.textContent || '';
-                if ((txt.includes('PART 1 OF 6') || txt.includes('Save & Next Question') || txt.includes('How heavy does your daily mental load')) && !txt.includes('Client Portal')) {
-                    topChild.style.display = window._adminShowConsultPreview ? 'block' : 'none';
-                }
-            });
-        }
-
-        // C. ADMIN CLIENT PORTAL: SUBTABS ($127 CUSTOM VIP vs $19/MO SELF-PACED) + EDIT & DELETE BUTTONS
-        if (isStrictFounderAdmin()) {
-            const registry = getGlobalSharedData('terrain_admin_clients_registry', {});
-            const deletedIds = getDeletedClientIds();
-            const consultBtns = Array.from(container.querySelectorAll('button[onclick^="openAdminClientConsultViewer("]'));
-
-            let vipCount = 0, guidedCount = 0, totalCount = 0;
-            let clientGridEl = null;
-
-            consultBtns.forEach(btn => {
-                const match = (btn.getAttribute('onclick') || '').match(/'([^']+)'/);
-                const uid = match ? match[1] : null;
-                const cardEl = btn.closest('div[style*="border"]');
-                if (!uid || !cardEl) return;
-
-                if (deletedIds.includes(uid) || !registry[uid]) {
-                    cardEl.style.display = 'none';
-                    return;
-                }
-
-                if (!clientGridEl) clientGridEl = cardEl.parentElement;
-                const clientObj = registry[uid];
-                const isVip = isClientVipCustom(clientObj, cardEl.textContent || '');
-                if (isVip) vipCount++; else guidedCount++;
-                totalCount++;
-
-                const badgePill = Array.from(cardEl.querySelectorAll('span')).find(s => s.textContent.includes('127') || s.textContent.includes('VIP') || s.textContent.includes('19') || s.textContent.includes('SELF') || s.textContent.includes('GUIDED'));
-                if (badgePill) {
-                    if (isVip) {
-                        badgePill.textContent = '👑 $127 VIP CUSTOM';
-                        badgePill.style.cssText = 'background:#FEF5D8; color:#B87612; border:1px solid #B87612; padding:3px 9px; border-radius:999px; font-size:0.7rem; font-weight:700;';
-                    } else {
-                        badgePill.textContent = '🌱 $19/MO SELF-PACED';
-                        badgePill.style.cssText = 'background:#E8F2EC; color:#2E5A44; border:1px solid #2E5A44; padding:3px 9px; border-radius:999px; font-size:0.7rem; font-weight:700;';
-                    }
-                }
-
-                const activeSub = window._adminTerrainSubtab || 'all';
-                const showCard = activeSub === 'all' || (activeSub === 'vip' && isVip) || (activeSub === 'guided' && !isVip);
-                cardEl.style.display = showCard ? '' : 'none';
-
-                if (!btn.dataset.hhAdminActionsInjected) {
-                    btn.dataset.hhAdminActionsInjected = 'true';
-                    const count = Array.isArray(clientObj.wodLogs) ? clientObj.wodLogs.length : 0;
-
-                    const wodBtn = document.createElement('button');
-                    wodBtn.type = 'button'; wodBtn.className = 'icon-btn';
-                    wodBtn.style.cssText = 'background:#FEF5D8; color:var(--primary); border-color:#B87612;';
-                    wodBtn.onclick = () => window.openAdminClientWodLogModal(uid);
-                    wodBtn.innerHTML = `🏆 Workout Log (${count})`;
-                    btn.insertAdjacentElement('afterend', wodBtn);
-
-                    const editBtn = document.createElement('button');
-                    editBtn.type = 'button'; editBtn.className = 'icon-btn';
-                    editBtn.style.cssText = 'background:#E8F2EC; color:var(--sage); border-color:var(--sage);';
-                    editBtn.onclick = () => window.openAdminEditTerrainClientModal(uid);
-                    editBtn.innerHTML = `✏️ Edit`;
-                    wodBtn.insertAdjacentElement('afterend', editBtn);
-
-                    const delBtn = document.createElement('button');
-                    delBtn.type = 'button'; delBtn.className = 'icon-btn del';
-                    delBtn.onclick = () => window.deleteAdminTerrainClient(uid);
-                    delBtn.innerHTML = `🗑️ Delete`;
-                    editBtn.insertAdjacentElement('afterend', delBtn);
-                }
-            });
-
-            if (clientGridEl && !document.getElementById('hh-admin-terrain-subtabs-bar')) {
-                const activeSub = window._adminTerrainSubtab || 'all';
-                const subBar = document.createElement('div');
-                subBar.id = 'hh-admin-terrain-subtabs-bar';
-                subBar.style.cssText = 'display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:14px; padding:10px 12px; background:#FFFDF8; border:1.5px solid var(--border); border-radius:14px;';
-                subBar.innerHTML = `
-                    <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                        <button type="button" class="coach-subtab-btn ${activeSub === 'vip' ? 'active' : ''}" style="padding:7px 14px; font-size:0.8rem;" onclick="setAdminTerrainClientSubtab('vip')">
-                            👑 $127 Custom Clients (Needs Me) (${vipCount})
-                        </button>
-                        <button type="button" class="coach-subtab-btn ${activeSub === 'guided' ? 'active' : ''}" onclick="setAdminTerrainClientSubtab('guided')" style="padding:7px 14px; font-size:0.8rem;">
-                            🌱 $19/mo Self-Paced Clients (${guidedCount})
-                        </button>
-                        <button type="button" class="coach-subtab-btn ${activeSub === 'all' ? 'active' : ''}" onclick="setAdminTerrainClientSubtab('all')" style="padding:7px 14px; font-size:0.8rem;">
-                            📋 All Clients (${totalCount})
-                        </button>
-                    </div>
-                    <button type="button" class="btn-primary" style="padding:7px 14px; font-size:0.78rem;" onclick="openAdminEditTerrainClientModal(null)">
-                        + Add Client
-                    </button>
-                `;
-                clientGridEl.insertAdjacentElement('beforebegin', subBar);
-            }
-        }
-    }
-
-    function injectTerrainWodStudioCard() {
-        if (isInjectingTerrainWod) return;
-        const container = document.getElementById('view-reclaim-terrain');
-        if (!container) return;
-
-        isInjectingTerrainWod = true;
-        try {
-            upgradeTerrainPortalAndConsultDOM();
-
-            const tState = typeof getTerrainState === 'function' ? getTerrainState() : null;
-            if (!tState || (!tState.unlocked && !isStrictFounderAdmin())) return;
-
-            if (isStrictFounderAdmin() && !document.getElementById('btn-admin-clinical-summarizer')) {
-                const adminBar = document.createElement('div');
-                adminBar.id = 'btn-admin-clinical-summarizer';
-                adminBar.className = 'clinical-panel';
-                adminBar.style.cssText = 'background:#fdf8e7; border:2px dashed #b87612; padding:16px 20px; margin-bottom:18px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;';
-                adminBar.innerHTML = `
-                    <div>
-                        <span class="card-tag">👑 Ashton's Practitioner Clinical Summarizer (Admin Only)</span>
-                        <h4 style="font-size:1.15rem; margin-top:2px;">Generate 1-Page Root-Cause Summary & Pre-Draft 16-Step Protocol</h4>
-                        <p style="font-size:0.8rem; margin:0;">Reads all 20 Functional Consult answers and pre-drafts your Practitioner Note & Step 1 adjustments.</p>
-                    </div>
-                    <button type="button" class="btn-primary" style="font-size:0.82rem;" onclick="generatePractitionerClinicalSummary()">
-                        ✨ Generate 1-Page Clinical Intake Summary
-                    </button>
-                `;
-                container.prepend(adminBar);
-            }
-
-            if (!tState.consultCompleted && !isStrictFounderAdmin()) return;
-            if (document.getElementById('hh-terrain-ai-wod-studio-card')) return;
-
-            const curStepNum = Math.max(1, Math.min(16, parseInt(tState.currentStep) || 1));
-            const isGraduate = curStepNum >= 16 || tState.graduated16Steps === true;
-            const gradTier = tState.graduateWodTier || (isGraduate ? 'intermediate' : 'phase_matched');
-            const equipPref = tState.preferredWodEquip || 'Dumbbells, Kettlebell or Household Water Jugs';
-            const phaseProf = window.getTerrainPhaseProfile(curStepNum, gradTier);
-            const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-            const activeDayKey = tState.selectedViewDay || daysOfWeek[(new Date().getDay() + 6) % 7];
-            const isMovementDoneToday = Boolean(tState.weeklyChecks && tState.weeklyChecks[`${activeDayKey}_movement`]);
-            const wod = tState.todaysGeneratedWod;
-
-            const card = document.createElement('div');
-            card.id = 'hh-terrain-ai-wod-studio-card';
-            card.className = 'clinical-panel';
-            card.style.cssText = 'background: linear-gradient(145deg, #FFFDF8 0%, #E8F2EC 100%); border: 2.5px solid var(--sage); margin-bottom: 20px;';
-            card.innerHTML = `
-                <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px; border-bottom:1.5px solid var(--border); padding-bottom:12px; margin-bottom:14px;">
-                    <div>
-                        <span class="card-tag" style="background:var(--sage); color:#fff;">💪Workout of the Day (WOD) Studio • Auto-Matched to Your Plan</span>
-                        <h3 style="font-size:1.45rem; color:var(--primary); margin:4px 0 2px 0;">${isGraduate ? '🎓 Graduate Strength & Conditioning Generator' : `Phase ${phaseProf.phaseNum} Custom Workout Generator (Step ${curStepNum})`}</h3>
-                        <p style="font-size:0.83rem; color:var(--text-main); margin:0;">${escapeSafeHtml(phaseProf.focus)} (${escapeSafeHtml(phaseProf.duration)})</p>
-                    </div>
-                    <button type="button" class="btn-primary" style="background:linear-gradient(135deg, #2E5A44 0%, #1F4230 100%); border-color:#173325; font-size:0.84rem; padding:10px 18px;" onclick="generateAiTerrainWorkoutOfTheDay()">
-                        ✨ ${wod ? 'Generate Fresh Workout Variation' : 'Generate My Workout of the Day'}
-                    </button>
-                </div>
-                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:10px; margin-bottom:14px; background:#ffffff; padding:12px; border-radius:12px; border:1px solid var(--border);">
-                    <div>
-                        <label style="font-size:0.75rem; font-weight:700; color:var(--sage); display:block; margin-bottom:4px;">🛠️ Equipment Available Today:</label>
-                        <select id="hh-wod-equip-sel" style="width:100%; padding:7px 10px; border:1px solid var(--border); border-radius:8px; font-size:0.82rem; font-weight:600; background:var(--bg-warm-cream);">
-                            <option value="Bodyweight Only (Zero Equipment / Living Room Rug)" ${equipPref.includes('Bodyweight') ? 'selected' : ''}>🤸‍♀️ Bodyweight Only (Living Room Rug / Counter)</option>
-                            <option value="Dumbbells, Kettlebell or Household Water Jugs" ${equipPref.includes('Dumbbells') ? 'selected' : ''}>🏋️‍♀️ Dumbbells, Kettlebell or Gallon Water Jugs</option>
-                            <option value="Resistance Bands & Bodyweight" ${equipPref.includes('Bands') ? 'selected' : ''}>🎗️ Resistance Bands & Bodyweight</option>
-                            <option value="Outdoor Walk / Stroller / Porch Only" ${equipPref.includes('Outdoor') ? 'selected' : ''}>👟 Outdoor Walk / Porch / Stroller Only</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label style="font-size:0.75rem; font-weight:700; color:var(--primary); display:block; margin-bottom:4px;">📈 Phase Pacing / Graduate Level:</label>
-                        <select id="hh-wod-grad-tier-sel" onchange="setTerrainGraduateWodTier(this.value)" style="width:100%; padding:7px 10px; border:1.5px solid var(--border); border-radius:8px; font-size:0.82rem; font-weight:700; background:#FEF5D8; color:var(--text-main);">
-                            ${!isGraduate ? `<option value="phase_matched" ${gradTier === 'phase_matched' ? 'selected' : ''}>🌱 Auto-Match My Current Phase (Phase ${phaseProf.phaseNum} • Step ${curStepNum})</option>` : ''}
-                            <option value="intermediate" ${(isGraduate && gradTier !== 'advanced') || gradTier === 'intermediate' ? 'selected' : ''}>🌟 Graduate Intermediate (20–25 Min Progressive Strength)</option>
-                            <option value="advanced" ${gradTier === 'advanced' ? 'selected' : ''}>🔥 Graduate Advanced (25–30 Min Tempo Supersets & Finisher)</option>
-                        </select>
-                    </div>
-                </div>
-                <div style="background:#ffffff; border:1.5px solid var(--border); border-radius:14px; padding:12px 14px; margin-bottom:14px;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:8px;">
-                        <div style="display:flex; align-items:center; gap:10px;">
-                            <span id="hh-wod-timer-display" style="font-family:var(--font-serif); font-size:1.85rem; font-weight:700; color:var(--primary); background:var(--bg-warm-cream); padding:2px 12px; border-radius:10px; border:1px solid var(--border); min-width:86px; text-align:center;">01:00</span>
-                            <div>
-                                <strong style="font-size:0.8rem; color:var(--sage); display:block;">⏱️ Built-In Set & Cortisol-Calm Rest Timer</strong>
-                                <span id="hh-wod-timer-status" style="font-size:0.74rem; color:var(--text-muted);">Tap any preset below — plays a gentle chime when done!</span>
-                            </div>
-                        </div>
-                        <div style="display:flex; gap:5px; flex-wrap:wrap;">
-                            <button type="button" class="icon-btn" onclick="startTerrainWodTimer(30, '30-Sec Carry / Core Hold')">▶ 30s Hold</button>
-                            <button type="button" class="icon-btn" onclick="startTerrainWodTimer(45, '45-Sec Work Interval')">▶ 45s Work</button>
-                            <button type="button" class="icon-btn" style="background:var(--sage-soft); color:var(--sage); border-color:var(--sage);" onclick="startTerrainWodTimer(60, '60-Sec Cortisol-Calm Rest')">▶ 60s Rest</button>
-                            <button type="button" class="icon-btn" onclick="startTerrainWodTimer(90, '90-Sec Parasympathetic Release')">▶ 90s Release</button>
-                            <button type="button" class="icon-btn del" onclick="stopTerrainWodTimer()">⏹️ Reset</button>
-                        </div>
-                    </div>
-                    <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; padding-top:8px; border-top:1px dashed var(--border);">
-                        <span style="font-size:0.74rem; font-weight:700; color:var(--text-muted); margin-right:4px;">Track Your Rounds:</span>
-                        ${[1, 2, 3, 4].map(rNum => `<button type="button" id="hh-wod-round-pill-${rNum}" data-done="false" onclick="toggleTerrainWodRoundPill(${rNum})" style="padding:4px 11px; border-radius:999px; font-size:0.74rem; font-weight:700; cursor:pointer; background:#ffffff; color:var(--text-main); border:1px solid var(--border);">⬜ Round ${rNum}</button>`).join('')}
-                    </div>
-                </div>
-                ${wod ? `
-                    <div style="background:#ffffff; border:2px solid var(--border); border-radius:16px; padding:18px; margin-bottom:14px;">
-                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
-                            <span class="card-tag">${escapeSafeHtml(wod.phaseBadge || phaseProf.badge)}</span>
-                            <span style="font-size:0.78rem; font-weight:700; color:var(--sage);">⏱️ ${escapeSafeHtml(wod.duration || phaseProf.duration)} • 🛠️ ${escapeSafeHtml(wod.equipment || equipPref)}</span>
-                        </div>
-                        <h4 style="font-size:1.3rem; color:var(--primary); margin:0 0 6px 0;">${escapeSafeHtml(wod.workoutTitle || 'Today\'s Terrain Workout')}</h4>
-                        <p style="font-size:0.82rem; color:var(--text-main); background:#FEF5D8; padding:8px 12px; border-radius:8px; border-left:3px solid var(--primary); margin-bottom:12px;"><strong>🧠 Clinical Why:</strong> ${escapeSafeHtml(wod.clinicalWhy || '')}</p>
-                        ${Array.isArray(wod.warmUp) && wod.warmUp.length ? `<div style="margin-bottom:10px;"><strong style="font-size:0.82rem; color:var(--sage); display:block; margin-bottom:4px;">☀️ 1. Warm-Up:</strong>${wod.warmUp.map(w => `<div style="font-size:0.84rem; padding:2px 0;">• ${escapeSafeHtml(w)}</div>`).join('')}</div>` : ''}
-                        <div style="margin-bottom:10px;">
-                            <strong style="font-size:0.82rem; color:var(--primary); display:block; margin-bottom:6px;">💪 2. Main Circuit (${escapeSafeHtml(wod.mainCircuitRounds || 'Complete 2–3 Smooth Rounds')}):</strong>
-                            <div style="display:flex; flex-direction:column; gap:8px;">
-                                ${(wod.exercises || []).map((ex, i) => `<div style="background:var(--bg-warm-cream); border:1px solid var(--border); border-radius:10px; padding:10px 12px;"><div style="display:flex; justify-content:space-between; align-items:center;"><strong>${i + 1}. ${escapeSafeHtml(ex.name)}</strong><span class="status-pill-pub" style="font-size:0.75rem;">${escapeSafeHtml(ex.reps)}</span></div><div style="font-size:0.8rem; color:var(--text-muted); margin-top:3px;"><em>Cue:</em> ${escapeSafeHtml(ex.formCue || '')}</div></div>`).join('')}
-                            </div>
-                        </div>
-                        ${Array.isArray(wod.coolDown) && wod.coolDown.length ? `<div><strong style="font-size:0.82rem; color:var(--sage); display:block; margin-bottom:4px;">🌙 3. Cool-Down:</strong>${wod.coolDown.map(c => `<div style="font-size:0.84rem; padding:2px 0;">• ${escapeSafeHtml(c)}</div>`).join('')}</div>` : ''}
-                    </div>
-                ` : ''}
-                <label style="background:${isMovementDoneToday ? '#DCFCE7' : '#FEF5D8'}; border:2px solid ${isMovementDoneToday ? '#15803D' : '#B87612'}; border-radius:14px; padding:14px 18px; display:flex; align-items:center; gap:12px; cursor:pointer;">
-                    <input type="checkbox" ${isMovementDoneToday ? 'checked' : ''} onchange="toggleCompleteTerrainWodToday(this.checked)" style="width:24px; height:24px; accent-color:var(--sage); flex-shrink:0;">
-                    <div>
-                        <strong style="font-size:0.96rem; color:${isMovementDoneToday ? '#15803D' : 'var(--primary)'}; display:block;">${isMovementDoneToday ? `✅ ${activeDayKey}'s Workout Logged & Synced! (+10 ⭐)` : `⬜ Check Here to Log ${activeDayKey}'s Workout Complete (+10 ⭐ Stars)`}</strong>
-                        <span style="font-size:0.78rem; color:var(--text-main);">Automatically checks off today's Movement habit on your Step ${curStepNum} checklist!</span>
-                    </div>
-                </label>
-            `;
-
-            const firstLeftPanel = container.querySelector('div[style*="grid-template-columns"] > div:first-child');
-            if (firstLeftPanel && !firstLeftPanel.querySelector('button[onclick^="openAdminClientConsultViewer("]')) {
-                firstLeftPanel.prepend(card);
-            } else {
-                container.appendChild(card);
-            }
-        } finally {
-            isInjectingTerrainWod = false;
-        }
-    }
-
-    const _preWodRenderTerrain = window.renderReclaimTerrainPillar;
-    if (typeof _preWodRenderTerrain === 'function') {
-        window.renderReclaimTerrainPillar = function() {
-            purgeDeletedClientsFromRegistry();
-            _preWodRenderTerrain();
-            injectTerrainWodStudioCard();
-        };
-    }
-
-    // =========================================================================
-    // 7. INJECT ALL CAMERA, APOTHECARY OIL LINK & VOICE BUTTONS ACROSS PILLARS
-    // =========================================================================
-    function injectAllSmartHubButtons() {
-        injectTerrainWodStudioCard();
-        injectApothecaryEssentialOilLearnMoreBtn();
-
-        const invHeaderBtnGroup = document.querySelector('#food-tab-homestead-inventory .clinical-panel div[style*="display: flex; gap: 8px"]');
-        if (invHeaderBtnGroup && !document.getElementById('btn-ai-scan-inventory')) {
-            const scanBtn = document.createElement('button');
-            scanBtn.type = 'button'; scanBtn.id = 'btn-ai-scan-inventory'; scanBtn.className = 'btn-primary';
-            scanBtn.style.cssText = 'background: linear-gradient(135deg, #2E5A44 0%, #1F4230 100%); border-color: #173325;';
-            scanBtn.onclick = window.triggerAiInventoryPhotoPicker;
-            scanBtn.innerHTML = '📷 Snap Fridge, Pantry or Receipt';
-            invHeaderBtnGroup.prepend(scanBtn);
-        }
-
-        const dsHeader = document.querySelector('#food-tab-ditch-switch .clinical-panel > div:first-child');
-        if (dsHeader && !document.getElementById('btn-ai-scan-toxin-label')) {
-            const labelBtn = document.createElement('button');
-            labelBtn.type = 'button'; labelBtn.id = 'btn-ai-scan-toxin-label'; labelBtn.className = 'btn-primary';
-            labelBtn.style.cssText = 'background: linear-gradient(135deg, #2E5A44 0%, #1F4230 100%); border-color: #173325;';
-            labelBtn.onclick = window.triggerAiToxinLabelScanner;
-            labelBtn.innerHTML = '📷 Scan Product Ingredient Label';
-            dsHeader.appendChild(labelBtn);
-        }
-
-        const recHeaderBtnGroup = document.querySelector('#tool-tab-recipe-vault .clinical-panel div[style*="display: flex; gap: 8px"]');
-        if (recHeaderBtnGroup && !document.getElementById('btn-ai-scan-recipe-card')) {
-            const recScanBtn = document.createElement('button');
-            recScanBtn.type = 'button'; recScanBtn.id = 'btn-ai-scan-recipe-card'; recScanBtn.className = 'btn-secondary';
-            recScanBtn.style.cssText = 'border-color: var(--sage); color: var(--sage); background: var(--sage-soft);';
-            recScanBtn.onclick = window.triggerAiRecipePhotoScanner;
-            recScanBtn.innerHTML = '📷 Snap Recipe Card / Cookbook';
-            recHeaderBtnGroup.prepend(recScanBtn);
-        }
-
-        const apoHeader = document.querySelector('#apo-pillar-materia-medica .clinical-panel > div:first-child');
-        if (apoHeader && !document.getElementById('btn-apo-camera-scanner')) {
-            const btnWrap = document.createElement('div');
-            btnWrap.id = 'btn-apo-camera-scanner';
-            btnWrap.style.cssText = 'display:flex; gap:8px; flex-wrap:wrap;';
-            btnWrap.innerHTML = `
-                <button type="button" class="btn-primary" style="background:linear-gradient(135deg, #2E5A44 0%, #1F4230 100%); border-color:#173325;" onclick="triggerApothecaryPhotoScanner()">🌿 Snap Herb, Oil or Remedy Matcher</button>
-                <button type="button" class="btn-secondary" onclick="triggerAiToxinLabelScanner()">🔍 Scan Product Label</button>
-            `;
-            apoHeader.appendChild(btnWrap);
-        }
-
-        const schoolCurrHeader = document.querySelector('#school-tab-curriculum-intake .clinical-panel > div:first-child');
-        if (schoolCurrHeader && !document.getElementById('btn-school-toc-scanner')) {
-            const tocBtn = document.createElement('button');
-            tocBtn.type = 'button'; tocBtn.id = 'btn-school-toc-scanner'; tocBtn.className = 'btn-primary';
-            tocBtn.style.cssText = 'background: linear-gradient(135deg, #2E5A44 0%, #1F4230 100%); border-color: #173325;';
-            tocBtn.onclick = window.triggerHomeschoolTocScanner;
-            tocBtn.innerHTML = '📷 Snap Table of Contents (Auto-Schedule Book)';
-            schoolCurrHeader.appendChild(tocBtn);
-        }
-
-        const seedHeader = document.querySelector('#homestead-tab-garden-seeds .clinical-panel > div:first-child');
-        if (seedHeader && !document.getElementById('btn-garden-leaf-scanner')) {
-            const gBtn = document.createElement('button');
-            gBtn.type = 'button'; gBtn.id = 'btn-garden-leaf-scanner'; gBtn.className = 'btn-primary';
-            gBtn.style.cssText = 'background: linear-gradient(135deg, #2E5A44 0%, #1F4230 100%); border-color: #173325;';
-            gBtn.onclick = () => window.triggerHomesteadDiagnosticScanner('garden');
-            gBtn.innerHTML = '🌱 Snap Garden Leaf or Pest Identifier';
-            seedHeader.appendChild(gBtn);
-        }
-
-        const barnHeader = document.querySelector('#homestead-tab-barnyard-animals .clinical-panel > div:first-child');
-        if (barnHeader && !document.getElementById('btn-flock-symptom-scanner')) {
-            const fBtn = document.createElement('button');
-            fBtn.type = 'button'; fBtn.id = 'btn-flock-symptom-scanner'; fBtn.className = 'btn-primary';
-            fBtn.style.cssText = 'background: linear-gradient(135deg, #2E5A44 0%, #1F4230 100%); border-color: #173325;';
-            fBtn.onclick = () => window.triggerHomesteadDiagnosticScanner('flock');
-            fBtn.innerHTML = '🐓 Snap Chick or Barnyard Symptom Identifier';
-            barnHeader.appendChild(fBtn);
-        }
-    }
-
-    window.addEventListener('focus', checkAndSyncTerrainEnrollmentStatus);
-    [400, 1100, 2200, 3800].forEach(ms => setTimeout(checkAndSyncTerrainEnrollmentStatus, ms));
-    setTimeout(injectAllSmartHubButtons, 650);
-    window.addEventListener('hashchange', () => setTimeout(injectAllSmartHubButtons, 300));
-    document.addEventListener('click', () => setTimeout(injectAllSmartHubButtons, 200));
-})();
-</script>
-
 <!-- =========================================================================
-     HONEYSUCKLE HUB — COMPLETE UNIFIED MASTER ENGINE (FINAL)
-     Replaces all bottom patch blocks with ONE conflict-free engine:
-     1. Full Forest-Green Public Landing Page (Always replaces old cream page)
-     2. Supabase Username/Email + Password Signup, Member Login & Cloud Sync
-     3. Streamlined 5-Pillar Navigation (Today, Kitchen, Clean Swaps, Apothecary, Homeschool)
+     HONEYSUCKLE HUB — MASTER PRODUCTION ENGINE (ALL-IN-ONE CLEANED BUILD)
+     Includes & Synchronizes:
+     1. Forest-Green Public Landing Page (Directly mounts into #landing-view)
+     2. Supabase Username/Email + Password Signup, Login & Cloud Profile Sync
+     3. Clean 5-Pillar Navigation (Today, Kitchen, Clean Swaps, Apothecary, Toggleable Homeschool)
      4. "Playing Catch-Up" 45-Min Reset Sprint + Contextual Clean Swap Pills
-     5. 7-Store Clean-Brand Concierge, 30-Sec Fridge Check & 102+ Dish Photos
-     6. Printable Mom/Kids Checklists & 6-Part Motion Physics
+     5. 7-Store Clean-Brand Concierge, 30-Sec Fridge Check & 102+ Exact Dish Photos
+     6. Smart Camera Scanners (Labels, Recipes, Apothecary, Homeschool TOC) & Voice Brain Dump
+     7. Printable Mom/Kids Checklists, Support Mailbox & 6-Part Motion Physics
      ========================================================================= -->
 <script>
 (function() {
@@ -17946,11 +16306,16 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
     const TERRAIN_CLEAN_IMG = 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=700&q=80';
     const DAY_NAMES_FULL = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-    window.escapeSafeHtml = window.escapeSafeHtml || function(str) {
+    // 0. Define escapeSafeHtml FIRST so no scanner, modal, or checklist ever throws a ReferenceError
+    window.escapeSafeHtml = function(str) {
         return String(str === undefined || str === null ? '' : str)
-            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
     };
+    const escapeSafeHtml = window.escapeSafeHtml;
 
     function getSbClient() {
         if (window.supabaseClient && window.supabaseClient.auth) return window.supabaseClient;
@@ -17971,7 +16336,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
     }
 
     // =========================================================================
-    // 1. PRICING & MEMBERSHIP CONFIGURATION
+    // 1. PRICING, STRIPE CHECKOUT LINKS & STEWARD ACCESS GATEKEEPER
     // =========================================================================
     const DEFAULT_MEMBERSHIP_SETTINGS = {
         regularStewardPrice: '$29/month',
@@ -18011,12 +16376,29 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         try {
             const curr = typeof currentUser !== 'undefined' ? currentUser : JSON.parse(localStorage.getItem('hh_current_user') || '{}');
             if (curr?.tier === 'paid_steward' || curr?.role === 'Full Hub Steward') return true;
+            const email = (curr?.email || localStorage.getItem('hh_logged_in_user_email') || '').trim().toLowerCase();
+            if (email && typeof getGlobalSharedData === 'function') {
+                const unlockedEmails = getGlobalSharedData('hh_paid_steward_emails', []) || [];
+                if (Array.isArray(unlockedEmails) && unlockedEmails.includes(email)) return true;
+            }
         } catch (e) {}
         return false;
     };
 
+    // Auto-unlock after Stripe redirect (?hub_paid=success)
+    try {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('hub_paid') === 'success' || params.get('steward_unlock') === 'true') {
+            localStorage.setItem('hh_full_hub_paid_steward', JSON.stringify({
+                unlocked: true, unlockedAt: new Date().toISOString(), method: 'stripe_redirect'
+            }));
+            window.history.replaceState({}, document.title, window.location.pathname);
+            setTimeout(() => alert('🌻 Welcome to Full Hub Steward Membership! All pillars, 7-Store Brand Guides, Clean Swaps, Apothecary, and Homeschool tools are unlocked.'), 400);
+        }
+    } catch (e) {}
+
     // =========================================================================
-    // 2. SCOPED STYLES FOR GREEN LANDING PAGE, IN-APP COACH & MOTION PHYSICS
+    // 2. MASTER CSS (GREEN LANDING PAGE, TODAY COACH, PHOTOS & MOTION PHYSICS)
     // =========================================================================
     if (!document.getElementById('hh-master-unified-styles')) {
         const st = document.createElement('style');
@@ -18145,7 +16527,23 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                 border-left: 7px solid #059669 !important;
                 opacity: 0.88;
             }
-            /* Motion Physics */
+            .hh-card-hero-img-wrap {
+                position: relative;
+                width: 100%;
+                height: 160px;
+                border-radius: 14px;
+                overflow: hidden;
+                margin-bottom: 12px;
+                border: 1.5px solid var(--border);
+                background: #FAF5E8;
+            }
+            .hh-card-hero-img-wrap img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                display: block;
+            }
+            /* Motion Physics: 500ms Sink & Spring + 470ms Draw-the-Win SVG */
             button, .btn-primary, .btn-secondary, .icon-btn {
                 transform-origin: center center;
                 will-change: transform;
@@ -18163,12 +16561,35 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             .hh-btn-springing {
                 animation: hhBtnSpringBack 500ms cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
             }
+            .hh-draw-win-badge {
+                width: 26px; height: 26px;
+                display: inline-flex; align-items: center; justify-content: center;
+                flex-shrink: 0; cursor: pointer;
+            }
+            .hh-draw-win-svg {
+                width: 26px; height: 26px; overflow: visible;
+                filter: drop-shadow(0 0 6px rgba(16, 185, 129, 0.45));
+            }
+            .hh-draw-win-circle {
+                fill: #059669; fill-opacity: 0; stroke: #10B981; stroke-width: 2.5;
+                stroke-dasharray: 76; stroke-dashoffset: 76;
+                animation: hhDrawCircle 260ms ease forwards, hhFillCircle 200ms ease 220ms forwards;
+            }
+            .hh-draw-win-tick {
+                fill: none; stroke: #ffffff; stroke-width: 2.6;
+                stroke-linecap: round; stroke-linejoin: round;
+                stroke-dasharray: 24; stroke-dashoffset: 24;
+                animation: hhDrawTick 210ms ease 260ms forwards;
+            }
+            @keyframes hhDrawCircle { to { stroke-dashoffset: 0; } }
+            @keyframes hhFillCircle { to { fill-opacity: 1; } }
+            @keyframes hhDrawTick   { to { stroke-dashoffset: 0; } }
         `;
         document.head.appendChild(st);
     }
 
     // =========================================================================
-    // 3. GREEN-BACKGROUND PUBLIC LANDING PAGE (UNCONDITIONALLY REPLACES OLD CREAM PAGE)
+    // 3. FOREST-GREEN PUBLIC LANDING PAGE (DIRECTLY MOUNTS INTO #landing-view)
     // =========================================================================
     const DEMO_STORE_PREVIEW_DATA = {
         walmart: { label: '🔵 Walmart (In-Store & Curbside)', color: '#0071DC', items: [
@@ -18356,7 +16777,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                 </div>
             </div>
 
-            <!-- 6 VISUAL PHOTO FEATURE CARDS (UPDATED FOR SIMPLIFIED 5-PILLAR FLOW) -->
+            <!-- 6 VISUAL PHOTO FEATURE CARDS -->
             <div id="hh-main-lp-features" style="padding:28px 26px 48px 26px; max-width:1120px; margin:0 auto;">
                 <div style="text-align:center; max-width:720px; margin:0 auto 34px auto;">
                     <span class="card-tag" style="background:var(--sage, #2E5A44); color:#fff;">🌟 Simple On Top, Powerful Underneath</span>
@@ -18369,7 +16790,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                 </div>
 
                 <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(310px, 1fr)); gap:22px;">
-                    <!-- Card 1 -->
                     <div class="hh-b3-feature-card">
                         <img src="https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=700&q=80" alt="Grocery Store Concierge" style="width:100%; height:180px; object-fit:cover;">
                         <div style="padding:18px 20px; flex:1; display:flex; flex-direction:column; justify-content:space-between;">
@@ -18384,7 +16804,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                         </div>
                     </div>
 
-                    <!-- Card 2 -->
                     <div class="hh-b3-feature-card">
                         <img src="https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=700&q=80" alt="Whole Food Family Meals" style="width:100%; height:180px; object-fit:cover;">
                         <div style="padding:18px 20px; flex:1; display:flex; flex-direction:column; justify-content:space-between;">
@@ -18399,7 +16818,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                         </div>
                     </div>
 
-                    <!-- Card 3 -->
                     <div class="hh-b3-feature-card">
                         <img src="https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=700&q=80" alt="Peaceful Home Rhythm" style="width:100%; height:180px; object-fit:cover;">
                         <div style="padding:18px 20px; flex:1; display:flex; flex-direction:column; justify-content:space-between;">
@@ -18414,7 +16832,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                         </div>
                     </div>
 
-                    <!-- Card 4 -->
                     <div class="hh-b3-feature-card">
                         <img src="https://images.unsplash.com/photo-1585421514738-01798e348b17?auto=format&fit=crop&w=700&q=80" alt="Clean Swaps Vault" style="width:100%; height:180px; object-fit:cover;">
                         <div style="padding:18px 20px; flex:1; display:flex; flex-direction:column; justify-content:space-between;">
@@ -18429,7 +16846,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                         </div>
                     </div>
 
-                    <!-- Card 5 -->
                     <div class="hh-b3-feature-card">
                         <img src="https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?auto=format&fit=crop&w=700&q=80" alt="Folk Apothecary & Toggleable Homeschool" style="width:100%; height:180px; object-fit:cover;">
                         <div style="padding:18px 20px; flex:1; display:flex; flex-direction:column; justify-content:space-between;">
@@ -18444,7 +16860,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                         </div>
                     </div>
 
-                    <!-- Card 6 -->
                     <div class="hh-b3-feature-card">
                         <img src="${TERRAIN_CLEAN_IMG}" alt="Reclaim Your Terrain" style="width:100%; height:180px; object-fit:cover;">
                         <div style="padding:18px 20px; flex:1; display:flex; flex-direction:column; justify-content:space-between;">
@@ -18571,40 +16986,39 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         `;
     };
 
-    // Unconditionally replace the old cream "Stop Juggling 5 Apps" screen with the Green Landing Page!
+    // Directly targets #landing-view so the Green Landing Page ALWAYS replaces the old cream screen!
     function mountBestBlock3LandingPage() {
         if (document.getElementById('hh-new-landing-master-wrap')) return;
 
-        const candidates = Array.from(document.querySelectorAll('h1, h2, div, section, header'));
-        const markerEl = candidates.find(el => {
-            const t = (el.textContent || '');
-            return t.includes('Stop Juggling 5 Apps') || (t.includes('6 Smart Scanners') && t.includes('4 Comfort Levels'));
-        });
-
-        if (!markerEl) return;
-
-        let oldRoot = markerEl;
-        while (oldRoot.parentElement && oldRoot.parentElement !== document.body) {
-            if (oldRoot.parentElement.querySelector('#view-food, #view-reclaim-terrain, #ab-grocery-list')) {
-                break;
+        let targetContainer = document.getElementById('landing-view');
+        if (!targetContainer) {
+            const markerEl = Array.from(document.querySelectorAll('h1, h2, div, section')).find(el => {
+                const t = (el.textContent || '');
+                return t.includes('Stop Juggling 5 Apps') || (t.includes('6 Smart Scanners') && t.includes('4 Comfort Levels'));
+            });
+            if (!markerEl) return;
+            targetContainer = markerEl;
+            while (targetContainer.parentElement && targetContainer.parentElement !== document.body) {
+                if (targetContainer.parentElement.querySelector('#view-food, #view-home, #dashboard-container')) break;
+                targetContainer = targetContainer.parentElement;
             }
-            oldRoot = oldRoot.parentElement;
         }
 
-        // Rescue any modals inside oldRoot before hiding oldRoot's children
-        oldRoot.querySelectorAll('[id*="auth"], [id*="login"], .modal-overlay').forEach(modalEl => {
+        // Rescue any modals inside targetContainer so they stay in document.body
+        targetContainer.querySelectorAll('[id*="auth"], [id*="login"], .modal-overlay').forEach(modalEl => {
             document.body.appendChild(modalEl);
         });
 
-        Array.from(oldRoot.children).forEach(ch => {
+        // Hide the old cream children inside #landing-view and prepend the Green Landing Page
+        Array.from(targetContainer.children).forEach(ch => {
             ch.style.display = 'none';
         });
 
-        window._legacyLandingWrapperEl = oldRoot;
+        window._legacyLandingWrapperEl = targetContainer;
         const newWrap = document.createElement('div');
         newWrap.id = 'hh-new-landing-master-wrap';
         newWrap.innerHTML = window.buildMainLandingPageHTML();
-        oldRoot.prepend(newWrap);
+        targetContainer.prepend(newWrap);
 
         setTimeout(() => window.switchLandingStoreDemo('walmart'), 30);
     }
@@ -18679,24 +17093,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         }, 350);
     };
 
-    function hideOldDuplicateLandingNavbarOnly() {
-        const homeView = document.getElementById('view-home') || document.getElementById('view-food');
-        const demoBtn = Array.from(document.querySelectorAll('button, a')).find(b => {
-            const t = (b.textContent || '').trim();
-            return t.includes('Demo the App Free') || t.includes('See Plans & Join');
-        });
-        if (!demoBtn) return;
-        let bar = demoBtn.parentElement;
-        while (bar && bar !== document.body) {
-            if (bar.querySelector('#hh-new-landing-master-wrap') || (homeView && bar.contains(homeView))) break;
-            if (bar.tagName === 'NAV' || bar.tagName === 'HEADER' || bar.offsetHeight < 140) {
-                bar.style.setProperty('display', 'none', 'important');
-                break;
-            }
-            bar = bar.parentElement;
-        }
-    }
-
     window.enterHubDashboardCleanly = function(accountObj) {
         const isPaidOrAdmin = accountObj.tier === 'paid_steward' || accountObj.email === FOUNDER_EMAIL;
         window._adminSimulateFreeTier = !isPaidOrAdmin;
@@ -18730,43 +17126,24 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             el.style.setProperty('display', 'none', 'important');
         });
 
-        const homeView = document.getElementById('view-home') || document.getElementById('view-food');
+        // Explicitly toggle #landing-view OFF and #dashboard-container ON!
+        document.body.classList.add('is-logged-in');
+        const lv = document.getElementById('landing-view');
+        if (lv) lv.style.setProperty('display', 'none', 'important');
         const newLandingMaster = document.getElementById('hh-new-landing-master-wrap');
-        if (newLandingMaster) {
-            newLandingMaster.style.setProperty('display', 'none', 'important');
-            let lpParent = newLandingMaster.parentElement;
-            while (lpParent && lpParent !== document.body) {
-                if (homeView && lpParent.contains(homeView)) {
-                    lpParent.style.setProperty('min-height', '0', 'important');
-                    lpParent.style.setProperty('padding-top', '0', 'important');
-                    lpParent.style.setProperty('margin-top', '0', 'important');
-                    break;
-                }
-                lpParent.style.setProperty('display', 'none', 'important');
-                lpParent.style.setProperty('min-height', '0', 'important');
-                lpParent.style.setProperty('height', '0', 'important');
-                lpParent = lpParent.parentElement;
-            }
-        }
+        if (newLandingMaster) newLandingMaster.style.setProperty('display', 'none', 'important');
 
-        hideOldDuplicateLandingNavbarOnly();
+        const dash = document.getElementById('dashboard-container');
+        if (dash) dash.style.setProperty('display', 'flex', 'important');
 
+        const homeView = document.getElementById('view-home') || document.getElementById('view-food');
         let curr = homeView;
         while (curr && curr !== document.body && curr !== document.documentElement) {
             curr.classList.remove('hidden', 'd-none', 'is-hidden');
             if (curr.style.display === 'none' || window.getComputedStyle(curr).display === 'none') {
-                curr.style.setProperty('display', 'block', 'important');
+                curr.style.setProperty('display', curr.id === 'dashboard-container' ? 'flex' : 'block', 'important');
             }
             curr = curr.parentElement;
-        }
-
-        const inAppHeader = Array.from(document.querySelectorAll('header, div')).find(el => {
-            const t = (el.textContent || '');
-            return t.includes('Alerts') && t.includes('Menu') && !t.includes('See Plans & Join');
-        });
-        if (inAppHeader) {
-            const headerRoot = inAppHeader.closest('header') || inAppHeader;
-            headerRoot.style.setProperty('display', 'flex', 'important');
         }
 
         ['updateAuthUI', 'initApp', 'renderAll'].forEach(fnName => {
@@ -18782,7 +17159,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         window.scrollTo({ top: 0, behavior: 'instant' });
     };
 
-    // Clean Sign Out -> Returns user directly to the Green Landing Page!
     window.logoutAndShowGreenLandingPage = function() {
         try {
             localStorage.removeItem(ACTIVE_SESSION_KEY);
@@ -18793,16 +17169,16 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         window.currentUser = null;
         try { if (typeof currentUser !== 'undefined') currentUser = null; } catch (e) {}
 
+        document.body.classList.remove('is-logged-in');
+        const dash = document.getElementById('dashboard-container');
+        if (dash) dash.style.setProperty('display', 'none', 'important');
+
         mountBestBlock3LandingPage();
+        const lv = document.getElementById('landing-view');
+        if (lv) lv.style.setProperty('display', 'block', 'important');
         const newLandingMaster = document.getElementById('hh-new-landing-master-wrap');
-        if (newLandingMaster) {
-            newLandingMaster.style.setProperty('display', 'block', 'important');
-            let p = newLandingMaster.parentElement;
-            while (p && p !== document.body) {
-                p.style.setProperty('display', 'block', 'important');
-                p = p.parentElement;
-            }
-        }
+        if (newLandingMaster) newLandingMaster.style.setProperty('display', 'block', 'important');
+
         window.scrollTo({ top: 0, behavior: 'instant' });
     };
 
@@ -19050,7 +17426,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
 
         if (loginBtn) loginBtn.innerHTML = '🌻 Log In to My Hub &rarr;';
         if (errBox) {
-            errBox.innerHTML = `No account found matching <strong>${window.escapeSafeHtml(idVal)}</strong>. Click <strong>"Create Free Account"</strong> below to register!`;
+            errBox.innerHTML = `No account found matching <strong>${escapeSafeHtml(idVal)}</strong>. Click <strong>"Create Free Account"</strong> below to register!`;
             errBox.style.display = 'block';
         }
     };
@@ -19102,14 +17478,14 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             <div style="background:#FFFDF8; width:100%; max-width:640px; border-radius:24px; padding:28px; border:3px solid #2E5A44; box-shadow:0 25px 65px rgba(0,0,0,0.45);">
                 <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid var(--border); padding-bottom:12px; margin-bottom:16px;">
                     <div>
-                        <span class="card-tag" style="background:#D97706; color:#fff;">🔥 Founding Launch Promo: ${window.escapeSafeHtml(cfg.launchPromoPrice)} (Reg. ${window.escapeSafeHtml(cfg.regularStewardPrice)})</span>
-                        <h3 style="font-family:var(--font-serif, Georgia, serif); font-size:1.55rem; color:var(--primary); margin:4px 0 2px 0;">Unlock ${window.escapeSafeHtml(triggeredFeatureName)}</h3>
+                        <span class="card-tag" style="background:#D97706; color:#fff;">🔥 Founding Launch Promo: ${escapeSafeHtml(cfg.launchPromoPrice)} (Reg. ${escapeSafeHtml(cfg.regularStewardPrice)})</span>
+                        <h3 style="font-family:var(--font-serif, Georgia, serif); font-size:1.55rem; color:var(--primary); margin:4px 0 2px 0;">Unlock ${escapeSafeHtml(triggeredFeatureName)}</h3>
                         <p style="font-size:0.84rem; color:var(--text-main); margin:0;">Upgrade to Full Hub Steward to unlock the 7-Store Clean-Brand Concierge, Clean Swaps Vault, Folk Apothecary, Homeschool OS, and all 102+ recipes!</p>
                     </div>
                     <button type="button" onclick="document.getElementById('hh-steward-upgrade-modal').remove()" style="background:none; border:none; font-size:1.7rem; cursor:pointer;">&times;</button>
                 </div>
-                <button type="button" class="btn-primary" style="width:100%; padding:14px; font-size:0.95rem; font-weight:800; background:linear-gradient(135deg, #2E5A44 0%, #1F4230 100%); border-color:#173325; color:#fff; border-radius:12px; margin-bottom:14px;" onclick="if('${window.escapeSafeHtml(cfg.stewardCheckoutUrl)}'!=='https://buy.stripe.com/'){window.open('${window.escapeSafeHtml(cfg.stewardCheckoutUrl)}','_blank');}else{alert('Enter your VIP Unlock Code below or configure your Stripe link in Admin Settings!');}">
-                    🔥 Claim ${window.escapeSafeHtml(cfg.launchPromoPrice)} Launch Promo &rarr;
+                <button type="button" class="btn-primary" style="width:100%; padding:14px; font-size:0.95rem; font-weight:800; background:linear-gradient(135deg, #2E5A44 0%, #1F4230 100%); border-color:#173325; color:#fff; border-radius:12px; margin-bottom:14px;" onclick="if('${escapeSafeHtml(cfg.stewardCheckoutUrl)}'!=='https://buy.stripe.com/'){window.open('${escapeSafeHtml(cfg.stewardCheckoutUrl)}','_blank');}else{alert('Enter your VIP Unlock Code below or configure your Stripe link in Admin Settings!');}">
+                    🔥 Claim ${escapeSafeHtml(cfg.launchPromoPrice)} Launch Promo &rarr;
                 </button>
                 <div style="background:var(--bg-warm-cream); border:1.5px dashed var(--border); border-radius:12px; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
                     <span style="font-size:0.78rem; font-weight:700;">🔑 Have a Member Unlock Code from Ashton?</span>
@@ -19131,6 +17507,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             window._adminSimulateFreeTier = false;
             document.getElementById('hh-steward-upgrade-modal')?.remove();
             enforceSimplifiedFivePillarNavigation();
+            renderCleanCuratedMasterShoppingList();
             alert('🎉 Full Hub Steward Unlocked!');
         } else {
             alert('That code was not recognized.');
@@ -19159,8 +17536,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
     // =========================================================================
     window._homeschoolPillarEnabled = localStorage.getItem('hh_homeschool_pillar_enabled') !== 'false';
     window._activeHomeCoachTab = window._activeHomeCoachTab || 'maintenance';
-    window._homeGraceDayActive = localStorage.getItem('hh_home_grace_day_active') === 'true';
-    window._overrideZoneDayIdx = null;
     let isRenderingHomeCoach = false;
 
     window.toggleHomeschoolPillarVisibility = function() {
@@ -19262,6 +17637,27 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                 hsToggleBtn.innerHTML = hsEnabled ? '📚 Homeschool Tab: ON ✓' : '📚 Homeschool Tab: OFF';
             }
         }
+
+        // Subtle "⭐ Upgrade" button in the top header for Free Tier users
+        const headerActions = Array.from(document.querySelectorAll('header div, .header-actions, nav')).find(el =>
+            !el.closest('#hh-new-landing-master-wrap') && ((el.textContent || '').includes('Alerts') || (el.textContent || '').includes('Menu'))
+        );
+        if (headerActions) {
+            let upgradeBtn = document.getElementById('hh-free-tier-upgrade-hdr-btn');
+            if (!isPaid) {
+                if (!upgradeBtn) {
+                    upgradeBtn = document.createElement('button');
+                    upgradeBtn.id = 'hh-free-tier-upgrade-hdr-btn';
+                    upgradeBtn.type = 'button';
+                    upgradeBtn.style.cssText = 'background:linear-gradient(135deg, #F59E0B 0%, #D97706 100%); color:#ffffff; border:1px solid #FDE68A; padding:5px 14px; font-size:0.75rem; font-weight:800; border-radius:999px; cursor:pointer; box-shadow:0 2px 8px rgba(245,158,11,0.25); margin-right:8px;';
+                    upgradeBtn.innerHTML = '⭐ Upgrade';
+                    upgradeBtn.onclick = () => window.openHubStewardUpgradeModal('Full Hub Steward Membership');
+                    headerActions.prepend(upgradeBtn);
+                }
+            } else if (upgradeBtn) {
+                upgradeBtn.remove();
+            }
+        }
     }
 
     const CONTEXTUAL_CLEAN_SWAPS = {
@@ -19283,16 +17679,16 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         modal.innerHTML = `
             <div style="background:#FFFDF8; width:100%; max-width:560px; border-radius:24px; padding:26px; border:3px solid #2E5A44; box-shadow:0 25px 65px rgba(0,0,0,0.45);">
                 <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid var(--border); padding-bottom:12px; margin-bottom:14px;">
-                    <div><span class="card-tag" style="background:#2E5A44; color:#fff;">✨ Recommended Clean Swap</span><h3 style="font-family:var(--font-serif, Georgia, serif); font-size:1.5rem; color:var(--primary); margin:4px 0 2px 0;">${window.escapeSafeHtml(sw.title)}</h3><p style="font-size:0.8rem; color:var(--text-muted); margin:0;">${window.escapeSafeHtml(sw.why)}</p></div>
+                    <div><span class="card-tag" style="background:#2E5A44; color:#fff;">✨ Recommended Clean Swap</span><h3 style="font-family:var(--font-serif, Georgia, serif); font-size:1.5rem; color:var(--primary); margin:4px 0 2px 0;">${escapeSafeHtml(sw.title)}</h3><p style="font-size:0.8rem; color:var(--text-muted); margin:0;">${escapeSafeHtml(sw.why)}</p></div>
                     <button type="button" onclick="document.getElementById('hh-contextual-swap-modal').remove()" style="background:none; border:none; font-size:1.7rem; cursor:pointer;">&times;</button>
                 </div>
                 <div style="background:#E8F2EC; border:1.5px solid #2E5A44; border-radius:14px; padding:14px; margin-bottom:12px;">
                     <strong style="font-size:0.86rem; color:#1F4230; display:block; margin-bottom:4px;">🥣 Option 1: 2-Minute DIY Recipe</strong>
-                    <p style="font-size:0.84rem; color:#2A1E14; margin:0;">${window.escapeSafeHtml(sw.diyRecipe)}</p>
+                    <p style="font-size:0.84rem; color:#2A1E14; margin:0;">${escapeSafeHtml(sw.diyRecipe)}</p>
                 </div>
                 <div style="background:#FEF5D8; border:1.5px solid #B87612; border-radius:14px; padding:14px; margin-bottom:16px;">
                     <strong style="font-size:0.86rem; color:#9A5B0A; display:block; margin-bottom:4px;">🛒 Option 2: Vetted Store Brands</strong>
-                    <p style="font-size:0.84rem; color:#2A1E14; margin:0;">${window.escapeSafeHtml(sw.storeBrands)}</p>
+                    <p style="font-size:0.84rem; color:#2A1E14; margin:0;">${escapeSafeHtml(sw.storeBrands)}</p>
                 </div>
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <button type="button" class="btn-secondary" onclick="document.getElementById('hh-contextual-swap-modal').remove(); openDedicatedCleanSwapsPillar();">✨ Open Full Clean Swaps Vault &rarr;</button>
@@ -19414,7 +17810,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                     </button>
                     <button type="button" onclick="switchHomeCoachTab('zone')" style="background:${activeTab==='zone'?'linear-gradient(135deg, #2E5A44 0%, #1F4230 100%)':'#FFFDF8'}; color:${activeTab==='zone'?'#fff':'#2A1E14'}; border:2px solid ${activeTab==='zone'?'#173325':'#EADBC0'}; border-radius:16px; padding:12px 15px; text-align:left; cursor:pointer;">
                         <span style="font-size:0.68rem; font-weight:800; text-transform:uppercase; display:block;">${zoneObj.icon} STEP 2 • 15-MIN ZONE</span>
-                        <strong style="font-size:0.92rem; display:block;">2. ${window.escapeSafeHtml(zoneObj.zoneTitle)} (${zoneDone}/${zoneObj.tasks.length})</strong>
+                        <strong style="font-size:0.92rem; display:block;">2. ${escapeSafeHtml(zoneObj.zoneTitle)} (${zoneDone}/${zoneObj.tasks.length})</strong>
                     </button>
                     <button type="button" onclick="switchHomeCoachTab('meals')" style="background:${activeTab==='meals'?'linear-gradient(135deg, #2E5A44 0%, #1F4230 100%)':'#FFFDF8'}; color:${activeTab==='meals'?'#fff':'#2A1E14'}; border:2px solid ${activeTab==='meals'?'#173325':'#EADBC0'}; border-radius:16px; padding:12px 15px; text-align:left; cursor:pointer;">
                         <span style="font-size:0.68rem; font-weight:800; text-transform:uppercase; display:block;">🍽️ STEP 3 • TONIGHT'S DINNER</span>
@@ -19433,7 +17829,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
 
             const renderSwapPill = (swapKey) => {
                 if (!swapKey || !CONTEXTUAL_CLEAN_SWAPS[swapKey]) return '';
-                return `<div style="margin-top:6px;"><button type="button" onclick="event.preventDefault(); event.stopPropagation(); openContextualCleanSwapModal('${swapKey}');" style="background:#E8F2EC; color:#1F4230; border:1px solid #2E5A44; border-radius:999px; padding:3px 10px; font-size:0.71rem; font-weight:800; cursor:pointer;">${window.escapeSafeHtml(CONTEXTUAL_CLEAN_SWAPS[swapKey].badge)} &rarr;</button></div>`;
+                return `<div style="margin-top:6px;"><button type="button" onclick="event.preventDefault(); event.stopPropagation(); openContextualCleanSwapModal('${swapKey}');" style="background:#E8F2EC; color:#1F4230; border:1px solid #2E5A44; border-radius:999px; padding:3px 10px; font-size:0.71rem; font-weight:800; cursor:pointer;">${escapeSafeHtml(CONTEXTUAL_CLEAN_SWAPS[swapKey].badge)} &rarr;</button></div>`;
             };
 
             const listToRender = activeTab === 'catchup' ? CATCH_UP_SPRINT_TASKS : (activeTab === 'zone' ? zoneObj.tasks : DAILY_GENERAL_MAINTENANCE_TASKS);
@@ -19444,8 +17840,8 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                 return `
                     <label class="hh-home-task-card ${isDone ? 'done' : ''}" style="background:#FFFDF8; border:2px solid #EADBC0; border-left:7px solid #2E5A44; border-radius:16px; padding:14px 18px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; gap:14px; cursor:pointer;">
                         <div style="flex:1;">
-                            <span style="background:#E8F2EC; color:#1F4230; padding:2px 9px; border-radius:999px; font-size:0.7rem; font-weight:800;">${window.escapeSafeHtml(tag)}</span>
-                            <strong style="font-size:0.94rem; color:#2A1E14; display:block; margin-top:4px; ${isDone ? 'text-decoration:line-through;' : ''}">${window.escapeSafeHtml(txt)}</strong>
+                            <span style="background:#E8F2EC; color:#1F4230; padding:2px 9px; border-radius:999px; font-size:0.7rem; font-weight:800;">${escapeSafeHtml(tag)}</span>
+                            <strong style="font-size:0.94rem; color:#2A1E14; display:block; margin-top:4px; ${isDone ? 'text-decoration:line-through;' : ''}">${escapeSafeHtml(txt)}</strong>
                             ${renderSwapPill(t.swapKey)}
                         </div>
                         <input type="checkbox" ${isDone ? 'checked' : ''} onchange="toggleGuidedHomeTask('${t.id}', this.checked)" style="width:24px; height:24px; accent-color:#059669; cursor:pointer; flex-shrink:0;">
@@ -19468,16 +17864,212 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
     }
 
     // =========================================================================
-    // 7. MASTER BOOTSTRAP & CLICK INTERCEPTORS
+    // 7. 7-STORE CLEAN-BRAND CONCIERGE, 30-SEC FRIDGE CHECK & 102+ DISH PHOTOS
+    // =========================================================================
+    const GROCERY_STORES = {
+        walmart: { name: '🔵 Walmart (In-Store & Curbside)', short: 'Walmart', color: '#0071DC' },
+        sprouts: { name: '🟢 Sprouts Farmers Market', short: 'Sprouts', color: '#2E5A44' },
+        heb:     { name: '🔴 H-E-B (Texas In-Store & Curbside)', short: 'H-E-B', color: '#B91C1C' },
+        kroger:  { name: '🔵 Kroger', short: 'Kroger', color: '#1D4ED8' },
+        aldi:    { name: '🟠 ALDI', short: 'ALDI', color: '#D97706' },
+        azure:   { name: '🌾 Azure Standard (Bulk & Heritage Grains)', short: 'Azure Standard', color: '#9A5B0A' },
+        target:  { name: '🎯 Target', short: 'Target', color: '#DC2626' }
+    };
+
+    const STORE_BRAND_PREFIX_FALLBACK = {
+        walmart: 'Marketside Organic / Great Value USDA Organic',
+        sprouts: 'Sprouts Organic / Farmers Market Select',
+        heb:     'H-E-B Organics / Central Market Organics',
+        kroger:  'Simple Truth Organic',
+        aldi:    'Simply Nature Organic',
+        azure:   'Azure Market Organics (Bulk Whole-Food)',
+        target:  'Good & Gather Organic'
+    };
+
+    const DEFAULT_STORE_BRAND_CATALOG = {
+        'Boneless Skinless Chicken Breasts': { walmart: 'Perdue Harvestland Free-Range Chicken Breasts', sprouts: 'Sprouts Organic Air-Chilled Chicken Breasts', heb: 'H-E-B Organics Air-Chilled Chicken Breasts', kroger: 'Simple Truth Organic Air-Chilled Chicken Breasts', aldi: 'Simply Nature Organic Chicken Breasts', azure: 'Mary’s Free-Range Organic Chicken Breasts', target: 'Good & Gather Organic Chicken Breasts' },
+        '80/20 Ground Beef': { walmart: 'Marketside Organic 100% Grass-Fed Ground Beef', sprouts: 'Force of Nature Regenerative 100% Grass-Fed Ground Beef', heb: 'H-E-B Natural 100% Grass-Fed Ground Beef', kroger: 'Simple Truth Natural 100% Grass-Fed Ground Beef', aldi: 'Simply Nature 100% Organic Grass-Fed Ground Beef', azure: 'Thousand Hills 100% Grass-Fed Ground Beef', target: 'Good & Gather Organic 100% Grass-Fed Ground Beef' },
+        'Pasture-Raised Eggs': { walmart: 'Vital Farms Pasture-Raised Eggs', sprouts: 'Alexandre Family Farm / Vital Farms Pasture-Raised Eggs', heb: 'Vital Farms (Austin, TX!) Pasture-Raised Eggs', kroger: 'Simple Truth Organic Pasture-Raised Eggs', aldi: 'Simply Nature Organic Pasture-Raised Eggs', azure: 'Chino Valley Ranchers Soy-Free Pasture Eggs', target: 'Vital Farms Pasture-Raised Eggs' },
+        'Whole Milk': { walmart: 'Horizon Organic / Maple Hill 100% Grass-Fed Whole Milk', sprouts: 'Kalona SuperNatural Non-Homogenized Whole Milk', heb: 'Kalona SuperNatural / Central Market 100% Grass-Fed Milk', kroger: 'Simple Truth Organic 100% Grass-Fed Whole Milk', aldi: 'Friendly Farms USDA Organic Whole Milk', azure: 'Alexandre Family Farm A2/A2 Grass-Fed Whole Milk', target: 'Horizon Organic / Maple Hill Grass-Fed Milk' },
+        'Grass-Fed Butter': { walmart: 'Kerrygold Pure Irish Grass-Fed Salted Butter', sprouts: 'Straus Family Creamery / Kerrygold Grass-Fed Butter', heb: 'Vital Farms Pasture-Raised Butter / Kerrygold', kroger: 'Kerrygold Pure Irish Grass-Fed Butter', aldi: 'Countryside Creamery Pure Irish Grass-Fed Butter', azure: 'Rumiano Organic 100% Grass-Fed Butter', target: 'Kerrygold Pure Irish Grass-Fed Butter' }
+    };
+
+    function getCuratedBrandForIngredientAndStore(ingName, storeKey = null) {
+        const activeStore = storeKey || localStorage.getItem('hh_preferred_grocery_store') || 'walmart';
+        let entry = DEFAULT_STORE_BRAND_CATALOG[ingName];
+        if (!entry) {
+            const lower = String(ingName || '').toLowerCase();
+            for (const [k, val] of Object.entries(DEFAULT_STORE_BRAND_CATALOG)) {
+                if (lower.includes(k.toLowerCase()) || k.toLowerCase().includes(lower)) { entry = val; break; }
+            }
+        }
+        if (entry) return { brandPick: entry[activeStore] || entry.walmart };
+        return { brandPick: `${STORE_BRAND_PREFIX_FALLBACK[activeStore] || 'USDA Organic'} ${ingName} (Whole-Food, No Additives)` };
+    }
+
+    function renderCleanCuratedMasterShoppingList() {
+        const allHeadings = Array.from(document.querySelectorAll('h2, h3, h4, div'));
+        const listHeading = allHeadings.find(el => el.children.length === 0 && (el.textContent || '').trim() === 'Master Family Shopping List');
+        if (!listHeading || !listHeading.parentElement) return;
+
+        // Hide legacy Inventory transfer buttons
+        document.querySelectorAll('button').forEach(btn => {
+            const bTxt = (btn.textContent || '').trim();
+            if (bTxt.includes('Done Shopping (Move Checked to Storage)') || bTxt.includes('+ Pull Low-Stock Items')) {
+                btn.style.setProperty('display', 'none', 'important');
+            }
+        });
+
+        let fridgeCheckBanner = document.getElementById('hh-30sec-fridge-check-banner');
+        if (!fridgeCheckBanner) {
+            fridgeCheckBanner = document.createElement('div');
+            fridgeCheckBanner.id = 'hh-30sec-fridge-check-banner';
+            fridgeCheckBanner.style.cssText = 'background:#FEF5D8; border:2px solid #B87612; border-radius:14px; padding:12px 16px; margin:10px 0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;';
+            fridgeCheckBanner.innerHTML = `
+                <div>
+                    <strong style="font-size:0.88rem; color:#9A5B0A; display:block;">🧊 Step 1: 30-Second "Shop Your Fridge & Pantry First" Check</strong>
+                    <span style="font-size:0.78rem; color:#4A3728;">Check off anything below that you already have in your fridge or pantry before heading to the store!</span>
+                </div>
+                <button type="button" class="btn-secondary" style="font-size:0.76rem; padding:7px 12px; border-color:#2E5A44; color:#2E5A44; font-weight:800;" onclick="openDedicatedCleanSwapsPillar()">
+                    ✨ View Recommended Pantry Swaps &rarr;
+                </button>
+            `;
+            listHeading.insertAdjacentElement('afterend', fridgeCheckBanner);
+        }
+    }
+
+    // 102+ Dish & Vault Visual Photography Injector
+    const EXACT_RECIPE_ID_PHOTOS = {
+        rec_sm1: 'https://images.unsplash.com/photo-1553530666-ba11a7da3888?auto=format&fit=crop&w=700&q=80',
+        rec_bf1: 'https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=700&q=80',
+        rec_df1: 'https://images.unsplash.com/photo-1534939561126-855b8675edd7?auto=format&fit=crop&w=700&q=80',
+        rec_df7: 'https://images.unsplash.com/photo-1588168333986-5078d3ae3976?auto=format&fit=crop&w=700&q=80',
+        rec_dq2: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=700&q=80',
+        rec_ds2: 'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?auto=format&fit=crop&w=700&q=80',
+        rec_la1: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=700&q=80'
+    };
+
+    window.getVisualPhotoForItem = function(itemKey, titleText = '', categoryHint = 'food') {
+        const t = `${itemKey || ''} ${titleText || ''}`.toLowerCase();
+        if (categoryHint === 'apothecary') {
+            if (/syrup|elderberry|honey|cough/.test(t)) return 'https://images.unsplash.com/photo-1587049352847-4a222e784d38?auto=format&fit=crop&w=700&q=80';
+            if (/salve|balm|tallow|skin/.test(t)) return 'https://images.unsplash.com/photo-1608248597359-0e6d526a6828?auto=format&fit=crop&w=700&q=80';
+            if (/tea|chamomile|peppermint/.test(t)) return 'https://images.unsplash.com/photo-1576092768241-dec231879fc3?auto=format&fit=crop&w=700&q=80';
+            return 'https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?auto=format&fit=crop&w=700&q=80';
+        }
+        if (categoryHint === 'ditch_switch') {
+            if (/laundry|dryer|wool|detergent/.test(t)) return 'https://images.unsplash.com/photo-1582735689369-4fe89db7114c?auto=format&fit=crop&w=700&q=80';
+            if (/spray|cleaner|bleach|dish|soap/.test(t)) return 'https://images.unsplash.com/photo-1585421514738-01798e348b17?auto=format&fit=crop&w=700&q=80';
+            return 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=700&q=80';
+        }
+        if (/smoothie|shake/.test(t)) return EXACT_RECIPE_ID_PHOTOS.rec_sm1;
+        if (/egg|scramble|frittata/.test(t)) return EXACT_RECIPE_ID_PHOTOS.rec_bf1;
+        if (/roast|stew|beef/.test(t)) return EXACT_RECIPE_ID_PHOTOS.rec_df1;
+        if (/salmon|fish/.test(t)) return EXACT_RECIPE_ID_PHOTOS.rec_ds2;
+        if (/burger/.test(t)) return EXACT_RECIPE_ID_PHOTOS.rec_dq2;
+        return EXACT_RECIPE_ID_PHOTOS.rec_la1;
+    };
+
+    function injectVisualBannersIntoVaults() {
+        [['#tool-tab-recipe-vault', 'food'], ['#food-tab-ditch-switch', 'ditch_switch'], ['#view-apothecary', 'apothecary']].forEach(([sel, hint]) => {
+            const container = document.querySelector(sel);
+            if (!container) return;
+            container.querySelectorAll('.clinical-panel, .recipe-card').forEach(card => {
+                if (card.querySelector('.hh-injected-visual-banner') || card.id?.includes('banner')) return;
+                const titleEl = card.querySelector('h3, h4');
+                if (!titleEl) return;
+                const titleTxt = (titleEl.textContent || '').trim();
+                if (titleTxt.length < 3) return;
+                const imgUrl = window.getVisualPhotoForItem(titleTxt.toLowerCase(), titleTxt, hint);
+                const banner = document.createElement('div');
+                banner.className = 'hh-card-hero-img-wrap hh-injected-visual-banner';
+                banner.innerHTML = `<img src="${escapeSafeHtml(imgUrl)}" alt="${escapeSafeHtml(titleTxt)}" loading="lazy">`;
+                card.prepend(banner);
+            });
+        });
+    }
+
+    // =========================================================================
+    // 8. PRINTABLE MOM & KIDS CHECKLISTS + RECLAIM TERRAIN PORTAL
+    // =========================================================================
+    window.printCategorizedDailyHomeTasks = function() {
+        const container = document.getElementById('hh-upgraded-home-tasks-container');
+        const todayStr = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+        const tasks = [];
+        if (container) container.querySelectorAll('label.hh-home-task-card strong').forEach(s => tasks.push(s.textContent.trim()));
+        const w = window.open('', '_blank', 'width=850,height=900');
+        if (!w) { alert('Please allow pop-ups to print your checklist!'); return; }
+        w.document.write(`<!DOCTYPE html><html><head><title>Today's Home & Zone Reset — ${escapeSafeHtml(todayStr)}</title><style>body{font-family:'Segoe UI',sans-serif;color:#1B4332;padding:24px 30px;}@media print{.no-print{display:none!important;}}</style></head><body><div class="no-print" style="margin-bottom:16px;padding:10px 16px;background:#E8F2EC;border:1.5px solid #2E5A44;border-radius:10px;display:flex;justify-content:space-between;align-items:center;"><strong>🖨️ Fridge-Ready Daily Home & Zone Reset Sheet</strong><button onclick="window.print()" style="background:#1B4332;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-weight:800;cursor:pointer;">🖨️ Print Now</button></div><h1 style="font-family:Georgia,serif;color:#1B4332;border-bottom:2px solid #1B4332;padding-bottom:8px;">🌻 Today's Home & Zone Reset (${escapeSafeHtml(todayStr)})</h1>${tasks.map(t => `<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px dotted #D9CBB5;font-size:0.92rem;"><span style="width:16px;height:16px;border:2px solid #1B4332;border-radius:3px;flex-shrink:0;margin-top:2px;"></span><span>${escapeSafeHtml(t)}</span></div>`).join('')}</body></html>`);
+        w.document.close();
+    };
+
+    window.printKidsDailyTaskList = function() {
+        const roster = [
+            { childName: 'Older Kids (Grades 2–4)', tasks: ['Make bed & put pajamas in hamper', 'Brush teeth & get dressed', 'Clear breakfast plate & help unload silverware', 'Stack homeschool books & wipe school spot', '5-Minute Family Living Room Floor Pickup'] },
+            { childName: 'Middle Kids (K – 1st Grade)', tasks: ['Pull up blanket & arrange pillow on bed', 'Get dressed & brush teeth', 'Carry breakfast bowl to counter', 'Put crayons & workbooks back in bin', 'Put living room toys into baskets'] },
+            { childName: 'Little Helpers (Preschool)', tasks: ['Put stuffed animals on pillow', 'Put dirty clothes in hamper with help', 'Help pick up toys during the 5-Minute Evening Song'] }
+        ];
+        const todayStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        const daysShort = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const w = window.open('', '_blank', 'width=860,height=900');
+        if (!w) { alert('Please allow pop-ups to print the Kids Checklist!'); return; }
+        w.document.write(`<!DOCTYPE html><html><head><title>Kids' Weekly Chore Chart</title><style>body{font-family:'Segoe UI',sans-serif;color:#1B4332;padding:24px 30px;}@media print{.no-print{display:none!important;}}</style></head><body><div class="no-print" style="margin-bottom:16px;padding:10px 16px;background:#FEF5D8;border:1.5px solid #B87612;border-radius:10px;display:flex;justify-content:space-between;align-items:center;"><strong>👧👦 Kids' Printable Weekly Chore Chart</strong><button onclick="window.print()" style="background:#1B4332;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-weight:800;cursor:pointer;">🖨️ Print Kids' Sheet</button></div><h1 style="font-family:Georgia,serif;color:#1B4332;border-bottom:2px solid #1B4332;padding-bottom:8px;">🌻 Kids' Weekly Chore & Stewardship Chart (Week of ${escapeSafeHtml(todayStr)})</h1>${roster.map(kid => `<div style="margin-bottom:16px;border:2px solid #1B4332;border-radius:12px;padding:12px 16px;background:#FFFDF8;"><div style="display:flex;justify-content:space-between;border-bottom:1.5px solid #B87612;padding-bottom:6px;margin-bottom:8px;"><strong style="font-size:1.1rem;">⭐ ${escapeSafeHtml(kid.childName)}</strong><div style="display:flex;gap:10px;font-size:0.75rem;font-weight:800;">${daysShort.map(d => `<span style="width:24px;text-align:center;">${d}</span>`).join('')}</div></div>${kid.tasks.map(r => `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px dotted #D9CBB5;font-size:0.86rem;"><span>${escapeSafeHtml(r)}</span><div style="display:flex;gap:10px;">${daysShort.map(() => `<span style="width:16px;height:16px;border:1.8px solid #1B4332;border-radius:3px;display:inline-block;"></span>`).join('')}</div></div>`).join('')}</div>`).join('')}</body></html>`);
+        w.document.close();
+    };
+
+    function injectPrintBarUnderTodayTasks() {
+        const taskContainer = document.getElementById('hh-upgraded-home-tasks-container');
+        if (!taskContainer || document.getElementById('hh-home-print-tasks-bar')) return;
+        const printBar = document.createElement('div');
+        printBar.id = 'hh-home-print-tasks-bar';
+        printBar.className = 'no-print';
+        printBar.style.cssText = 'margin-top:18px; padding:16px 20px; background:linear-gradient(135deg, #FAF3E3 0%, #FFFDF8 100%); border:2px solid #D9B36C; border-radius:18px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;';
+        printBar.innerHTML = `
+            <div>
+                <span class="card-tag" style="background:#2E5A44; color:#fff; margin-bottom:4px;">🖨️ Fridge-Ready Printable Checklists</span>
+                <strong style="font-family:var(--font-serif, Georgia, serif); font-size:1.15rem; color:var(--primary); display:block;">Print Today's Home Tasks & Kids' Weekly Chore Chart</strong>
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button type="button" class="btn-primary" style="background:#2E5A44; border-color:#1E3F2E; padding:9px 15px; font-size:0.8rem;" onclick="printCategorizedDailyHomeTasks()">🖨️ Print My Today Tasks</button>
+                <button type="button" class="btn-primary" style="background:#B87612; border-color:#9A5B0A; padding:9px 15px; font-size:0.8rem;" onclick="printKidsDailyTaskList()">👧👦 Print Kids' Chore Chart</button>
+            </div>
+        `;
+        taskContainer.insertAdjacentElement('afterend', printBar);
+    }
+
+    // Motion Physics Listeners
+    document.addEventListener('pointerdown', (e) => {
+        const btn = e.target.closest('button, .btn-primary, .btn-secondary, .icon-btn');
+        if (!btn) return;
+        btn.classList.remove('hh-btn-springing');
+        btn.classList.add('hh-btn-sinking');
+    }, { passive: true });
+
+    function releaseBtnSpring() {
+        document.querySelectorAll('.hh-btn-sinking').forEach(btn => {
+            btn.classList.remove('hh-btn-sinking');
+            void btn.offsetWidth;
+            btn.classList.add('hh-btn-springing');
+            setTimeout(() => btn.classList.remove('hh-btn-springing'), 520);
+        });
+    }
+    document.addEventListener('pointerup', releaseBtnSpring, { passive: true });
+    document.addEventListener('pointercancel', releaseBtnSpring, { passive: true });
+
+    // =========================================================================
+    // 9. MASTER BOOTSTRAP & CLICK INTERCEPTORS
     // =========================================================================
     function runMasterBootstrap() {
         mountBestBlock3LandingPage();
         enforceSimplifiedFivePillarNavigation();
         renderGuidedHomeCommandPage();
+        renderCleanCuratedMasterShoppingList();
+        injectPrintBarUnderTodayTasks();
+        injectVisualBannersIntoVaults();
     }
 
     runMasterBootstrap();
-    [80, 250, 600, 1400].forEach(ms => setTimeout(runMasterBootstrap, ms));
+    [80, 250, 650, 1400].forEach(ms => setTimeout(runMasterBootstrap, ms));
 
     document.addEventListener('change', () => {
         window.saveCurrentUserProgressSnapshot();
@@ -19492,7 +18084,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                 window.openUnifiedMemberLoginModal();
                 return;
             }
-            if (txt.includes('Demo the App Live')) {
+            if (txt.includes('Demo the App Live') || txt.includes('Demo the App Free')) {
                 e.preventDefault(); e.stopPropagation();
                 window.openFreeStarterSignupModal();
                 return;
@@ -19507,6 +18099,5 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
     }, true);
 })();
 </script>
-
 </body>
 </html>
