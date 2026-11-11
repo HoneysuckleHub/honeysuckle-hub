@@ -16286,15 +16286,12 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
     </script>
 
 <!-- =========================================================================
-     HONEYSUCKLE HUB — MASTER PRODUCTION ENGINE (ALL-IN-ONE CLEANED BUILD)
-     Includes & Synchronizes:
-     1. Forest-Green Public Landing Page (Directly mounts into #landing-view)
-     2. Supabase Username/Email + Password Signup, Login & Cloud Profile Sync
-     3. Clean 5-Pillar Navigation (Today, Kitchen, Clean Swaps, Apothecary, Toggleable Homeschool)
-     4. "Playing Catch-Up" 45-Min Reset Sprint + Contextual Clean Swap Pills
-     5. 7-Store Clean-Brand Concierge, 30-Sec Fridge Check & 102+ Exact Dish Photos
-     6. Smart Camera Scanners (Labels, Recipes, Apothecary, Homeschool TOC) & Voice Brain Dump
-     7. Printable Mom/Kids Checklists, Support Mailbox & 6-Part Motion Physics
+     HONEYSUCKLE HUB — MASTER PRODUCTION ENGINE (CLEAN 2-TIER & ZERO-BLANK-SCREEN)
+     1. Forest-Green Public Landing Page (No "Edit Links & Pricing" or "Reclaim Your Terrain")
+     2. Bulletproof Login & Free Signup -> Direct Dashboard Entry (Zero Blank Screen)
+     3. Streamlined 5-Pillar Navigation (Today, Kitchen, Clean Swaps, Apothecary, Homeschool)
+     4. Complete Removal of Reclaim Your Terrain & Homestead Toggles
+     5. "Playing Catch-Up" 45-Min Reset Sprint + Contextual Clean Swap Pills
      ========================================================================= -->
 <script>
 (function() {
@@ -16303,10 +16300,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
     const ACTIVE_SESSION_KEY = 'hh_active_authenticated_member_v2';
     const FALLBACK_SB_URL = 'https://agdponuzpjllgehmccyr.supabase.co';
     const FALLBACK_SB_KEY = 'sb_publishable_UBdMZZrTYxYRLmtMVIIGrA_P6whzO1T';
-    const TERRAIN_CLEAN_IMG = 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=700&q=80';
-    const DAY_NAMES_FULL = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-    // 0. Define escapeSafeHtml FIRST so no scanner, modal, or checklist ever throws a ReferenceError
     window.escapeSafeHtml = function(str) {
         return String(str === undefined || str === null ? '' : str)
             .replace(/&/g, '&amp;')
@@ -16336,30 +16330,19 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
     }
 
     // =========================================================================
-    // 1. PRICING, STRIPE CHECKOUT LINKS & STEWARD ACCESS GATEKEEPER
+    // 1. PRICING & STEWARD ACCESS GATEKEEPER
     // =========================================================================
     const DEFAULT_MEMBERSHIP_SETTINGS = {
         regularStewardPrice: '$29/month',
         launchPromoPrice: '$9/month',
         stewardCheckoutUrl: 'https://buy.stripe.com/',
-        terrainAddonPrice: '+$19/month',
-        terrainSelfPacedCheckoutUrl: 'https://buy.stripe.com/',
-        terrainConsultOncePrice: '$127 One-Time',
-        terrainConsultAfterPrice: '$19/month after',
-        terrainConsultCheckoutUrl: 'https://buy.stripe.com/',
         vipUnlockCode: 'HONEYSUCKLEVIP'
     };
 
     function getPricingCfg() {
         let localCfg = {};
         try { localCfg = JSON.parse(localStorage.getItem('hh_membership_tier_cfg_v2') || '{}'); } catch (e) {}
-        const cloudCfg = (typeof getGlobalSharedData === 'function') ? (getGlobalSharedData('hh_membership_tier_cfg_v2', {}) || {}) : {};
-        return { ...DEFAULT_MEMBERSHIP_SETTINGS, ...cloudCfg, ...localCfg };
-    }
-
-    function savePricingCfg(cfg) {
-        try { localStorage.setItem('hh_membership_tier_cfg_v2', JSON.stringify(cfg)); } catch (e) {}
-        if (typeof setGlobalSharedData === 'function') setGlobalSharedData('hh_membership_tier_cfg_v2', cfg);
+        return { ...DEFAULT_MEMBERSHIP_SETTINGS, ...localCfg };
     }
 
     window.isFullHubPaidSteward = function() {
@@ -16370,40 +16353,23 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             if (paidHub && paidHub.unlocked) return true;
         } catch (e) {}
         try {
-            const paidTerrain = JSON.parse(localStorage.getItem('hh_terrain_paid_unlock') || '{}');
-            if (paidTerrain && paidTerrain.unlocked) return true;
-        } catch (e) {}
-        try {
             const curr = typeof currentUser !== 'undefined' ? currentUser : JSON.parse(localStorage.getItem('hh_current_user') || '{}');
             if (curr?.tier === 'paid_steward' || curr?.role === 'Full Hub Steward') return true;
-            const email = (curr?.email || localStorage.getItem('hh_logged_in_user_email') || '').trim().toLowerCase();
-            if (email && typeof getGlobalSharedData === 'function') {
-                const unlockedEmails = getGlobalSharedData('hh_paid_steward_emails', []) || [];
-                if (Array.isArray(unlockedEmails) && unlockedEmails.includes(email)) return true;
-            }
         } catch (e) {}
         return false;
     };
 
-    // Auto-unlock after Stripe redirect (?hub_paid=success)
-    try {
-        const params = new URLSearchParams(window.location.search);
-        if (params.get('hub_paid') === 'success' || params.get('steward_unlock') === 'true') {
-            localStorage.setItem('hh_full_hub_paid_steward', JSON.stringify({
-                unlocked: true, unlockedAt: new Date().toISOString(), method: 'stripe_redirect'
-            }));
-            window.history.replaceState({}, document.title, window.location.pathname);
-            setTimeout(() => alert('🌻 Welcome to Full Hub Steward Membership! All pillars, 7-Store Brand Guides, Clean Swaps, Apothecary, and Homeschool tools are unlocked.'), 400);
-        }
-    } catch (e) {}
-
     // =========================================================================
-    // 2. MASTER CSS (GREEN LANDING PAGE, TODAY COACH, PHOTOS & MOTION PHYSICS)
+    // 2. MASTER CSS (TOP-LEVEL LANDING ISOLATION & IN-APP STYLES)
     // =========================================================================
     if (!document.getElementById('hh-master-unified-styles')) {
         const st = document.createElement('style');
         st.id = 'hh-master-unified-styles';
         st.innerHTML = `
+            /* When showing the public landing page, hide background app containers cleanly without mutating their internal DOM */
+            body.hh-showing-green-landing > *:not(#hh-new-landing-master-wrap):not(.modal-overlay):not(script):not(style) {
+                display: none !important;
+            }
             #hh-new-landing-master-wrap {
                 background: #FFFDF8;
                 color: #2A1E14;
@@ -16494,32 +16460,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                 background: linear-gradient(160deg, #FFFDF8 0%, #E8F2EC 100%);
                 border: 3px solid #2E5A44;
                 box-shadow: 0 18px 42px rgba(46, 90, 68, 0.18);
-                transform: scale(1.02);
-            }
-            .hh-b3-faq-item {
-                background: #ffffff;
-                border: 1.5px solid #EADBC0;
-                border-radius: 14px;
-                padding: 16px 20px;
-                margin-bottom: 10px;
-            }
-            .hh-b3-faq-item summary {
-                font-weight: 800;
-                font-size: 0.95rem;
-                color: #2A1E14;
-                cursor: pointer;
-                list-style: none;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-            }
-            .hh-b3-faq-item p {
-                font-size: 0.85rem;
-                color: #4A3728;
-                line-height: 1.55;
-                margin: 10px 0 0 0;
-                padding-top: 10px;
-                border-top: 1px dashed #EADBC0;
             }
             .hh-home-task-card.done {
                 background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%) !important;
@@ -16543,7 +16483,11 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                 object-fit: cover;
                 display: block;
             }
-            /* Motion Physics: 500ms Sink & Spring + 470ms Draw-the-Win SVG */
+            /* Hide Reclaim Your Terrain & Homestead Views Globally */
+            #view-reclaim-terrain, #view-homestead {
+                display: none !important;
+            }
+            /* Button Press Physics */
             button, .btn-primary, .btn-secondary, .icon-btn {
                 transform-origin: center center;
                 will-change: transform;
@@ -16561,35 +16505,12 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             .hh-btn-springing {
                 animation: hhBtnSpringBack 500ms cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
             }
-            .hh-draw-win-badge {
-                width: 26px; height: 26px;
-                display: inline-flex; align-items: center; justify-content: center;
-                flex-shrink: 0; cursor: pointer;
-            }
-            .hh-draw-win-svg {
-                width: 26px; height: 26px; overflow: visible;
-                filter: drop-shadow(0 0 6px rgba(16, 185, 129, 0.45));
-            }
-            .hh-draw-win-circle {
-                fill: #059669; fill-opacity: 0; stroke: #10B981; stroke-width: 2.5;
-                stroke-dasharray: 76; stroke-dashoffset: 76;
-                animation: hhDrawCircle 260ms ease forwards, hhFillCircle 200ms ease 220ms forwards;
-            }
-            .hh-draw-win-tick {
-                fill: none; stroke: #ffffff; stroke-width: 2.6;
-                stroke-linecap: round; stroke-linejoin: round;
-                stroke-dasharray: 24; stroke-dashoffset: 24;
-                animation: hhDrawTick 210ms ease 260ms forwards;
-            }
-            @keyframes hhDrawCircle { to { stroke-dashoffset: 0; } }
-            @keyframes hhFillCircle { to { fill-opacity: 1; } }
-            @keyframes hhDrawTick   { to { stroke-dashoffset: 0; } }
         `;
         document.head.appendChild(st);
     }
 
     // =========================================================================
-    // 3. FOREST-GREEN PUBLIC LANDING PAGE (DIRECTLY MOUNTS INTO #landing-view)
+    // 3. FOREST-GREEN PUBLIC LANDING PAGE (NO "EDIT LINKS" & NO "RECLAIM YOUR TERRAIN")
     // =========================================================================
     const DEMO_STORE_PREVIEW_DATA = {
         walmart: { label: '🔵 Walmart (In-Store & Curbside)', color: '#0071DC', items: [
@@ -16635,7 +16556,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px; padding-bottom:8px; border-bottom:1.5px solid #EADBC0;">
                 <strong style="font-size:0.92rem; color:${data.color};">🛒 Live Preview: ${data.label}</strong>
                 <span style="font-size:0.74rem; background:#FEF5D8; color:#9A5B0A; padding:3px 10px; border-radius:999px; font-weight:800;">
-                    ✨ Automatically adapts to all 102+ recipes!
+                    ✨ Automatically adapts to all 90+ whole-food recipes!
                 </span>
             </div>
             <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(235px, 1fr)); gap:10px;">
@@ -16653,10 +16574,9 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
 
     window.buildMainLandingPageHTML = function() {
         const cfg = getPricingCfg();
-        const isAdmin = isStrictFounderAdmin();
 
         return `
-            <!-- STICKY TOP NAVIGATION BAR -->
+            <!-- STICKY TOP NAVIGATION BAR (CLEAN — NO EDIT LINKS & NO RECLAIM YOUR TERRAIN) -->
             <div style="position:sticky; top:0; z-index:90; background:rgba(255, 253, 248, 0.97); backdrop-filter:blur(8px); border-bottom:1.5px solid #EADBC0; padding:14px 28px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
                 <div style="display:flex; align-items:center; gap:10px;">
                     <span style="font-size:1.7rem;">🌻</span>
@@ -16670,16 +16590,10 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                     <a class="hh-b3-nav-link" onclick="document.getElementById('hh-b3-how-it-works')?.scrollIntoView({behavior:'smooth'})">✨ How It Works</a>
                     <a class="hh-b3-nav-link" onclick="document.getElementById('hh-b3-store-concierge')?.scrollIntoView({behavior:'smooth'})">🛒 Store-Brand Concierge</a>
                     <a class="hh-b3-nav-link" onclick="document.getElementById('hh-main-lp-features')?.scrollIntoView({behavior:'smooth'})">🏡 Inside the Hub</a>
-                    <a class="hh-b3-nav-link" onclick="document.getElementById('hh-main-lp-pricing')?.scrollIntoView({behavior:'smooth'})">🌿 Reclaim Your Terrain</a>
                     <a class="hh-b3-nav-link" style="color:#D97706; font-weight:800;" onclick="document.getElementById('hh-main-lp-pricing')?.scrollIntoView({behavior:'smooth'})">🔥 Pricing</a>
                 </div>
 
                 <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                    ${isAdmin ? `
-                        <button type="button" class="btn-secondary" style="padding:7px 12px; font-size:0.74rem;" onclick="openAdminMembershipSettingsModal()">
-                            ⚙️ Edit Links & Pricing
-                        </button>
-                    ` : ''}
                     <button type="button" class="btn-secondary" style="padding:8px 14px; font-size:0.8rem; border-radius:999px;" onclick="openContactAshtonModal()">
                         💌 Contact Ashton
                     </button>
@@ -16777,7 +16691,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                 </div>
             </div>
 
-            <!-- 6 VISUAL PHOTO FEATURE CARDS -->
+            <!-- 6 VISUAL PHOTO FEATURE CARDS (ALL FOCUSED ON HOME, MEALS, SWAPS, APOTHECARY & HOMESCHOOL) -->
             <div id="hh-main-lp-features" style="padding:28px 26px 48px 26px; max-width:1120px; margin:0 auto;">
                 <div style="text-align:center; max-width:720px; margin:0 auto 34px auto;">
                     <span class="card-tag" style="background:var(--sage, #2E5A44); color:#fff;">🌟 Simple On Top, Powerful Underneath</span>
@@ -16808,7 +16722,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                         <img src="https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=700&q=80" alt="Whole Food Family Meals" style="width:100%; height:180px; object-fit:cover;">
                         <div style="padding:18px 20px; flex:1; display:flex; flex-direction:column; justify-content:space-between;">
                             <div>
-                                <span style="font-size:0.7rem; font-weight:800; color:#2E5A44; text-transform:uppercase;">🍽️ 102+ Visual Photo Recipes & Smart Scaling</span>
+                                <span style="font-size:0.7rem; font-weight:800; color:#2E5A44; text-transform:uppercase;">🍽️ 90+ Visual Photo Recipes & Smart Scaling</span>
                                 <h4 style="font-family:var(--font-serif, Georgia, serif); font-size:1.25rem; color:#B87612; margin:4px 0 8px 0;">30-Sec Fridge Check & $0 Leftover Nights</h4>
                                 <p style="font-size:0.84rem; color:#2A1E14; line-height:1.5; margin:0 0 10px 0;">
                                     Enter your kids' ages to scale every recipe automatically. Includes mouthwatering photos on every dish, a <strong>30-Second Fridge Check</strong> before you shop, <strong>$0 Planned Leftover Nights</strong>, and <strong>Homeschool Dual Lunches</strong>!
@@ -16847,13 +16761,13 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                     </div>
 
                     <div class="hh-b3-feature-card">
-                        <img src="https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?auto=format&fit=crop&w=700&q=80" alt="Folk Apothecary & Toggleable Homeschool" style="width:100%; height:180px; object-fit:cover;">
+                        <img src="https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?auto=format&fit=crop&w=700&q=80" alt="Folk Apothecary" style="width:100%; height:180px; object-fit:cover;">
                         <div style="padding:18px 20px; flex:1; display:flex; flex-direction:column; justify-content:space-between;">
                             <div>
-                                <span style="font-size:0.7rem; font-weight:800; color:#2E5A44; text-transform:uppercase;">🌿 Folk Apothecary & Toggleable Homeschool</span>
-                                <h4 style="font-family:var(--font-serif, Georgia, serif); font-size:1.25rem; color:#B87612; margin:4px 0 8px 0;">Herbal Remedies, Rollers & Printable Kid Charts</h4>
+                                <span style="font-size:0.7rem; font-weight:800; color:#2E5A44; text-transform:uppercase;">🌿 Folk Apothecary & Natural Medicine Cabinet</span>
+                                <h4 style="font-family:var(--font-serif, Georgia, serif); font-size:1.25rem; color:#B87612; margin:4px 0 8px 0;">Herbal Syrups, Salves, Teas & Essential Oils</h4>
                                 <p style="font-size:0.84rem; color:#2A1E14; line-height:1.5; margin:0 0 10px 0;">
-                                    Search visual herbal remedies (elderberry syrups, salves, poultices & essential oil rollers) on demand, and toggle on the <strong>Homeschool OS</strong> to track lessons and print fridge-ready kid chore charts!
+                                    Search visual herbal remedies (elderberry syrups, salves, poultices & essential oil rollers) on demand whenever a cough, tummy ache, or scrape pops up at home.
                                 </p>
                             </div>
                             <span style="font-size:0.75rem; font-weight:800; color:#B87612;">🌟 Included in Full Hub Steward</span>
@@ -16861,25 +16775,25 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                     </div>
 
                     <div class="hh-b3-feature-card">
-                        <img src="${TERRAIN_CLEAN_IMG}" alt="Reclaim Your Terrain" style="width:100%; height:180px; object-fit:cover;">
+                        <img src="https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=700&q=80" alt="Toggleable Homeschool & Kid Chores" style="width:100%; height:180px; object-fit:cover;">
                         <div style="padding:18px 20px; flex:1; display:flex; flex-direction:column; justify-content:space-between;">
                             <div>
-                                <span style="font-size:0.7rem; font-weight:800; color:#2E5A44; text-transform:uppercase;">🦋 12-Block Guided Clinical Coaching</span>
-                                <h4 style="font-family:var(--font-serif, Georgia, serif); font-size:1.25rem; color:#B87612; margin:4px 0 8px 0;">Reclaim Your Terrain Companion App</h4>
+                                <span style="font-size:0.7rem; font-weight:800; color:#2E5A44; text-transform:uppercase;">📚 Toggleable Homeschool & Printable Kid Charts</span>
+                                <h4 style="font-family:var(--font-serif, Georgia, serif); font-size:1.25rem; color:#B87612; margin:4px 0 8px 0;">Loop Scheduling, Gradebook & Kid Chore Sheets</h4>
                                 <p style="font-size:0.84rem; color:#2A1E14; line-height:1.5; margin:0 0 10px 0;">
-                                    Step-by-step hand-holding for exhausted women: start with 3 simple daily habits (a 10-minute walk, a mineral drink, and a 40g+ protein smoothie) at a 90% pace—self-paced or custom-built 1-on-1 by Ashton!
+                                    Toggle Homeschool ON to scan workbook Tables of Contents, track daily lessons, and print 1-click daily student tickets and fridge-ready kids' chore charts!
                                 </p>
                             </div>
-                            <span style="font-size:0.75rem; font-weight:800; color:#2E5A44;">🌿 ${cfg.terrainAddonPrice} Self-Paced OR 1-on-1 VIP Care</span>
+                            <span style="font-size:0.75rem; font-weight:800; color:#B87612;">🌟 Included in Full Hub Steward</span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- 3-TIER PRICING SECTION -->
+            <!-- 2-TIER PRICING SECTION (FREE STARTER VS. $9/MO FULL HUB STEWARD) -->
             <div id="hh-main-lp-pricing" style="background:linear-gradient(180deg, #FAF3E3 0%, #FFFDF8 100%); border-top:2px solid #EADBC0; padding:48px 26px 56px 26px;">
-                <div style="max-width:1120px; margin:0 auto;">
-                    <div style="text-align:center; max-width:740px; margin:0 auto 34px auto;">
+                <div style="max-width:880px; margin:0 auto;">
+                    <div style="text-align:center; max-width:700px; margin:0 auto 34px auto;">
                         <span class="card-tag" style="background:#B87612; color:#fff;">🌻 Simple, Transparent Family Pricing</span>
                         <h2 style="font-family:var(--font-serif, Georgia, serif); font-size:2.15rem; color:#B87612; margin:8px 0 6px 0;">
                             Start Free Today, or Lock In Our ${cfg.launchPromoPrice} Launch Promo
@@ -16889,7 +16803,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                         </p>
                     </div>
 
-                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(315px, 1fr)); gap:22px; align-items:stretch;">
+                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:24px; align-items:stretch;">
                         <!-- TIER 1: FREE STARTER -->
                         <div class="hh-b3-tier-card">
                             <div>
@@ -16937,48 +16851,12 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                                     <div>✅ <strong>Dedicated Clean Swaps Vault</strong> + Contextual Cleaning & Meal Plan Swap Recommendations</div>
                                     <div>✅ <strong>Complete Folk Apothecary Vault</strong> (Herbal Syrups, Salves, Teas & Roller Recipes)</div>
                                     <div>✅ <strong>Toggleable Homeschool OS</strong> + Printable Mom & Kid Chore Checklists</div>
-                                    <div>✅ <strong>Interactive Meal Swapper</strong>, <strong>$0 Leftover Nights</strong> & <strong>All 102+ Photo Recipes</strong></div>
+                                    <div>✅ <strong>Interactive Meal Swapper</strong>, <strong>$0 Leftover Nights</strong> & <strong>All 90+ Whole-Food Photo Recipes</strong></div>
                                 </div>
                             </div>
                             <button type="button" class="btn-primary" style="width:100%; padding:14px; font-size:0.92rem; background:linear-gradient(135deg, #2E5A44 0%, #1F4230 100%); border-color:#173325; color:#fff; border-radius:12px; font-weight:800; cursor:pointer;" onclick="launchStewardStripeCheckout('steward_promo')">
                                 🔥 Lock In ${cfg.launchPromoPrice} Launch Promo &rarr;
                             </button>
-                        </div>
-
-                        <!-- TIER 3: RECLAIM YOUR TERRAIN -->
-                        <div class="hh-b3-tier-card">
-                            <div>
-                                <span style="background:#FEF5D8; color:#9A5B0A; border:1px solid #E5C378; padding:4px 12px; border-radius:999px; font-size:0.72rem; font-weight:800; text-transform:uppercase;">
-                                    🦋 12-Block Clinical Coaching App
-                                </span>
-                                <h3 style="font-family:var(--font-serif, Georgia, serif); font-size:1.55rem; color:#B87612; margin:10px 0 4px 0;">Reclaim Your Terrain</h3>
-                                <div style="background:#ffffff; border:1.5px solid #EADBC0; border-radius:14px; padding:10px 12px; margin-bottom:14px;">
-                                    <div style="margin-bottom:8px; padding-bottom:8px; border-bottom:1px dashed #EADBC0;">
-                                        <span style="font-size:0.7rem; font-weight:800; color:#2E5A44; text-transform:uppercase; display:block;">Option 1: Self-Paced 12-Block App</span>
-                                        <strong style="font-family:var(--font-serif, Georgia, serif); font-size:1.45rem; color:#2A1E14;">Extra ${cfg.terrainAddonPrice}</strong>
-                                        <span style="font-size:0.74rem; color:#6E5A46; display:block;">Start with 3 simple daily habits & add 1 per 2-week block at 90% consistency</span>
-                                    </div>
-                                    <div>
-                                        <span style="font-size:0.7rem; font-weight:800; color:#B87612; text-transform:uppercase; display:block;">Option 2: 1-on-1 VIP Custom Consult & Plan</span>
-                                        <strong style="font-family:var(--font-serif, Georgia, serif); font-size:1.35rem; color:#B87612;">${cfg.terrainConsultOncePrice}</strong>
-                                        <span style="font-size:0.78rem; font-weight:700; color:#2E5A44;"> + ${cfg.terrainConsultAfterPrice}</span>
-                                        <span style="font-size:0.73rem; color:#2A1E14; display:block;">Personal consult & custom protocol built by Ashton!</span>
-                                    </div>
-                                </div>
-                                <div style="display:flex; flex-direction:column; gap:8px; font-size:0.82rem; color:#2A1E14; margin-bottom:18px;">
-                                    <div>✅ <strong>12-Block Visual 14-Day Dot Tracker</strong> with 60-Second Easy Day & Vacation Pause</div>
-                                    <div>✅ <strong>1-Click 20-Minute Guided Workouts</strong> & Plug-and-Play 40g+ Protein Meals</div>
-                                    <div>✅ <strong>Integrated Fullscript & CellCore Dispensary</strong> + Translated Lab Gauges</div>
-                                </div>
-                            </div>
-                            <div style="display:flex; flex-direction:column; gap:8px;">
-                                <button type="button" class="btn-primary" style="width:100%; padding:11px; font-size:0.83rem; background:#2E5A44; border-color:#2E5A44; color:#fff; border-radius:10px; font-weight:800; cursor:pointer;" onclick="launchStewardStripeCheckout('terrain_self_paced')">
-                                    🌿 Add Self-Paced Terrain (${cfg.terrainAddonPrice}) &rarr;
-                                </button>
-                                <button type="button" class="btn-secondary" style="width:100%; padding:11px; font-size:0.8rem; border:2px solid #B87612; color:#9A5B0A; background:#FFFDF8; border-radius:10px; font-weight:800; cursor:pointer;" onclick="launchStewardStripeCheckout('terrain_consult_vip')">
-                                    👑 Book 1-on-1 Consult & Custom Plan &rarr;
-                                </button>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -16986,45 +16864,24 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         `;
     };
 
-    // Directly targets #landing-view so the Green Landing Page ALWAYS replaces the old cream screen!
+    // Mount the Green Landing Page directly on document.body so it never mutates or breaks the app's internal containers
     function mountBestBlock3LandingPage() {
-        if (document.getElementById('hh-new-landing-master-wrap')) return;
-
-        let targetContainer = document.getElementById('landing-view');
-        if (!targetContainer) {
-            const markerEl = Array.from(document.querySelectorAll('h1, h2, div, section')).find(el => {
-                const t = (el.textContent || '');
-                return t.includes('Stop Juggling 5 Apps') || (t.includes('6 Smart Scanners') && t.includes('4 Comfort Levels'));
-            });
-            if (!markerEl) return;
-            targetContainer = markerEl;
-            while (targetContainer.parentElement && targetContainer.parentElement !== document.body) {
-                if (targetContainer.parentElement.querySelector('#view-food, #view-home, #dashboard-container')) break;
-                targetContainer = targetContainer.parentElement;
-            }
+        let wrap = document.getElementById('hh-new-landing-master-wrap');
+        if (!wrap) {
+            wrap = document.createElement('div');
+            wrap.id = 'hh-new-landing-master-wrap';
+            wrap.innerHTML = window.buildMainLandingPageHTML();
+            document.body.prepend(wrap);
+            setTimeout(() => window.switchLandingStoreDemo('walmart'), 30);
         }
-
-        // Rescue any modals inside targetContainer so they stay in document.body
-        targetContainer.querySelectorAll('[id*="auth"], [id*="login"], .modal-overlay').forEach(modalEl => {
-            document.body.appendChild(modalEl);
-        });
-
-        // Hide the old cream children inside #landing-view and prepend the Green Landing Page
-        Array.from(targetContainer.children).forEach(ch => {
-            ch.style.display = 'none';
-        });
-
-        window._legacyLandingWrapperEl = targetContainer;
-        const newWrap = document.createElement('div');
-        newWrap.id = 'hh-new-landing-master-wrap';
-        newWrap.innerHTML = window.buildMainLandingPageHTML();
-        targetContainer.prepend(newWrap);
-
-        setTimeout(() => window.switchLandingStoreDemo('walmart'), 30);
+        if (!window._isHubSessionActive) {
+            document.body.classList.add('hh-showing-green-landing');
+            wrap.style.setProperty('display', 'block', 'important');
+        }
     }
 
     // =========================================================================
-    // 4. SUPABASE AUTH, SIGN-UP, MEMBER LOGIN & CLEAN SIGN-OUT
+    // 4. SUPABASE AUTH, SIGN-UP, MEMBER LOGIN & ZERO-BLANK-SCREEN ENTRY
     // =========================================================================
     const SYSTEM_KEYS_EXCLUDE = new Set([
         ACCOUNTS_VAULT_KEY, ACTIVE_SESSION_KEY, 'hh_membership_tier_cfg_v2', 'hh_paid_steward_emails'
@@ -17093,7 +16950,58 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         }, 350);
     };
 
+    // Force the in-app dashboard and header visible whenever a user is logged in (prevents any blank screen!)
+    function forceAppDashboardVisible() {
+        if (!window._isHubSessionActive) return;
+
+        document.body.classList.remove('hh-showing-green-landing');
+        document.body.classList.add('is-logged-in');
+
+        const greenLp = document.getElementById('hh-new-landing-master-wrap');
+        if (greenLp) greenLp.style.setProperty('display', 'none', 'important');
+
+        const homeView = document.getElementById('view-home') || document.getElementById('view-food');
+
+        // Hide the old cream landing page (#landing-view) ONLY if it does not wrap #view-home
+        const oldLv = document.getElementById('landing-view');
+        if (oldLv && (!homeView || !oldLv.contains(homeView))) {
+            oldLv.style.setProperty('display', 'none', 'important');
+        }
+
+        // Hide any old "Demo the App Free" / "Stop Juggling 5 Apps" banner that does not contain #view-home
+        Array.from(document.querySelectorAll('h1, button')).forEach(el => {
+            const t = (el.textContent || '').trim();
+            if (t.includes('Stop Juggling 5 Apps') || t.includes('Demo the App Free') || t.includes('Demo the App Live')) {
+                let box = el.parentElement;
+                while (box && box !== document.body) {
+                    if (homeView && box.contains(homeView)) break;
+                    box.style.setProperty('display', 'none', 'important');
+                    box = box.parentElement;
+                }
+            }
+        });
+
+        // Walk up from #view-home to document.body and force every container visible
+        let curr = homeView;
+        while (curr && curr !== document.body && curr !== document.documentElement) {
+            curr.classList.remove('hidden', 'd-none', 'is-hidden');
+            const isFlex = curr.id === 'dashboard-container' || curr.classList.contains('app-layout');
+            curr.style.setProperty('display', isFlex ? 'flex' : 'block', 'important');
+            curr = curr.parentElement;
+        }
+
+        // Ensure the in-app header ("Alerts" / "Menu") is visible
+        const inAppHeader = Array.from(document.querySelectorAll('header, nav')).find(el => {
+            const t = (el.textContent || '');
+            return !el.closest('#hh-new-landing-master-wrap') && (t.includes('Alerts') || t.includes('Menu'));
+        });
+        if (inAppHeader) {
+            inAppHeader.style.setProperty('display', 'flex', 'important');
+        }
+    }
+
     window.enterHubDashboardCleanly = function(accountObj) {
+        window._isHubSessionActive = true;
         const isPaidOrAdmin = accountObj.tier === 'paid_steward' || accountObj.email === FOUNDER_EMAIL;
         window._adminSimulateFreeTier = !isPaidOrAdmin;
 
@@ -17119,6 +17027,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         window.currentUser = accountObj;
         try { if (typeof currentUser !== 'undefined') currentUser = accountObj; } catch (err) {}
 
+        // Remove all login/signup modals
         document.getElementById('hh-free-starter-signup-modal')?.remove();
         document.getElementById('hh-unified-member-login-modal')?.remove();
         document.getElementById('hh-public-attractive-landing-modal')?.remove();
@@ -17126,40 +17035,30 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             el.style.setProperty('display', 'none', 'important');
         });
 
-        // Explicitly toggle #landing-view OFF and #dashboard-container ON!
-        document.body.classList.add('is-logged-in');
-        const lv = document.getElementById('landing-view');
-        if (lv) lv.style.setProperty('display', 'none', 'important');
-        const newLandingMaster = document.getElementById('hh-new-landing-master-wrap');
-        if (newLandingMaster) newLandingMaster.style.setProperty('display', 'none', 'important');
-
-        const dash = document.getElementById('dashboard-container');
-        if (dash) dash.style.setProperty('display', 'flex', 'important');
-
-        const homeView = document.getElementById('view-home') || document.getElementById('view-food');
-        let curr = homeView;
-        while (curr && curr !== document.body && curr !== document.documentElement) {
-            curr.classList.remove('hidden', 'd-none', 'is-hidden');
-            if (curr.style.display === 'none' || window.getComputedStyle(curr).display === 'none') {
-                curr.style.setProperty('display', curr.id === 'dashboard-container' ? 'flex' : 'block', 'important');
-            }
-            curr = curr.parentElement;
-        }
-
-        ['updateAuthUI', 'initApp', 'renderAll'].forEach(fnName => {
-            if (typeof window[fnName] === 'function') { try { window[fnName](); } catch (err) {} }
-        });
+        // Switch to the Home view FIRST, then force the dashboard visible (never call initApp/updateAuthUI after!)
         if (typeof window.switchMainView === 'function') {
             try { window.switchMainView('home'); } catch (err) {}
+        } else if (typeof window.switchView === 'function') {
+            try { window.switchView('home'); } catch (err) {}
         }
 
+        forceAppDashboardVisible();
         enforceSimplifiedFivePillarNavigation();
         renderGuidedHomeCommandPage();
+
+        // Keep enforcing visibility over the next 600ms so no base timer can hide the dashboard
+        [50, 200, 500].forEach(ms => setTimeout(() => {
+            forceAppDashboardVisible();
+            enforceSimplifiedFivePillarNavigation();
+            renderGuidedHomeCommandPage();
+        }, ms));
+
         setTimeout(window.saveCurrentUserProgressSnapshot, 400);
         window.scrollTo({ top: 0, behavior: 'instant' });
     };
 
     window.logoutAndShowGreenLandingPage = function() {
+        window._isHubSessionActive = false;
         try {
             localStorage.removeItem(ACTIVE_SESSION_KEY);
             localStorage.removeItem('hh_logged_in_user_email');
@@ -17170,15 +17069,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         try { if (typeof currentUser !== 'undefined') currentUser = null; } catch (e) {}
 
         document.body.classList.remove('is-logged-in');
-        const dash = document.getElementById('dashboard-container');
-        if (dash) dash.style.setProperty('display', 'none', 'important');
-
         mountBestBlock3LandingPage();
-        const lv = document.getElementById('landing-view');
-        if (lv) lv.style.setProperty('display', 'block', 'important');
-        const newLandingMaster = document.getElementById('hh-new-landing-master-wrap');
-        if (newLandingMaster) newLandingMaster.style.setProperty('display', 'block', 'important');
-
         window.scrollTo({ top: 0, behavior: 'instant' });
     };
 
@@ -17455,11 +17346,9 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         document.body.appendChild(modal);
     };
 
-    window.launchStewardStripeCheckout = function(planType) {
+    window.launchStewardStripeCheckout = function() {
         const cfg = getPricingCfg();
-        let url = cfg.stewardCheckoutUrl;
-        if (planType === 'terrain_self_paced') url = cfg.terrainSelfPacedCheckoutUrl;
-        else if (planType === 'terrain_consult_vip') url = cfg.terrainConsultCheckoutUrl;
+        const url = cfg.stewardCheckoutUrl;
         if (!url || url === 'https://buy.stripe.com/') {
             window.openHubStewardUpgradeModal('Full Hub Steward Membership');
             return;
@@ -17475,16 +17364,16 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         modal.className = 'modal-overlay';
         modal.style.cssText = 'display:flex; z-index:3120;';
         modal.innerHTML = `
-            <div style="background:#FFFDF8; width:100%; max-width:640px; border-radius:24px; padding:28px; border:3px solid #2E5A44; box-shadow:0 25px 65px rgba(0,0,0,0.45);">
+            <div style="background:#FFFDF8; width:100%; max-width:600px; border-radius:24px; padding:28px; border:3px solid #2E5A44; box-shadow:0 25px 65px rgba(0,0,0,0.45);">
                 <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid var(--border); padding-bottom:12px; margin-bottom:16px;">
                     <div>
                         <span class="card-tag" style="background:#D97706; color:#fff;">🔥 Founding Launch Promo: ${escapeSafeHtml(cfg.launchPromoPrice)} (Reg. ${escapeSafeHtml(cfg.regularStewardPrice)})</span>
                         <h3 style="font-family:var(--font-serif, Georgia, serif); font-size:1.55rem; color:var(--primary); margin:4px 0 2px 0;">Unlock ${escapeSafeHtml(triggeredFeatureName)}</h3>
-                        <p style="font-size:0.84rem; color:var(--text-main); margin:0;">Upgrade to Full Hub Steward to unlock the 7-Store Clean-Brand Concierge, Clean Swaps Vault, Folk Apothecary, Homeschool OS, and all 102+ recipes!</p>
+                        <p style="font-size:0.84rem; color:var(--text-main); margin:0;">Upgrade to Full Hub Steward to unlock the 7-Store Clean-Brand Concierge, Clean Swaps Vault, Folk Apothecary, Homeschool OS, and all 90+ recipes!</p>
                     </div>
                     <button type="button" onclick="document.getElementById('hh-steward-upgrade-modal').remove()" style="background:none; border:none; font-size:1.7rem; cursor:pointer;">&times;</button>
                 </div>
-                <button type="button" class="btn-primary" style="width:100%; padding:14px; font-size:0.95rem; font-weight:800; background:linear-gradient(135deg, #2E5A44 0%, #1F4230 100%); border-color:#173325; color:#fff; border-radius:12px; margin-bottom:14px;" onclick="if('${escapeSafeHtml(cfg.stewardCheckoutUrl)}'!=='https://buy.stripe.com/'){window.open('${escapeSafeHtml(cfg.stewardCheckoutUrl)}','_blank');}else{alert('Enter your VIP Unlock Code below or configure your Stripe link in Admin Settings!');}">
+                <button type="button" class="btn-primary" style="width:100%; padding:14px; font-size:0.95rem; font-weight:800; background:linear-gradient(135deg, #2E5A44 0%, #1F4230 100%); border-color:#173325; color:#fff; border-radius:12px; margin-bottom:14px;" onclick="if('${escapeSafeHtml(cfg.stewardCheckoutUrl)}'!=='https://buy.stripe.com/'){window.open('${escapeSafeHtml(cfg.stewardCheckoutUrl)}','_blank');}else{alert('Enter your VIP Unlock Code below!');}">
                     🔥 Claim ${escapeSafeHtml(cfg.launchPromoPrice)} Launch Promo &rarr;
                 </button>
                 <div style="background:var(--bg-warm-cream); border:1.5px dashed var(--border); border-radius:12px; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
@@ -17507,32 +17396,14 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             window._adminSimulateFreeTier = false;
             document.getElementById('hh-steward-upgrade-modal')?.remove();
             enforceSimplifiedFivePillarNavigation();
-            renderCleanCuratedMasterShoppingList();
             alert('🎉 Full Hub Steward Unlocked!');
         } else {
             alert('That code was not recognized.');
         }
     };
 
-    window.openAdminMembershipSettingsModal = function() {
-        if (!isStrictFounderAdmin() || typeof openUniversalModal !== 'function') return;
-        const cfg = getPricingCfg();
-        openUniversalModal('👑 Pricing, Launch Promo & Stripe Checkout Links', [
-            { name: 'regularStewardPrice', label: '1. Regular Full Hub Steward Price', value: cfg.regularStewardPrice },
-            { name: 'launchPromoPrice', label: '2. Current Launch Promo Price', value: cfg.launchPromoPrice },
-            { name: 'stewardCheckoutUrl', label: '3. Full Hub Steward ($9/mo Promo) Stripe URL', value: cfg.stewardCheckoutUrl },
-            { name: 'terrainAddonPrice', label: '4. Reclaim Your Terrain Self-Paced Price', value: cfg.terrainAddonPrice },
-            { name: 'terrainSelfPacedCheckoutUrl', label: '5. Reclaim Your Terrain Self-Paced Stripe URL', value: cfg.terrainSelfPacedCheckoutUrl },
-            { name: 'terrainConsultCheckoutUrl', label: '6. Reclaim Your Terrain VIP Consult Stripe URL', value: cfg.terrainConsultCheckoutUrl },
-            { name: 'vipUnlockCode', label: '7. Secret VIP Unlock Code', value: cfg.vipUnlockCode }
-        ], vals => {
-            savePricingCfg({ ...cfg, ...vals });
-            alert('✅ Saved Stripe Checkout Links & Pricing!');
-        });
-    };
-
     // =========================================================================
-    // 6. SIMPLIFIED 5-PILLAR NAVIGATION & "⚡ PLAYING CATCH-UP" TODAY ENGINE
+    // 6. SIMPLIFIED 5-PILLAR NAVIGATION (NO TERRAIN, NO HOMESTEAD, NO INVENTORY)
     // =========================================================================
     window._homeschoolPillarEnabled = localStorage.getItem('hh_homeschool_pillar_enabled') !== 'false';
     window._activeHomeCoachTab = window._activeHomeCoachTab || 'maintenance';
@@ -17565,9 +17436,45 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
+    function removeHomesteadAndTerrainModesCompletely() {
+        try {
+            localStorage.setItem('hh_mode_homestead', 'false');
+            localStorage.setItem('homestead_mode_enabled', 'false');
+        } catch (e) {}
+
+        document.querySelectorAll('header *, nav *, .menu-dropdown *, [id*="menu"] *, div, span, label, button').forEach(el => {
+            if (el.closest('#hh-new-landing-master-wrap')) return;
+            const directTxt = Array.from(el.childNodes)
+                .filter(n => n.nodeType === 3)
+                .map(n => n.nodeValue.trim())
+                .join(' ');
+
+            if (
+                directTxt === '🌾 Homestead' ||
+                directTxt === 'Homestead' ||
+                directTxt.includes('🌾 Homestead') ||
+                (el.tagName === 'INPUT' && ((el.id || '').toLowerCase().includes('homestead') || (el.getAttribute('onchange') || '').toLowerCase().includes('homestead')))
+            ) {
+                let card = el;
+                while (card && card.parentElement && card.parentElement !== document.body) {
+                    const parentTxt = (card.parentElement.textContent || '');
+                    if (parentTxt.includes('Morning Porch') || parentTxt.includes('CUSTOMIZE HOUSEHOLD MODES')) break;
+                    card = card.parentElement;
+                }
+                if (card && card !== document.body) card.remove();
+                else el.remove();
+            }
+        });
+
+        document.getElementById('view-reclaim-terrain')?.remove();
+        document.getElementById('view-homestead')?.remove();
+    }
+
     function enforceSimplifiedFivePillarNavigation() {
         const isPaid = window.isFullHubPaidSteward();
         const hsEnabled = window._homeschoolPillarEnabled;
+
+        removeHomesteadAndTerrainModesCompletely();
 
         document.querySelectorAll('button, a, label').forEach(el => {
             if (el.closest('#hh-new-landing-master-wrap')) return;
@@ -17576,9 +17483,10 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                 txt.includes('Room Auto-Pilot') ||
                 txt.includes('Homestead OS') ||
                 txt.includes('The Table') ||
+                txt.includes('Reclaim Your Terrain') ||
+                txt.includes('Edit Links & Pricing') ||
                 txt.includes('Food & Household Supply Inventory') ||
-                txt === '🌾 Homestead' ||
-                txt.includes('Morning Porch')
+                txt === '🌾 Homestead'
             ) {
                 el.style.setProperty('display', 'none', 'important');
             }
@@ -17599,7 +17507,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                 if (!isPaid || !hsEnabled) el.style.setProperty('display', 'none', 'important');
                 else el.style.removeProperty('display');
             }
-            if (txt.includes('Apothecary') || txt.includes('Reclaim Your Terrain')) {
+            if (txt.includes('Apothecary')) {
                 if (!isPaid) el.style.setProperty('display', 'none', 'important');
                 else el.style.removeProperty('display');
             }
@@ -17638,7 +17546,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             }
         }
 
-        // Subtle "⭐ Upgrade" button in the top header for Free Tier users
         const headerActions = Array.from(document.querySelectorAll('header div, .header-actions, nav')).find(el =>
             !el.closest('#hh-new-landing-master-wrap') && ((el.textContent || '').includes('Alerts') || (el.textContent || '').includes('Menu'))
         );
@@ -17700,49 +17607,49 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
     };
 
     const CATCH_UP_SPRINT_TASKS = [
-        { id: 'cu_1', room: 'Laundry Rescue', swapKey: 'laundry_detergent', task: 'Start 1 Rescue Load of Laundry right now (Wash ➔ Dryer/Line — ignore the rest of the hampers today!)', why: 'Gets clean clothes moving in 2 minutes.' },
-        { id: 'cu_2', room: 'Kitchen Sink Reset', swapKey: 'dish_washer', task: 'Unload clean dishes & load dirty sink dishes into the dishwasher (run it now if full!)', why: 'Clearing the sink makes the whole kitchen feel calm again.' },
-        { id: 'cu_3', room: '15-Min Family Tidy', swapKey: 'counter_spray', task: 'Set a 15-Minute Timer: Everyone puts shoes, toys & clutter into baskets + wipe kitchen counters', why: 'Resets your main living spaces in 15 minutes flat.' },
-        { id: 'cu_4', room: 'Homeschool Minimum', swapKey: null, task: 'Homeschool Catch-Up Anchor: 15-Minute Read-Aloud on the couch + 1 core Math or Reading lesson', why: 'Counts as a rich school day when playing catch-up!' },
-        { id: 'cu_5', room: 'Easy Dinner Anchor', swapKey: null, task: 'Check tonight’s dinner on Tab #3 (or swap tonight to a 15-minute skillet meal or Leftovers!)', why: 'Eliminates the 5:00 PM dinner panic.' }
+        { id: 'cu_1', room: 'Laundry Rescue', swapKey: 'laundry_detergent', task: 'Start 1 Rescue Load of Laundry right now (Wash ➔ Dryer/Line — ignore the rest of the hampers today!)' },
+        { id: 'cu_2', room: 'Kitchen Sink Reset', swapKey: 'dish_washer', task: 'Unload clean dishes & load dirty sink dishes into the dishwasher (run it now if full!)' },
+        { id: 'cu_3', room: '15-Min Family Tidy', swapKey: 'counter_spray', task: 'Set a 15-Minute Timer: Everyone puts shoes, toys & clutter into baskets + wipe kitchen counters' },
+        { id: 'cu_4', room: 'Homeschool Minimum', swapKey: null, task: 'Homeschool Catch-Up Anchor: 15-Minute Read-Aloud on the couch + 1 core Math or Reading lesson' },
+        { id: 'cu_5', room: 'Easy Dinner Anchor', swapKey: null, task: 'Check tonight’s dinner on Tab #3 (or swap tonight to a 15-minute skillet meal or Leftovers!)' }
     ];
 
     const DAILY_GENERAL_MAINTENANCE_TASKS = [
-        { id: 'gm_k1', group: '🌅 Morning Kitchen & Laundry Anchor', room: 'Kitchen', swapKey: 'dish_washer', task: 'Empty clean dishwasher first thing in the morning', why: 'Prevents dishes from piling up in the sink.', essentialGraceDay: true, bg: '#FFFBEB', border: '#D97706', tagBg: '#FEF3C7', tagColor: '#B45309' },
-        { id: 'gm_l1', group: '🌅 Morning Kitchen & Laundry Anchor', room: 'Laundry', swapKey: 'laundry_detergent', task: 'Start 1 daily load of family laundry (wash ➔ dryer/line ➔ put away)', why: 'One load a day keeps Mount Washmore away.', essentialGraceDay: true, bg: '#FFFBEB', border: '#D97706', tagBg: '#FEF3C7', tagColor: '#B45309' },
-        { id: 'gm_d1', group: '🍽️ After-Meals Dining & Midday Reset', room: 'Dining Room', swapKey: 'counter_spray', task: 'Clear & wipe dining table surface after family meals', why: 'Keeps the table ready for homeschooling or dinner.', essentialGraceDay: true, bg: '#F0F9FF', border: '#0284C7', tagBg: '#E0F2FE', tagColor: '#0369A1' },
-        { id: 'gm_k3', group: '🌙 Evening Kitchen Closing & 5-Min House Reset', room: 'Kitchen', swapKey: 'counter_spray', task: 'Wipe counters & stovetop with Citrus Castile Spray after dinner', why: 'Waking up to clean counters lowers morning stress.', essentialGraceDay: true, bg: '#F0FDF4', border: '#16A34A', tagBg: '#DCFCE7', tagColor: '#15803D' },
-        { id: 'gm_k5', group: '🌙 Evening Kitchen Closing & 5-Min House Reset', room: 'Kitchen', swapKey: 'sink_scrub', task: 'Shine kitchen sink with baking soda & run dishwasher before bed', why: 'Your evening signal that the kitchen is closed.', essentialGraceDay: true, bg: '#F0FDF4', border: '#16A34A', tagBg: '#DCFCE7', tagColor: '#15803D' },
-        { id: 'gm_lv1', group: '🌙 Evening Kitchen Closing & 5-Min House Reset', room: 'Living Area', swapKey: null, task: '5-Minute Family Floor Pickup: Return toys, books & shoes to baskets', why: 'Everyone pitches in for 5 minutes before bedtime.', essentialGraceDay: false, bg: '#FDF2F8', border: '#DB2777', tagBg: '#FCE7F3', tagColor: '#BE185D' }
+        { id: 'gm_k1', room: 'Kitchen', swapKey: 'dish_washer', task: 'Empty clean dishwasher first thing in the morning' },
+        { id: 'gm_l1', room: 'Laundry', swapKey: 'laundry_detergent', task: 'Start 1 daily load of family laundry (wash ➔ dryer/line ➔ put away)' },
+        { id: 'gm_d1', room: 'Dining Room', swapKey: 'counter_spray', task: 'Clear & wipe dining table surface after family meals' },
+        { id: 'gm_k3', room: 'Kitchen', swapKey: 'counter_spray', task: 'Wipe counters & stovetop with Citrus Castile Spray after dinner' },
+        { id: 'gm_k5', room: 'Kitchen', swapKey: 'sink_scrub', task: 'Shine kitchen sink with baking soda & run dishwasher before bed' },
+        { id: 'gm_lv1', room: 'Living Area', swapKey: null, task: '5-Minute Family Floor Pickup: Return toys, books & shoes to baskets' }
     ];
 
     const WEEKLY_ZONE_FOCUS_CATALOG = {
-        1: { dayName: 'Monday', zoneTitle: 'Kitchen & Pantry Deep Reset', zoneSubtitle: '15 focused minutes refreshing your fridge & pantry shelf.', icon: '🫙', swapKey: 'sink_scrub', tasks: [
+        1: { dayName: 'Monday', zoneTitle: 'Kitchen & Pantry Deep Reset', icon: '🫙', swapKey: 'sink_scrub', tasks: [
             { id: 'zf_mon_1', area: 'Refrigerator', text: 'Check refrigerator shelves: toss old items & wipe sticky spills' },
             { id: 'zf_mon_2', area: 'Appliances', text: 'Wipe fronts & handles of fridge, oven, and dishwasher' },
             { id: 'zf_mon_3', area: 'Pantry Shelf', text: 'Tidy 1 pantry shelf & wipe crumbs' }
         ]},
-        2: { dayName: 'Tuesday', zoneTitle: 'Bathrooms & Laundry Room Reset', zoneSubtitle: '15 minutes to refresh bathrooms and laundry.', icon: '🛁', swapKey: 'bathroom_scrub', tasks: [
+        2: { dayName: 'Tuesday', zoneTitle: 'Bathrooms & Laundry Room Reset', icon: '🛁', swapKey: 'bathroom_scrub', tasks: [
             { id: 'zf_tue_1', area: 'Sinks & Mirrors', text: 'Wipe bathroom sinks, counters & mirrors' },
             { id: 'zf_tue_2', area: 'Toilets & Towels', text: 'Scrub toilet bowls & swap damp towels for fresh linens' }
         ]},
-        3: { dayName: 'Wednesday', zoneTitle: 'Bedrooms (Master & Kids)', zoneSubtitle: 'Peaceful, clutter-free sleeping spaces.', icon: '🛏️', swapKey: 'laundry_detergent', tasks: [
+        3: { dayName: 'Wednesday', zoneTitle: 'Bedrooms (Master & Kids)', icon: '🛏️', swapKey: 'laundry_detergent', tasks: [
             { id: 'zf_wed_1', area: 'Beds & Sheets', text: 'Refresh bed sheets & straighten kids’ beds' },
             { id: 'zf_wed_2', area: 'Surfaces & Floors', text: 'Clear nightstands, put away laundry & vacuum/sweep floors' }
         ]},
-        4: { dayName: 'Thursday', zoneTitle: 'Living Room, Entryway & Homeschool Area', zoneSubtitle: 'Reset family gathering spaces and school table.', icon: '🛋️', swapKey: 'counter_spray', tasks: [
+        4: { dayName: 'Thursday', zoneTitle: 'Living Room, Entryway & Homeschool Area', icon: '🛋️', swapKey: 'counter_spray', tasks: [
             { id: 'zf_thu_1', area: 'Entryway & School Table', text: 'Line up shoes, hang bags & stack homeschool books neatly' },
             { id: 'zf_thu_2', area: 'Living Room', text: 'Fluff sofa pillows, fold blankets & vacuum rug' }
         ]},
-        5: { dayName: 'Friday', zoneTitle: 'Whole-House Floors, Porch & Weekend Prep', zoneSubtitle: 'Finish the week strong so your weekend is free.', icon: '🧹', swapKey: 'floor_mop', tasks: [
+        5: { dayName: 'Friday', zoneTitle: 'Whole-House Floors, Porch & Weekend Prep', icon: '🧹', swapKey: 'floor_mop', tasks: [
             { id: 'zf_fri_1', area: 'Floors & Trash', text: 'Quick high-traffic floor vacuum/mop & empty household trash bins' },
             { id: 'zf_fri_2', area: 'Car & Porch', text: '5-minute clear-out of car trash/bags & sweep front porch' }
         ]},
-        6: { dayName: 'Saturday', zoneTitle: 'Family Reset & Simple Batch-Prep', zoneSubtitle: '1 simple kitchen batch-prep + 10-minute family tidy.', icon: '🌻', swapKey: 'counter_spray', tasks: [
+        6: { dayName: 'Saturday', zoneTitle: 'Family Reset & Simple Batch-Prep', icon: '🌻', swapKey: 'counter_spray', tasks: [
             { id: 'zf_sat_1', area: 'Batch-Prep', text: 'Prep 1 weekend staple (broth, sourdough, or 1 batch snack)' },
             { id: 'zf_sat_2', area: 'Restock', text: 'Refill foaming hand soaps & Castile spray bottles' }
         ]},
-        0: { dayName: 'Sunday', zoneTitle: 'Rest, Peace & Week-Ahead Rhythm', zoneSubtitle: 'Rest, nourishment, and a 30-second fridge check for Monday.', icon: '🕊️', swapKey: null, tasks: [
+        0: { dayName: 'Sunday', zoneTitle: 'Rest, Peace & Week-Ahead Rhythm', icon: '🕊️', swapKey: null, tasks: [
             { id: 'zf_sun_1', area: 'Rest', text: 'Enjoy a slow morning and guilt-free family rest' },
             { id: 'zf_sun_2', area: 'Week Ahead', text: 'Review your 7-Day Meal Plan & pull Monday’s dinner meat to thaw' }
         ]}
@@ -17864,208 +17771,16 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
     }
 
     // =========================================================================
-    // 7. 7-STORE CLEAN-BRAND CONCIERGE, 30-SEC FRIDGE CHECK & 102+ DISH PHOTOS
-    // =========================================================================
-    const GROCERY_STORES = {
-        walmart: { name: '🔵 Walmart (In-Store & Curbside)', short: 'Walmart', color: '#0071DC' },
-        sprouts: { name: '🟢 Sprouts Farmers Market', short: 'Sprouts', color: '#2E5A44' },
-        heb:     { name: '🔴 H-E-B (Texas In-Store & Curbside)', short: 'H-E-B', color: '#B91C1C' },
-        kroger:  { name: '🔵 Kroger', short: 'Kroger', color: '#1D4ED8' },
-        aldi:    { name: '🟠 ALDI', short: 'ALDI', color: '#D97706' },
-        azure:   { name: '🌾 Azure Standard (Bulk & Heritage Grains)', short: 'Azure Standard', color: '#9A5B0A' },
-        target:  { name: '🎯 Target', short: 'Target', color: '#DC2626' }
-    };
-
-    const STORE_BRAND_PREFIX_FALLBACK = {
-        walmart: 'Marketside Organic / Great Value USDA Organic',
-        sprouts: 'Sprouts Organic / Farmers Market Select',
-        heb:     'H-E-B Organics / Central Market Organics',
-        kroger:  'Simple Truth Organic',
-        aldi:    'Simply Nature Organic',
-        azure:   'Azure Market Organics (Bulk Whole-Food)',
-        target:  'Good & Gather Organic'
-    };
-
-    const DEFAULT_STORE_BRAND_CATALOG = {
-        'Boneless Skinless Chicken Breasts': { walmart: 'Perdue Harvestland Free-Range Chicken Breasts', sprouts: 'Sprouts Organic Air-Chilled Chicken Breasts', heb: 'H-E-B Organics Air-Chilled Chicken Breasts', kroger: 'Simple Truth Organic Air-Chilled Chicken Breasts', aldi: 'Simply Nature Organic Chicken Breasts', azure: 'Mary’s Free-Range Organic Chicken Breasts', target: 'Good & Gather Organic Chicken Breasts' },
-        '80/20 Ground Beef': { walmart: 'Marketside Organic 100% Grass-Fed Ground Beef', sprouts: 'Force of Nature Regenerative 100% Grass-Fed Ground Beef', heb: 'H-E-B Natural 100% Grass-Fed Ground Beef', kroger: 'Simple Truth Natural 100% Grass-Fed Ground Beef', aldi: 'Simply Nature 100% Organic Grass-Fed Ground Beef', azure: 'Thousand Hills 100% Grass-Fed Ground Beef', target: 'Good & Gather Organic 100% Grass-Fed Ground Beef' },
-        'Pasture-Raised Eggs': { walmart: 'Vital Farms Pasture-Raised Eggs', sprouts: 'Alexandre Family Farm / Vital Farms Pasture-Raised Eggs', heb: 'Vital Farms (Austin, TX!) Pasture-Raised Eggs', kroger: 'Simple Truth Organic Pasture-Raised Eggs', aldi: 'Simply Nature Organic Pasture-Raised Eggs', azure: 'Chino Valley Ranchers Soy-Free Pasture Eggs', target: 'Vital Farms Pasture-Raised Eggs' },
-        'Whole Milk': { walmart: 'Horizon Organic / Maple Hill 100% Grass-Fed Whole Milk', sprouts: 'Kalona SuperNatural Non-Homogenized Whole Milk', heb: 'Kalona SuperNatural / Central Market 100% Grass-Fed Milk', kroger: 'Simple Truth Organic 100% Grass-Fed Whole Milk', aldi: 'Friendly Farms USDA Organic Whole Milk', azure: 'Alexandre Family Farm A2/A2 Grass-Fed Whole Milk', target: 'Horizon Organic / Maple Hill Grass-Fed Milk' },
-        'Grass-Fed Butter': { walmart: 'Kerrygold Pure Irish Grass-Fed Salted Butter', sprouts: 'Straus Family Creamery / Kerrygold Grass-Fed Butter', heb: 'Vital Farms Pasture-Raised Butter / Kerrygold', kroger: 'Kerrygold Pure Irish Grass-Fed Butter', aldi: 'Countryside Creamery Pure Irish Grass-Fed Butter', azure: 'Rumiano Organic 100% Grass-Fed Butter', target: 'Kerrygold Pure Irish Grass-Fed Butter' }
-    };
-
-    function getCuratedBrandForIngredientAndStore(ingName, storeKey = null) {
-        const activeStore = storeKey || localStorage.getItem('hh_preferred_grocery_store') || 'walmart';
-        let entry = DEFAULT_STORE_BRAND_CATALOG[ingName];
-        if (!entry) {
-            const lower = String(ingName || '').toLowerCase();
-            for (const [k, val] of Object.entries(DEFAULT_STORE_BRAND_CATALOG)) {
-                if (lower.includes(k.toLowerCase()) || k.toLowerCase().includes(lower)) { entry = val; break; }
-            }
-        }
-        if (entry) return { brandPick: entry[activeStore] || entry.walmart };
-        return { brandPick: `${STORE_BRAND_PREFIX_FALLBACK[activeStore] || 'USDA Organic'} ${ingName} (Whole-Food, No Additives)` };
-    }
-
-    function renderCleanCuratedMasterShoppingList() {
-        const allHeadings = Array.from(document.querySelectorAll('h2, h3, h4, div'));
-        const listHeading = allHeadings.find(el => el.children.length === 0 && (el.textContent || '').trim() === 'Master Family Shopping List');
-        if (!listHeading || !listHeading.parentElement) return;
-
-        // Hide legacy Inventory transfer buttons
-        document.querySelectorAll('button').forEach(btn => {
-            const bTxt = (btn.textContent || '').trim();
-            if (bTxt.includes('Done Shopping (Move Checked to Storage)') || bTxt.includes('+ Pull Low-Stock Items')) {
-                btn.style.setProperty('display', 'none', 'important');
-            }
-        });
-
-        let fridgeCheckBanner = document.getElementById('hh-30sec-fridge-check-banner');
-        if (!fridgeCheckBanner) {
-            fridgeCheckBanner = document.createElement('div');
-            fridgeCheckBanner.id = 'hh-30sec-fridge-check-banner';
-            fridgeCheckBanner.style.cssText = 'background:#FEF5D8; border:2px solid #B87612; border-radius:14px; padding:12px 16px; margin:10px 0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;';
-            fridgeCheckBanner.innerHTML = `
-                <div>
-                    <strong style="font-size:0.88rem; color:#9A5B0A; display:block;">🧊 Step 1: 30-Second "Shop Your Fridge & Pantry First" Check</strong>
-                    <span style="font-size:0.78rem; color:#4A3728;">Check off anything below that you already have in your fridge or pantry before heading to the store!</span>
-                </div>
-                <button type="button" class="btn-secondary" style="font-size:0.76rem; padding:7px 12px; border-color:#2E5A44; color:#2E5A44; font-weight:800;" onclick="openDedicatedCleanSwapsPillar()">
-                    ✨ View Recommended Pantry Swaps &rarr;
-                </button>
-            `;
-            listHeading.insertAdjacentElement('afterend', fridgeCheckBanner);
-        }
-    }
-
-    // 102+ Dish & Vault Visual Photography Injector
-    const EXACT_RECIPE_ID_PHOTOS = {
-        rec_sm1: 'https://images.unsplash.com/photo-1553530666-ba11a7da3888?auto=format&fit=crop&w=700&q=80',
-        rec_bf1: 'https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=700&q=80',
-        rec_df1: 'https://images.unsplash.com/photo-1534939561126-855b8675edd7?auto=format&fit=crop&w=700&q=80',
-        rec_df7: 'https://images.unsplash.com/photo-1588168333986-5078d3ae3976?auto=format&fit=crop&w=700&q=80',
-        rec_dq2: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=700&q=80',
-        rec_ds2: 'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?auto=format&fit=crop&w=700&q=80',
-        rec_la1: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=700&q=80'
-    };
-
-    window.getVisualPhotoForItem = function(itemKey, titleText = '', categoryHint = 'food') {
-        const t = `${itemKey || ''} ${titleText || ''}`.toLowerCase();
-        if (categoryHint === 'apothecary') {
-            if (/syrup|elderberry|honey|cough/.test(t)) return 'https://images.unsplash.com/photo-1587049352847-4a222e784d38?auto=format&fit=crop&w=700&q=80';
-            if (/salve|balm|tallow|skin/.test(t)) return 'https://images.unsplash.com/photo-1608248597359-0e6d526a6828?auto=format&fit=crop&w=700&q=80';
-            if (/tea|chamomile|peppermint/.test(t)) return 'https://images.unsplash.com/photo-1576092768241-dec231879fc3?auto=format&fit=crop&w=700&q=80';
-            return 'https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?auto=format&fit=crop&w=700&q=80';
-        }
-        if (categoryHint === 'ditch_switch') {
-            if (/laundry|dryer|wool|detergent/.test(t)) return 'https://images.unsplash.com/photo-1582735689369-4fe89db7114c?auto=format&fit=crop&w=700&q=80';
-            if (/spray|cleaner|bleach|dish|soap/.test(t)) return 'https://images.unsplash.com/photo-1585421514738-01798e348b17?auto=format&fit=crop&w=700&q=80';
-            return 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=700&q=80';
-        }
-        if (/smoothie|shake/.test(t)) return EXACT_RECIPE_ID_PHOTOS.rec_sm1;
-        if (/egg|scramble|frittata/.test(t)) return EXACT_RECIPE_ID_PHOTOS.rec_bf1;
-        if (/roast|stew|beef/.test(t)) return EXACT_RECIPE_ID_PHOTOS.rec_df1;
-        if (/salmon|fish/.test(t)) return EXACT_RECIPE_ID_PHOTOS.rec_ds2;
-        if (/burger/.test(t)) return EXACT_RECIPE_ID_PHOTOS.rec_dq2;
-        return EXACT_RECIPE_ID_PHOTOS.rec_la1;
-    };
-
-    function injectVisualBannersIntoVaults() {
-        [['#tool-tab-recipe-vault', 'food'], ['#food-tab-ditch-switch', 'ditch_switch'], ['#view-apothecary', 'apothecary']].forEach(([sel, hint]) => {
-            const container = document.querySelector(sel);
-            if (!container) return;
-            container.querySelectorAll('.clinical-panel, .recipe-card').forEach(card => {
-                if (card.querySelector('.hh-injected-visual-banner') || card.id?.includes('banner')) return;
-                const titleEl = card.querySelector('h3, h4');
-                if (!titleEl) return;
-                const titleTxt = (titleEl.textContent || '').trim();
-                if (titleTxt.length < 3) return;
-                const imgUrl = window.getVisualPhotoForItem(titleTxt.toLowerCase(), titleTxt, hint);
-                const banner = document.createElement('div');
-                banner.className = 'hh-card-hero-img-wrap hh-injected-visual-banner';
-                banner.innerHTML = `<img src="${escapeSafeHtml(imgUrl)}" alt="${escapeSafeHtml(titleTxt)}" loading="lazy">`;
-                card.prepend(banner);
-            });
-        });
-    }
-
-    // =========================================================================
-    // 8. PRINTABLE MOM & KIDS CHECKLISTS + RECLAIM TERRAIN PORTAL
-    // =========================================================================
-    window.printCategorizedDailyHomeTasks = function() {
-        const container = document.getElementById('hh-upgraded-home-tasks-container');
-        const todayStr = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-        const tasks = [];
-        if (container) container.querySelectorAll('label.hh-home-task-card strong').forEach(s => tasks.push(s.textContent.trim()));
-        const w = window.open('', '_blank', 'width=850,height=900');
-        if (!w) { alert('Please allow pop-ups to print your checklist!'); return; }
-        w.document.write(`<!DOCTYPE html><html><head><title>Today's Home & Zone Reset — ${escapeSafeHtml(todayStr)}</title><style>body{font-family:'Segoe UI',sans-serif;color:#1B4332;padding:24px 30px;}@media print{.no-print{display:none!important;}}</style></head><body><div class="no-print" style="margin-bottom:16px;padding:10px 16px;background:#E8F2EC;border:1.5px solid #2E5A44;border-radius:10px;display:flex;justify-content:space-between;align-items:center;"><strong>🖨️ Fridge-Ready Daily Home & Zone Reset Sheet</strong><button onclick="window.print()" style="background:#1B4332;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-weight:800;cursor:pointer;">🖨️ Print Now</button></div><h1 style="font-family:Georgia,serif;color:#1B4332;border-bottom:2px solid #1B4332;padding-bottom:8px;">🌻 Today's Home & Zone Reset (${escapeSafeHtml(todayStr)})</h1>${tasks.map(t => `<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px dotted #D9CBB5;font-size:0.92rem;"><span style="width:16px;height:16px;border:2px solid #1B4332;border-radius:3px;flex-shrink:0;margin-top:2px;"></span><span>${escapeSafeHtml(t)}</span></div>`).join('')}</body></html>`);
-        w.document.close();
-    };
-
-    window.printKidsDailyTaskList = function() {
-        const roster = [
-            { childName: 'Older Kids (Grades 2–4)', tasks: ['Make bed & put pajamas in hamper', 'Brush teeth & get dressed', 'Clear breakfast plate & help unload silverware', 'Stack homeschool books & wipe school spot', '5-Minute Family Living Room Floor Pickup'] },
-            { childName: 'Middle Kids (K – 1st Grade)', tasks: ['Pull up blanket & arrange pillow on bed', 'Get dressed & brush teeth', 'Carry breakfast bowl to counter', 'Put crayons & workbooks back in bin', 'Put living room toys into baskets'] },
-            { childName: 'Little Helpers (Preschool)', tasks: ['Put stuffed animals on pillow', 'Put dirty clothes in hamper with help', 'Help pick up toys during the 5-Minute Evening Song'] }
-        ];
-        const todayStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-        const daysShort = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-        const w = window.open('', '_blank', 'width=860,height=900');
-        if (!w) { alert('Please allow pop-ups to print the Kids Checklist!'); return; }
-        w.document.write(`<!DOCTYPE html><html><head><title>Kids' Weekly Chore Chart</title><style>body{font-family:'Segoe UI',sans-serif;color:#1B4332;padding:24px 30px;}@media print{.no-print{display:none!important;}}</style></head><body><div class="no-print" style="margin-bottom:16px;padding:10px 16px;background:#FEF5D8;border:1.5px solid #B87612;border-radius:10px;display:flex;justify-content:space-between;align-items:center;"><strong>👧👦 Kids' Printable Weekly Chore Chart</strong><button onclick="window.print()" style="background:#1B4332;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-weight:800;cursor:pointer;">🖨️ Print Kids' Sheet</button></div><h1 style="font-family:Georgia,serif;color:#1B4332;border-bottom:2px solid #1B4332;padding-bottom:8px;">🌻 Kids' Weekly Chore & Stewardship Chart (Week of ${escapeSafeHtml(todayStr)})</h1>${roster.map(kid => `<div style="margin-bottom:16px;border:2px solid #1B4332;border-radius:12px;padding:12px 16px;background:#FFFDF8;"><div style="display:flex;justify-content:space-between;border-bottom:1.5px solid #B87612;padding-bottom:6px;margin-bottom:8px;"><strong style="font-size:1.1rem;">⭐ ${escapeSafeHtml(kid.childName)}</strong><div style="display:flex;gap:10px;font-size:0.75rem;font-weight:800;">${daysShort.map(d => `<span style="width:24px;text-align:center;">${d}</span>`).join('')}</div></div>${kid.tasks.map(r => `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px dotted #D9CBB5;font-size:0.86rem;"><span>${escapeSafeHtml(r)}</span><div style="display:flex;gap:10px;">${daysShort.map(() => `<span style="width:16px;height:16px;border:1.8px solid #1B4332;border-radius:3px;display:inline-block;"></span>`).join('')}</div></div>`).join('')}</div>`).join('')}</body></html>`);
-        w.document.close();
-    };
-
-    function injectPrintBarUnderTodayTasks() {
-        const taskContainer = document.getElementById('hh-upgraded-home-tasks-container');
-        if (!taskContainer || document.getElementById('hh-home-print-tasks-bar')) return;
-        const printBar = document.createElement('div');
-        printBar.id = 'hh-home-print-tasks-bar';
-        printBar.className = 'no-print';
-        printBar.style.cssText = 'margin-top:18px; padding:16px 20px; background:linear-gradient(135deg, #FAF3E3 0%, #FFFDF8 100%); border:2px solid #D9B36C; border-radius:18px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;';
-        printBar.innerHTML = `
-            <div>
-                <span class="card-tag" style="background:#2E5A44; color:#fff; margin-bottom:4px;">🖨️ Fridge-Ready Printable Checklists</span>
-                <strong style="font-family:var(--font-serif, Georgia, serif); font-size:1.15rem; color:var(--primary); display:block;">Print Today's Home Tasks & Kids' Weekly Chore Chart</strong>
-            </div>
-            <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                <button type="button" class="btn-primary" style="background:#2E5A44; border-color:#1E3F2E; padding:9px 15px; font-size:0.8rem;" onclick="printCategorizedDailyHomeTasks()">🖨️ Print My Today Tasks</button>
-                <button type="button" class="btn-primary" style="background:#B87612; border-color:#9A5B0A; padding:9px 15px; font-size:0.8rem;" onclick="printKidsDailyTaskList()">👧👦 Print Kids' Chore Chart</button>
-            </div>
-        `;
-        taskContainer.insertAdjacentElement('afterend', printBar);
-    }
-
-    // Motion Physics Listeners
-    document.addEventListener('pointerdown', (e) => {
-        const btn = e.target.closest('button, .btn-primary, .btn-secondary, .icon-btn');
-        if (!btn) return;
-        btn.classList.remove('hh-btn-springing');
-        btn.classList.add('hh-btn-sinking');
-    }, { passive: true });
-
-    function releaseBtnSpring() {
-        document.querySelectorAll('.hh-btn-sinking').forEach(btn => {
-            btn.classList.remove('hh-btn-sinking');
-            void btn.offsetWidth;
-            btn.classList.add('hh-btn-springing');
-            setTimeout(() => btn.classList.remove('hh-btn-springing'), 520);
-        });
-    }
-    document.addEventListener('pointerup', releaseBtnSpring, { passive: true });
-    document.addEventListener('pointercancel', releaseBtnSpring, { passive: true });
-
-    // =========================================================================
-    // 9. MASTER BOOTSTRAP & CLICK INTERCEPTORS
+    // 7. MASTER BOOTSTRAP & CLICK INTERCEPTORS
     // =========================================================================
     function runMasterBootstrap() {
-        mountBestBlock3LandingPage();
+        if (window._isHubSessionActive) {
+            forceAppDashboardVisible();
+        } else {
+            mountBestBlock3LandingPage();
+        }
         enforceSimplifiedFivePillarNavigation();
         renderGuidedHomeCommandPage();
-        renderCleanCuratedMasterShoppingList();
-        injectPrintBarUnderTodayTasks();
-        injectVisualBannersIntoVaults();
     }
 
     runMasterBootstrap();
@@ -18099,65 +17814,5 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
     }, true);
 })();
 </script>
-
-<script>
-(function() {
-    function removeHomesteadModeCompletely() {
-        // 1. Force Homestead mode OFF in storage so no homestead tasks ever load
-        try {
-            localStorage.setItem('hh_mode_homestead', 'false');
-            localStorage.setItem('homestead_mode_enabled', 'false');
-            const modes = JSON.parse(localStorage.getItem('hh_household_modes') || '{}');
-            if (modes && modes.homestead) {
-                modes.homestead = false;
-                localStorage.setItem('hh_household_modes', JSON.stringify(modes));
-            }
-        } catch (e) {}
-
-        // 2. Find any text node or element containing "Homestead" inside the header/menu and remove its toggle box
-        document.querySelectorAll('header *, nav *, .menu-dropdown *, [id*="menu"] *, div, span, label').forEach(el => {
-            if (el.closest('#hh-new-landing-master-wrap')) return;
-
-            // Check direct text of leaf elements
-            const directTxt = Array.from(el.childNodes)
-                .filter(n => n.nodeType === 3)
-                .map(n => n.nodeValue.trim())
-                .join(' ');
-
-            if (
-                directTxt === '🌾 Homestead' ||
-                directTxt === 'Homestead' ||
-                directTxt.includes('🌾 Homestead') ||
-                (el.tagName === 'INPUT' && ((el.id || '').toLowerCase().includes('homestead') || (el.getAttribute('onchange') || '').toLowerCase().includes('homestead')))
-            ) {
-                // Walk up to the pill-shaped toggle card inside "CUSTOMIZE HOUSEHOLD MODES" and remove it
-                let card = el;
-                while (card && card.parentElement && card.parentElement !== document.body) {
-                    const parentTxt = (card.parentElement.textContent || '');
-                    // Stop right before the parent that also holds "Morning Porch" or "CUSTOMIZE HOUSEHOLD MODES"
-                    if (parentTxt.includes('Morning Porch') || parentTxt.includes('CUSTOMIZE HOUSEHOLD MODES')) {
-                        break;
-                    }
-                    card = card.parentElement;
-                }
-                if (card && card !== document.body) {
-                    card.remove();
-                } else {
-                    el.remove();
-                }
-            }
-        });
-
-        // 3. Also hide any remaining "Homestead OS" pillar buttons or views
-        const homesteadView = document.getElementById('view-homestead');
-        if (homesteadView) homesteadView.remove();
-    }
-
-    removeHomesteadModeCompletely();
-    [50, 200, 500, 1200].forEach(ms => setTimeout(removeHomesteadModeCompletely, ms));
-    document.addEventListener('click', () => setTimeout(removeHomesteadModeCompletely, 50), true);
-})();
-</script>
-
 </body>
 </html>
