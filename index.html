@@ -18099,5 +18099,65 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
     }, true);
 })();
 </script>
+
+<script>
+(function() {
+    function removeHomesteadModeCompletely() {
+        // 1. Force Homestead mode OFF in storage so no homestead tasks ever load
+        try {
+            localStorage.setItem('hh_mode_homestead', 'false');
+            localStorage.setItem('homestead_mode_enabled', 'false');
+            const modes = JSON.parse(localStorage.getItem('hh_household_modes') || '{}');
+            if (modes && modes.homestead) {
+                modes.homestead = false;
+                localStorage.setItem('hh_household_modes', JSON.stringify(modes));
+            }
+        } catch (e) {}
+
+        // 2. Find any text node or element containing "Homestead" inside the header/menu and remove its toggle box
+        document.querySelectorAll('header *, nav *, .menu-dropdown *, [id*="menu"] *, div, span, label').forEach(el => {
+            if (el.closest('#hh-new-landing-master-wrap')) return;
+
+            // Check direct text of leaf elements
+            const directTxt = Array.from(el.childNodes)
+                .filter(n => n.nodeType === 3)
+                .map(n => n.nodeValue.trim())
+                .join(' ');
+
+            if (
+                directTxt === '🌾 Homestead' ||
+                directTxt === 'Homestead' ||
+                directTxt.includes('🌾 Homestead') ||
+                (el.tagName === 'INPUT' && ((el.id || '').toLowerCase().includes('homestead') || (el.getAttribute('onchange') || '').toLowerCase().includes('homestead')))
+            ) {
+                // Walk up to the pill-shaped toggle card inside "CUSTOMIZE HOUSEHOLD MODES" and remove it
+                let card = el;
+                while (card && card.parentElement && card.parentElement !== document.body) {
+                    const parentTxt = (card.parentElement.textContent || '');
+                    // Stop right before the parent that also holds "Morning Porch" or "CUSTOMIZE HOUSEHOLD MODES"
+                    if (parentTxt.includes('Morning Porch') || parentTxt.includes('CUSTOMIZE HOUSEHOLD MODES')) {
+                        break;
+                    }
+                    card = card.parentElement;
+                }
+                if (card && card !== document.body) {
+                    card.remove();
+                } else {
+                    el.remove();
+                }
+            }
+        });
+
+        // 3. Also hide any remaining "Homestead OS" pillar buttons or views
+        const homesteadView = document.getElementById('view-homestead');
+        if (homesteadView) homesteadView.remove();
+    }
+
+    removeHomesteadModeCompletely();
+    [50, 200, 500, 1200].forEach(ms => setTimeout(removeHomesteadModeCompletely, ms));
+    document.addEventListener('click', () => setTimeout(removeHomesteadModeCompletely, 50), true);
+})();
+</script>
+
 </body>
 </html>
