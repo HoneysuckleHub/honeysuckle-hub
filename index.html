@@ -16286,12 +16286,12 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
     </script>
 
 <!-- =========================================================================
-     HONEYSUCKLE HUB — MASTER PRODUCTION ENGINE (CLEAN 2-TIER & ZERO-BLANK-SCREEN)
-     1. Forest-Green Public Landing Page (No "Edit Links & Pricing" or "Reclaim Your Terrain")
-     2. Bulletproof Login & Free Signup -> Direct Dashboard Entry (Zero Blank Screen)
-     3. Streamlined 5-Pillar Navigation (Today, Kitchen, Clean Swaps, Apothecary, Homeschool)
-     4. Complete Removal of Reclaim Your Terrain & Homestead Toggles
-     5. "Playing Catch-Up" 45-Min Reset Sprint + Contextual Clean Swap Pills
+     HONEYSUCKLE HUB — MASTER PRODUCTION ENGINE (FIXED LOGIN & ZERO-BLANK-SCREEN)
+     1. Never deletes #dashboard-container or <main> (fixes blank screen on login)
+     2. Auto-restores active session on URL redirect or page reload
+     3. Forest-Green Public Landing Page (No "Edit Links" & No "Reclaim Your Terrain")
+     4. Safe CSS hiding for the "🌾 Homestead" toggle & "Reclaim Your Terrain"
+     5. 5-Pillar Navigation + "Playing Catch-Up" 45-Min Sprint + Clean Swap Pills
      ========================================================================= -->
 <script>
 (function() {
@@ -16329,6 +16329,29 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         return email === FOUNDER_EMAIL;
     }
 
+    // Check if the user already has an active logged-in session saved
+    function getSavedActiveSession() {
+        try {
+            const raw = localStorage.getItem(ACTIVE_SESSION_KEY);
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (parsed && parsed.email) return parsed;
+            }
+            const legacyEmail = localStorage.getItem('hh_logged_in_user_email');
+            if (legacyEmail && legacyEmail.includes('@')) {
+                return {
+                    id: 'usr_' + Date.now(),
+                    accountKey: legacyEmail,
+                    name: legacyEmail.split('@')[0],
+                    username: legacyEmail.split('@')[0],
+                    email: legacyEmail,
+                    tier: legacyEmail === FOUNDER_EMAIL ? 'paid_steward' : 'free_starter'
+                };
+            }
+        } catch (e) {}
+        return null;
+    }
+
     // =========================================================================
     // 1. PRICING & STEWARD ACCESS GATEKEEPER
     // =========================================================================
@@ -16360,16 +16383,12 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
     };
 
     // =========================================================================
-    // 2. MASTER CSS (TOP-LEVEL LANDING ISOLATION & IN-APP STYLES)
+    // 2. MASTER CSS (NO DESTRUCTIVE BODY HIDING)
     // =========================================================================
     if (!document.getElementById('hh-master-unified-styles')) {
         const st = document.createElement('style');
         st.id = 'hh-master-unified-styles';
         st.innerHTML = `
-            /* When showing the public landing page, hide background app containers cleanly without mutating their internal DOM */
-            body.hh-showing-green-landing > *:not(#hh-new-landing-master-wrap):not(.modal-overlay):not(script):not(style) {
-                display: none !important;
-            }
             #hh-new-landing-master-wrap {
                 background: #FFFDF8;
                 color: #2A1E14;
@@ -16483,11 +16502,10 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                 object-fit: cover;
                 display: block;
             }
-            /* Hide Reclaim Your Terrain & Homestead Views Globally */
+            /* Hide Reclaim Your Terrain & Homestead Views Non-Destructively */
             #view-reclaim-terrain, #view-homestead {
                 display: none !important;
             }
-            /* Button Press Physics */
             button, .btn-primary, .btn-secondary, .icon-btn {
                 transform-origin: center center;
                 will-change: transform;
@@ -16510,7 +16528,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
     }
 
     // =========================================================================
-    // 3. FOREST-GREEN PUBLIC LANDING PAGE (NO "EDIT LINKS" & NO "RECLAIM YOUR TERRAIN")
+    // 3. FOREST-GREEN PUBLIC LANDING PAGE
     // =========================================================================
     const DEMO_STORE_PREVIEW_DATA = {
         walmart: { label: '🔵 Walmart (In-Store & Curbside)', color: '#0071DC', items: [
@@ -16576,7 +16594,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         const cfg = getPricingCfg();
 
         return `
-            <!-- STICKY TOP NAVIGATION BAR (CLEAN — NO EDIT LINKS & NO RECLAIM YOUR TERRAIN) -->
             <div style="position:sticky; top:0; z-index:90; background:rgba(255, 253, 248, 0.97); backdrop-filter:blur(8px); border-bottom:1.5px solid #EADBC0; padding:14px 28px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
                 <div style="display:flex; align-items:center; gap:10px;">
                     <span style="font-size:1.7rem;">🌻</span>
@@ -16606,7 +16623,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                 </div>
             </div>
 
-            <!-- DEEP FOREST-GREEN HERO SECTION -->
             <div style="background:linear-gradient(135deg, #1E3F2E 0%, #142B1F 100%); color:#FFFDF8; padding:62px 28px 54px 28px; text-align:center; border-bottom:4px solid #D9B36C;">
                 <div style="max-width:860px; margin:0 auto;">
                     <span style="background:rgba(254, 245, 216, 0.15); color:#FEF5D8; border:1px solid #D9B36C; padding:6px 16px; border-radius:999px; font-size:0.75rem; font-weight:800; text-transform:uppercase; letter-spacing:0.04em; display:inline-block; margin-bottom:16px;">
@@ -16634,7 +16650,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                 </div>
             </div>
 
-            <!-- HOW IT WORKS IN 3 SIMPLE STEPS -->
             <div id="hh-b3-how-it-works" style="padding:44px 26px 24px 26px; max-width:1120px; margin:0 auto;">
                 <div style="text-align:center; max-width:700px; margin:0 auto 28px auto;">
                     <span class="card-tag" style="background:#FEF5D8; color:#9A5B0A; border:1px solid #E5C378;">🧭 Relief in Under 2 Minutes</span>
@@ -16668,17 +16683,12 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                 </div>
             </div>
 
-            <!-- INTERACTIVE LIVE PREVIEW: 7-STORE CLEAN-BRAND CONCIERGE -->
             <div id="hh-b3-store-concierge" style="padding:24px 26px 36px 26px; max-width:1120px; margin:0 auto;">
                 <div style="background:linear-gradient(135deg, #E8F2EC 0%, #FFFDF8 100%); border:2.5px solid #2E5A44; border-radius:24px; padding:28px 24px; text-align:center; box-shadow:0 12px 30px rgba(46, 90, 68, 0.1);">
                     <span class="card-tag" style="background:#2E5A44; color:#fff;">🛒 Try It Live Right Now • 7-Store Clean-Brand Concierge</span>
                     <h3 style="font-family:var(--font-serif, Georgia, serif); font-size:1.75rem; color:#1F4230; margin:8px 0 6px 0;">
                         Click Your Grocery Store Below to See How Your Shopping List Adapts:
                     </h3>
-                    <p style="font-size:0.88rem; color:#2A1E14; max-width:680px; margin:0 auto 16px auto;">
-                        Walmart doesn't carry the same brands as Sprouts or H-E-B. Pick a store below to see how Honeysuckle Hub tells you the exact clean whole-food brand to buy in every aisle:
-                    </p>
-
                     <div style="display:flex; justify-content:center; gap:8px; flex-wrap:wrap; margin-bottom:18px;">
                         <button type="button" class="hh-b3-store-pill active" data-store="walmart" onclick="switchLandingStoreDemo('walmart')">🔵 Walmart</button>
                         <button type="button" class="hh-b3-store-pill" data-store="sprouts" onclick="switchLandingStoreDemo('sprouts')">🟢 Sprouts</button>
@@ -16686,143 +16696,52 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                         <button type="button" class="hh-b3-store-pill" data-store="aldi" onclick="switchLandingStoreDemo('aldi')">🟠 ALDI</button>
                         <button type="button" class="hh-b3-store-pill" data-store="azure" onclick="switchLandingStoreDemo('azure')">🌾 Azure Standard</button>
                     </div>
-
                     <div id="hh-b3-live-store-demo-box" style="background:#ffffff; border:1.5px solid #EADBC0; border-radius:16px; padding:16px 18px; max-width:960px; margin:0 auto;"></div>
                 </div>
             </div>
 
-            <!-- 6 VISUAL PHOTO FEATURE CARDS (ALL FOCUSED ON HOME, MEALS, SWAPS, APOTHECARY & HOMESCHOOL) -->
             <div id="hh-main-lp-features" style="padding:28px 26px 48px 26px; max-width:1120px; margin:0 auto;">
-                <div style="text-align:center; max-width:720px; margin:0 auto 34px auto;">
-                    <span class="card-tag" style="background:var(--sage, #2E5A44); color:#fff;">🌟 Simple On Top, Powerful Underneath</span>
-                    <h2 style="font-family:var(--font-serif, Georgia, serif); font-size:2.1rem; color:var(--primary, #B87612); margin:8px 0 6px 0;">
-                        Everything You Need to Get Out of a Rut and Keep Your Home Running Smoothly
-                    </h2>
-                    <p style="font-size:0.94rem; color:#6E5A46; margin:0;">
-                        Zero tedious inventory data-entry. Just simple daily checklists, nourishing family meals, recommended clean swaps, and natural remedies when you need them.
-                    </p>
-                </div>
-
                 <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(310px, 1fr)); gap:22px;">
                     <div class="hh-b3-feature-card">
                         <img src="https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=700&q=80" alt="Grocery Store Concierge" style="width:100%; height:180px; object-fit:cover;">
-                        <div style="padding:18px 20px; flex:1; display:flex; flex-direction:column; justify-content:space-between;">
-                            <div>
-                                <span style="font-size:0.7rem; font-weight:800; color:#2E5A44; text-transform:uppercase;">🛒 7-Store Clean-Brand Concierge</span>
-                                <h4 style="font-family:var(--font-serif, Georgia, serif); font-size:1.25rem; color:#B87612; margin:4px 0 8px 0;">Vetted Brands for Your Exact Store</h4>
-                                <p style="font-size:0.84rem; color:#2A1E14; line-height:1.5; margin:0 0 10px 0;">
-                                    Stop reading tiny ingredient labels in the aisle! Pick <strong>Walmart, Sprouts, H-E-B, ALDI, Kroger, Azure Standard, or Target</strong> and see the exact clean brand to buy for every ingredient.
-                                </p>
-                            </div>
-                            <span style="font-size:0.75rem; font-weight:800; color:#B87612;">🌟 Included in Full Hub Steward</span>
+                        <div style="padding:18px 20px; flex:1;">
+                            <span style="font-size:0.7rem; font-weight:800; color:#2E5A44; text-transform:uppercase;">🛒 7-Store Clean-Brand Concierge</span>
+                            <h4 style="font-family:var(--font-serif, Georgia, serif); font-size:1.25rem; color:#B87612; margin:4px 0 8px 0;">Vetted Brands for Your Exact Store</h4>
+                            <p style="font-size:0.84rem; color:#2A1E14; line-height:1.5; margin:0;">Pick Walmart, Sprouts, H-E-B, ALDI, Kroger, Azure Standard, or Target and see the exact clean brand to buy for every ingredient.</p>
                         </div>
                     </div>
-
                     <div class="hh-b3-feature-card">
                         <img src="https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=700&q=80" alt="Whole Food Family Meals" style="width:100%; height:180px; object-fit:cover;">
-                        <div style="padding:18px 20px; flex:1; display:flex; flex-direction:column; justify-content:space-between;">
-                            <div>
-                                <span style="font-size:0.7rem; font-weight:800; color:#2E5A44; text-transform:uppercase;">🍽️ 90+ Visual Photo Recipes & Smart Scaling</span>
-                                <h4 style="font-family:var(--font-serif, Georgia, serif); font-size:1.25rem; color:#B87612; margin:4px 0 8px 0;">30-Sec Fridge Check & $0 Leftover Nights</h4>
-                                <p style="font-size:0.84rem; color:#2A1E14; line-height:1.5; margin:0 0 10px 0;">
-                                    Enter your kids' ages to scale every recipe automatically. Includes mouthwatering photos on every dish, a <strong>30-Second Fridge Check</strong> before you shop, <strong>$0 Planned Leftover Nights</strong>, and <strong>Homeschool Dual Lunches</strong>!
-                                </p>
-                            </div>
-                            <span style="font-size:0.75rem; font-weight:800; color:#2E5A44;">🆓 7-Day Auto-Planner FREE • Swaps & Customizers in Steward</span>
+                        <div style="padding:18px 20px; flex:1;">
+                            <span style="font-size:0.7rem; font-weight:800; color:#2E5A44; text-transform:uppercase;">🍽️ 90+ Visual Photo Recipes & Scaling</span>
+                            <h4 style="font-family:var(--font-serif, Georgia, serif); font-size:1.25rem; color:#B87612; margin:4px 0 8px 0;">30-Sec Fridge Check & $0 Leftover Nights</h4>
+                            <p style="font-size:0.84rem; color:#2A1E14; line-height:1.5; margin:0;">Enter your kids' ages to scale every recipe automatically, do a 30-second fridge check before you shop, and schedule $0 leftover nights.</p>
                         </div>
                     </div>
-
                     <div class="hh-b3-feature-card">
                         <img src="https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=700&q=80" alt="Peaceful Home Rhythm" style="width:100%; height:180px; object-fit:cover;">
-                        <div style="padding:18px 20px; flex:1; display:flex; flex-direction:column; justify-content:space-between;">
-                            <div>
-                                <span style="font-size:0.7rem; font-weight:800; color:#2E5A44; text-transform:uppercase;">🏡 Today Command & "Playing Catch-Up" Sprint</span>
-                                <h4 style="font-family:var(--font-serif, Georgia, serif); font-size:1.25rem; color:#B87612; margin:4px 0 8px 0;">15-Min Zone Focus & 45-Min Reset Button</h4>
-                                <p style="font-size:0.84rem; color:#2A1E14; line-height:1.5; margin:0 0 10px 0;">
-                                    Follow your simple daily baseline and one 15-minute zone a day—or tap <strong>⚡ Playing Catch-Up Today</strong> when you fall behind to reset your laundry, sink, living room, and dinner in 45 minutes!
-                                </p>
-                            </div>
-                            <span style="font-size:0.75rem; font-weight:800; color:#2E5A44;">🆓 100% FREE in Starter Tier!</span>
-                        </div>
-                    </div>
-
-                    <div class="hh-b3-feature-card">
-                        <img src="https://images.unsplash.com/photo-1585421514738-01798e348b17?auto=format&fit=crop&w=700&q=80" alt="Clean Swaps Vault" style="width:100%; height:180px; object-fit:cover;">
-                        <div style="padding:18px 20px; flex:1; display:flex; flex-direction:column; justify-content:space-between;">
-                            <div>
-                                <span style="font-size:0.7rem; font-weight:800; color:#2E5A44; text-transform:uppercase;">✨ Contextual + Full Clean Swaps Vault</span>
-                                <h4 style="font-family:var(--font-serif, Georgia, serif); font-size:1.25rem; color:#B87612; margin:4px 0 8px 0;">Recommended In Your Plan + Full Recipe Vault</h4>
-                                <p style="font-size:0.84rem; color:#2A1E14; line-height:1.5; margin:0 0 10px 0;">
-                                    We automatically suggest simple swaps right inside your daily cleaning checklist and meal plan—plus give you the dedicated <strong>Clean Swaps Vault</strong> with 2-minute DIY recipes and vetted store brands!
-                                </p>
-                            </div>
-                            <span style="font-size:0.75rem; font-weight:800; color:#B87612;">🌟 Included in Full Hub Steward</span>
-                        </div>
-                    </div>
-
-                    <div class="hh-b3-feature-card">
-                        <img src="https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?auto=format&fit=crop&w=700&q=80" alt="Folk Apothecary" style="width:100%; height:180px; object-fit:cover;">
-                        <div style="padding:18px 20px; flex:1; display:flex; flex-direction:column; justify-content:space-between;">
-                            <div>
-                                <span style="font-size:0.7rem; font-weight:800; color:#2E5A44; text-transform:uppercase;">🌿 Folk Apothecary & Natural Medicine Cabinet</span>
-                                <h4 style="font-family:var(--font-serif, Georgia, serif); font-size:1.25rem; color:#B87612; margin:4px 0 8px 0;">Herbal Syrups, Salves, Teas & Essential Oils</h4>
-                                <p style="font-size:0.84rem; color:#2A1E14; line-height:1.5; margin:0 0 10px 0;">
-                                    Search visual herbal remedies (elderberry syrups, salves, poultices & essential oil rollers) on demand whenever a cough, tummy ache, or scrape pops up at home.
-                                </p>
-                            </div>
-                            <span style="font-size:0.75rem; font-weight:800; color:#B87612;">🌟 Included in Full Hub Steward</span>
-                        </div>
-                    </div>
-
-                    <div class="hh-b3-feature-card">
-                        <img src="https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=700&q=80" alt="Toggleable Homeschool & Kid Chores" style="width:100%; height:180px; object-fit:cover;">
-                        <div style="padding:18px 20px; flex:1; display:flex; flex-direction:column; justify-content:space-between;">
-                            <div>
-                                <span style="font-size:0.7rem; font-weight:800; color:#2E5A44; text-transform:uppercase;">📚 Toggleable Homeschool & Printable Kid Charts</span>
-                                <h4 style="font-family:var(--font-serif, Georgia, serif); font-size:1.25rem; color:#B87612; margin:4px 0 8px 0;">Loop Scheduling, Gradebook & Kid Chore Sheets</h4>
-                                <p style="font-size:0.84rem; color:#2A1E14; line-height:1.5; margin:0 0 10px 0;">
-                                    Toggle Homeschool ON to scan workbook Tables of Contents, track daily lessons, and print 1-click daily student tickets and fridge-ready kids' chore charts!
-                                </p>
-                            </div>
-                            <span style="font-size:0.75rem; font-weight:800; color:#B87612;">🌟 Included in Full Hub Steward</span>
+                        <div style="padding:18px 20px; flex:1;">
+                            <span style="font-size:0.7rem; font-weight:800; color:#2E5A44; text-transform:uppercase;">🏡 Today Command & "Playing Catch-Up" Sprint</span>
+                            <h4 style="font-family:var(--font-serif, Georgia, serif); font-size:1.25rem; color:#B87612; margin:4px 0 8px 0;">15-Min Zone Focus & 45-Min Reset Button</h4>
+                            <p style="font-size:0.84rem; color:#2A1E14; line-height:1.5; margin:0;">Follow your daily baseline and one 15-minute zone—or tap ⚡ Playing Catch-Up Today to reset your laundry, sink, living room, and dinner in 45 minutes.</p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- 2-TIER PRICING SECTION (FREE STARTER VS. $9/MO FULL HUB STEWARD) -->
             <div id="hh-main-lp-pricing" style="background:linear-gradient(180deg, #FAF3E3 0%, #FFFDF8 100%); border-top:2px solid #EADBC0; padding:48px 26px 56px 26px;">
                 <div style="max-width:880px; margin:0 auto;">
-                    <div style="text-align:center; max-width:700px; margin:0 auto 34px auto;">
-                        <span class="card-tag" style="background:#B87612; color:#fff;">🌻 Simple, Transparent Family Pricing</span>
-                        <h2 style="font-family:var(--font-serif, Georgia, serif); font-size:2.15rem; color:#B87612; margin:8px 0 6px 0;">
-                            Start Free Today, or Lock In Our ${cfg.launchPromoPrice} Launch Promo
-                        </h2>
-                        <p style="font-size:0.92rem; color:#2A1E14; margin:0;">
-                            Try the Daily Home Reset and 7-Day Family Meal Planner completely free—or lock in Founding Member access to the entire Hub before the price returns to ${cfg.regularStewardPrice}!
-                        </p>
-                    </div>
-
                     <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:24px; align-items:stretch;">
-                        <!-- TIER 1: FREE STARTER -->
                         <div class="hh-b3-tier-card">
                             <div>
-                                <span style="background:#E8F2EC; color:#2E5A44; padding:4px 12px; border-radius:999px; font-size:0.72rem; font-weight:800; text-transform:uppercase;">
-                                    🆓 Free Starter Account
-                                </span>
+                                <span style="background:#E8F2EC; color:#2E5A44; padding:4px 12px; border-radius:999px; font-size:0.72rem; font-weight:800;">🆓 Free Starter Account</span>
                                 <h3 style="font-family:var(--font-serif, Georgia, serif); font-size:1.55rem; color:#B87612; margin:10px 0 2px 0;">Daily Rhythm Starter</h3>
-                                <div style="font-family:var(--font-serif, Georgia, serif); font-size:2.25rem; font-weight:800; color:#2A1E14; margin:6px 0;">
-                                    $0 <span style="font-size:0.9rem; font-weight:600; color:#6E5A46;">/ forever</span>
-                                </div>
-                                <p style="font-size:0.8rem; color:#6E5A46; margin:0 0 16px 0; padding-bottom:12px; border-bottom:1px dashed #EADBC0;">
-                                    Perfect for getting tonight's dinner & daily room reset under control right away.
-                                </p>
-                                <div style="display:flex; flex-direction:column; gap:9px; font-size:0.83rem; color:#2A1E14; margin-bottom:22px;">
-                                    <div>✅ <strong>Today Command Center</strong> (Daily Maintenance + 15-Min Zone Focus + <strong>⚡ 45-Min Playing Catch-Up Sprint</strong>)</div>
-                                    <div>✅ <strong>8:00 PM Night-Before Kitchen Bell</strong> & <strong>Grace Day Mode</strong></div>
-                                    <div>✅ <strong>Custom Family-Age Portion Scaling</strong> (Scales recipes to your exact household!)</div>
-                                    <div>✅ <strong>Full 7-Day Auto Meal Planner</strong> (Breakfast, Lunch, Dinner, Snack & Drink cards)</div>
-                                    <div>✅ <strong>30-Second Fridge Check</strong> & Consolidated Master Shopping List</div>
+                                <div style="font-family:var(--font-serif, Georgia, serif); font-size:2.25rem; font-weight:800; color:#2A1E14; margin:6px 0;">$0 <span style="font-size:0.9rem; font-weight:600; color:#6E5A46;">/ forever</span></div>
+                                <div style="display:flex; flex-direction:column; gap:9px; font-size:0.83rem; color:#2A1E14; margin:16px 0 22px 0;">
+                                    <div>✅ <strong>Today Command Center</strong> + <strong>⚡ 45-Min Playing Catch-Up Sprint</strong></div>
+                                    <div>✅ <strong>8:00 PM Kitchen Bell</strong> & <strong>Grace Day Mode</strong></div>
+                                    <div>✅ <strong>Full 7-Day Auto Meal Planner</strong> & Family-Age Scaling</div>
+                                    <div>✅ <strong>30-Second Fridge Check</strong> & Master Shopping List</div>
                                 </div>
                             </div>
                             <button type="button" class="btn-primary" style="width:100%; padding:14px; font-size:0.92rem; background:#B87612; border-color:#9A5B0A; color:#fff; border-radius:12px; font-weight:800; cursor:pointer;" onclick="openFreeStarterSignupModal()">
@@ -16830,31 +16749,24 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                             </button>
                         </div>
 
-                        <!-- TIER 2: FULL HUB STEWARD ($9 LAUNCH PROMO / $29 REG) -->
                         <div class="hh-b3-tier-card featured">
                             <div>
-                                <span style="background:#D97706; color:#fff; padding:4px 12px; border-radius:999px; font-size:0.71rem; font-weight:800; text-transform:uppercase;">
-                                    🔥 Founding Launch Promo (Save $20/mo!)
-                                </span>
+                                <span style="background:#D97706; color:#fff; padding:4px 12px; border-radius:999px; font-size:0.71rem; font-weight:800;">🔥 Founding Launch Promo (Save $20/mo!)</span>
                                 <h3 style="font-family:var(--font-serif, Georgia, serif); font-size:1.65rem; color:#2E5A44; margin:10px 0 2px 0;">Full Hub Steward</h3>
                                 <div style="margin:6px 0;">
                                     <span style="font-size:1.1rem; color:#888; text-decoration:line-through; font-weight:700; margin-right:6px;">${cfg.regularStewardPrice}</span>
                                     <span style="font-family:var(--font-serif, Georgia, serif); font-size:2.3rem; font-weight:800; color:#B87612;">${cfg.launchPromoPrice}</span>
-                                    <span style="display:block; font-size:0.75rem; font-weight:800; color:#2E5A44;">🎉 Special Launch Rate — Lock in ${cfg.launchPromoPrice} before it returns to ${cfg.regularStewardPrice}!</span>
                                 </div>
-                                <p style="font-size:0.8rem; color:#2A1E14; margin:0 0 16px 0; padding-bottom:12px; border-bottom:1px dashed #EADBC0;">
-                                    Unlocks every store brand guide, meal swapper, clean swap recipe vault, apothecary remedy, and homeschool tool.
-                                </p>
-                                <div style="display:flex; flex-direction:column; gap:9px; font-size:0.83rem; color:#2A1E14; margin-bottom:22px;">
+                                <div style="display:flex; flex-direction:column; gap:9px; font-size:0.83rem; color:#2A1E14; margin:16px 0 22px 0;">
                                     <div>🌟 <strong>Everything in Free Starter, PLUS:</strong></div>
-                                    <div>✅ <strong>7-Store Clean-Brand Concierge</strong> (Exact vetted brands at Walmart, Sprouts, H-E-B, ALDI, Kroger, Azure & Target!)</div>
-                                    <div>✅ <strong>Dedicated Clean Swaps Vault</strong> + Contextual Cleaning & Meal Plan Swap Recommendations</div>
-                                    <div>✅ <strong>Complete Folk Apothecary Vault</strong> (Herbal Syrups, Salves, Teas & Roller Recipes)</div>
-                                    <div>✅ <strong>Toggleable Homeschool OS</strong> + Printable Mom & Kid Chore Checklists</div>
-                                    <div>✅ <strong>Interactive Meal Swapper</strong>, <strong>$0 Leftover Nights</strong> & <strong>All 90+ Whole-Food Photo Recipes</strong></div>
+                                    <div>✅ <strong>7-Store Clean-Brand Concierge</strong> (Walmart, Sprouts, H-E-B, ALDI, Kroger, Azure & Target)</div>
+                                    <div>✅ <strong>Dedicated Clean Swaps Vault</strong> + Contextual Cleaning & Meal Swaps</div>
+                                    <div>✅ <strong>Complete Folk Apothecary Vault</strong></div>
+                                    <div>✅ <strong>Toggleable Homeschool OS</strong> + Printable Mom & Kid Checklists</div>
+                                    <div>✅ <strong>Interactive Meal Swapper</strong> & <strong>$0 Leftover Nights</strong></div>
                                 </div>
                             </div>
-                            <button type="button" class="btn-primary" style="width:100%; padding:14px; font-size:0.92rem; background:linear-gradient(135deg, #2E5A44 0%, #1F4230 100%); border-color:#173325; color:#fff; border-radius:12px; font-weight:800; cursor:pointer;" onclick="launchStewardStripeCheckout('steward_promo')">
+                            <button type="button" class="btn-primary" style="width:100%; padding:14px; font-size:0.92rem; background:linear-gradient(135deg, #2E5A44 0%, #1F4230 100%); border-color:#173325; color:#fff; border-radius:12px; font-weight:800; cursor:pointer;" onclick="launchStewardStripeCheckout()">
                                 🔥 Lock In ${cfg.launchPromoPrice} Launch Promo &rarr;
                             </button>
                         </div>
@@ -16864,24 +16776,35 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         `;
     };
 
-    // Mount the Green Landing Page directly on document.body so it never mutates or breaks the app's internal containers
     function mountBestBlock3LandingPage() {
-        let wrap = document.getElementById('hh-new-landing-master-wrap');
-        if (!wrap) {
-            wrap = document.createElement('div');
-            wrap.id = 'hh-new-landing-master-wrap';
-            wrap.innerHTML = window.buildMainLandingPageHTML();
-            document.body.prepend(wrap);
-            setTimeout(() => window.switchLandingStoreDemo('walmart'), 30);
-        }
-        if (!window._isHubSessionActive) {
-            document.body.classList.add('hh-showing-green-landing');
-            wrap.style.setProperty('display', 'block', 'important');
+        const lv = document.getElementById('landing-view');
+        const dash = document.getElementById('dashboard-container');
+
+        if (lv) {
+            lv.querySelectorAll('[id*="auth"], [id*="login"], .modal-overlay').forEach(modalEl => {
+                document.body.appendChild(modalEl);
+            });
+            Array.from(lv.children).forEach(ch => {
+                if (ch.id !== 'hh-new-landing-master-wrap') ch.style.display = 'none';
+            });
+            let wrap = document.getElementById('hh-new-landing-master-wrap');
+            if (!wrap) {
+                wrap = document.createElement('div');
+                wrap.id = 'hh-new-landing-master-wrap';
+                wrap.innerHTML = window.buildMainLandingPageHTML();
+                lv.prepend(wrap);
+                setTimeout(() => window.switchLandingStoreDemo('walmart'), 30);
+            }
+            if (!window._isHubSessionActive) {
+                lv.style.setProperty('display', 'block', 'important');
+                wrap.style.setProperty('display', 'block', 'important');
+                if (dash) dash.style.setProperty('display', 'none', 'important');
+            }
         }
     }
 
     // =========================================================================
-    // 4. SUPABASE AUTH, SIGN-UP, MEMBER LOGIN & ZERO-BLANK-SCREEN ENTRY
+    // 4. SUPABASE AUTH, SIGN-UP, MEMBER LOGIN & AUTOMATIC SESSION RESTORE
     // =========================================================================
     const SYSTEM_KEYS_EXCLUDE = new Set([
         ACCOUNTS_VAULT_KEY, ACTIVE_SESSION_KEY, 'hh_membership_tier_cfg_v2', 'hh_paid_steward_emails'
@@ -16950,53 +16873,30 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         }, 350);
     };
 
-    // Force the in-app dashboard and header visible whenever a user is logged in (prevents any blank screen!)
-    function forceAppDashboardVisible() {
-        if (!window._isHubSessionActive) return;
-
-        document.body.classList.remove('hh-showing-green-landing');
+    function showLoggedInDashboardNow() {
+        window._isHubSessionActive = true;
         document.body.classList.add('is-logged-in');
 
+        // 1. Hide #landing-view and #hh-new-landing-master-wrap completely
+        const lv = document.getElementById('landing-view');
+        if (lv) lv.style.setProperty('display', 'none', 'important');
         const greenLp = document.getElementById('hh-new-landing-master-wrap');
         if (greenLp) greenLp.style.setProperty('display', 'none', 'important');
 
-        const homeView = document.getElementById('view-home') || document.getElementById('view-food');
-
-        // Hide the old cream landing page (#landing-view) ONLY if it does not wrap #view-home
-        const oldLv = document.getElementById('landing-view');
-        if (oldLv && (!homeView || !oldLv.contains(homeView))) {
-            oldLv.style.setProperty('display', 'none', 'important');
+        // 2. Show #dashboard-container and #view-home
+        const dash = document.getElementById('dashboard-container');
+        if (dash) {
+            dash.classList.remove('hidden', 'd-none', 'is-hidden');
+            dash.style.setProperty('display', 'flex', 'important');
         }
-
-        // Hide any old "Demo the App Free" / "Stop Juggling 5 Apps" banner that does not contain #view-home
-        Array.from(document.querySelectorAll('h1, button')).forEach(el => {
-            const t = (el.textContent || '').trim();
-            if (t.includes('Stop Juggling 5 Apps') || t.includes('Demo the App Free') || t.includes('Demo the App Live')) {
-                let box = el.parentElement;
-                while (box && box !== document.body) {
-                    if (homeView && box.contains(homeView)) break;
-                    box.style.setProperty('display', 'none', 'important');
-                    box = box.parentElement;
-                }
-            }
-        });
-
-        // Walk up from #view-home to document.body and force every container visible
-        let curr = homeView;
-        while (curr && curr !== document.body && curr !== document.documentElement) {
-            curr.classList.remove('hidden', 'd-none', 'is-hidden');
-            const isFlex = curr.id === 'dashboard-container' || curr.classList.contains('app-layout');
-            curr.style.setProperty('display', isFlex ? 'flex' : 'block', 'important');
-            curr = curr.parentElement;
+        const homeView = document.getElementById('view-home');
+        if (homeView) {
+            homeView.classList.remove('hidden', 'd-none', 'is-hidden');
+            homeView.style.setProperty('display', 'block', 'important');
         }
-
-        // Ensure the in-app header ("Alerts" / "Menu") is visible
-        const inAppHeader = Array.from(document.querySelectorAll('header, nav')).find(el => {
-            const t = (el.textContent || '');
-            return !el.closest('#hh-new-landing-master-wrap') && (t.includes('Alerts') || t.includes('Menu'));
-        });
-        if (inAppHeader) {
-            inAppHeader.style.setProperty('display', 'flex', 'important');
+        const mainEl = document.querySelector('#dashboard-container main, main.main-content, main');
+        if (mainEl) {
+            mainEl.style.setProperty('display', 'block', 'important');
         }
     }
 
@@ -17035,20 +16935,14 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             el.style.setProperty('display', 'none', 'important');
         });
 
-        // Switch to the Home view FIRST, then force the dashboard visible (never call initApp/updateAuthUI after!)
-        if (typeof window.switchMainView === 'function') {
-            try { window.switchMainView('home'); } catch (err) {}
-        } else if (typeof window.switchView === 'function') {
-            try { window.switchView('home'); } catch (err) {}
-        }
-
-        forceAppDashboardVisible();
+        // Show the dashboard immediately
+        showLoggedInDashboardNow();
         enforceSimplifiedFivePillarNavigation();
         renderGuidedHomeCommandPage();
 
-        // Keep enforcing visibility over the next 600ms so no base timer can hide the dashboard
-        [50, 200, 500].forEach(ms => setTimeout(() => {
-            forceAppDashboardVisible();
+        // Keep enforcing dashboard visibility for 800ms in case a base timer tries to toggle views
+        [60, 220, 600].forEach(ms => setTimeout(() => {
+            showLoggedInDashboardNow();
             enforceSimplifiedFivePillarNavigation();
             renderGuidedHomeCommandPage();
         }, ms));
@@ -17106,14 +17000,14 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                 </div>
                 <div class="form-group" style="margin-bottom:14px;">
                     <label style="font-size:0.78rem; font-weight:700; display:block; margin-bottom:4px;">Create a Password (min 6 characters)</label>
-                    <input type="password" id="hh-free-signup-password" placeholder="At least 6 characters" autocomplete="new-password" onkeydown="if(event.key==='Enter') completeFreeStarterSignup(event)" style="width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:10px; font-size:0.9rem;">
+                    <input type="password" id="hh-free-signup-password" placeholder="At least 6 characters" autocomplete="new-password" onkeydown="if(event.key==='Enter'){event.preventDefault(); completeFreeStarterSignup(event);}" style="width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:10px; font-size:0.9rem;">
                 </div>
                 <button type="button" id="hh-free-signup-submit-btn" class="btn-primary" style="width:100%; padding:13px; font-size:0.92rem; font-weight:800; background:linear-gradient(135deg, #2E5A44 0%, #1F4230 100%); border-color:#173325; color:#fff; border-radius:12px;" onclick="completeFreeStarterSignup(event)">
                     🌻 Create Free Account & Enter Hub &rarr;
                 </button>
                 <div style="text-align:center; margin-top:12px; padding-top:10px; border-top:1px dashed var(--border); font-size:0.8rem;">
                     Already have a Free or Paid account?
-                    <a href="#" onclick="event.preventDefault(); openUnifiedMemberLoginModal();" style="color:#2E5A44; font-weight:800; text-decoration:underline; margin-left:4px;">Member Login &rarr;</a>
+                    <button type="button" onclick="openUnifiedMemberLoginModal()" style="background:none; border:none; color:#2E5A44; font-weight:800; text-decoration:underline; margin-left:4px; cursor:pointer;">Member Login &rarr;</button>
                 </div>
             </div>
         `;
@@ -17150,6 +17044,15 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         let sbUserId = 'usr_free_' + Date.now();
         let restoredSnap = null;
 
+        // Pre-save session BEFORE calling Supabase so if the base app reloads on auth state change, the session is already in localStorage!
+        const tempAccObj = {
+            id: sbUserId, accountKey: emailVal, name: nameVal, username: effectiveUsername,
+            email: emailVal, password: passVal, role: 'Free Starter Member', tier: 'free_starter',
+            joinedAt: new Date().toISOString().slice(0, 10), savedAppData: initialSnap
+        };
+        localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify(tempAccObj));
+        localStorage.setItem('hh_logged_in_user_email', emailVal);
+
         const sb = getSbClient();
         if (sb) {
             try {
@@ -17160,6 +17063,8 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                 if (error && /already registered/i.test(error.message)) {
                     const signInRes = await sb.auth.signInWithPassword({ email: emailVal, password: passVal });
                     if (signInRes.error) {
+                        localStorage.removeItem(ACTIVE_SESSION_KEY);
+                        localStorage.removeItem('hh_logged_in_user_email');
                         if (errBox) {
                             errBox.textContent = 'That email is already registered. Click "Member Login" below or enter your existing password.';
                             errBox.style.display = 'block';
@@ -17188,9 +17093,9 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         }
 
         const accountObj = {
-            id: sbUserId, accountKey: emailVal, name: nameVal, username: effectiveUsername,
-            email: emailVal, password: passVal, role: 'Free Starter Member', tier: 'free_starter',
-            joinedAt: new Date().toISOString().slice(0, 10), savedAppData: restoredSnap || initialSnap
+            ...tempAccObj,
+            id: sbUserId,
+            savedAppData: restoredSnap || initialSnap
         };
         const accounts = getLocalAccounts();
         accounts[emailVal] = accountObj;
@@ -17226,14 +17131,14 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                 </div>
                 <div class="form-group" style="margin-bottom:16px;">
                     <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Password</label>
-                    <input type="password" id="hh-login-password" placeholder="Enter your password" autocomplete="current-password" onkeydown="if(event.key==='Enter') submitUnifiedMemberLogin(event)" style="width:100%; padding:11px 12px; border:1.5px solid var(--border); border-radius:10px; font-size:0.9rem;">
+                    <input type="password" id="hh-login-password" placeholder="Enter your password" autocomplete="current-password" onkeydown="if(event.key==='Enter'){event.preventDefault(); submitUnifiedMemberLogin(event);}" style="width:100%; padding:11px 12px; border:1.5px solid var(--border); border-radius:10px; font-size:0.9rem;">
                 </div>
                 <button type="button" id="hh-member-login-submit-btn" class="btn-primary" style="width:100%; padding:13px; font-size:0.94rem; font-weight:800; background:linear-gradient(135deg, #2E5A44 0%, #1F4230 100%); border-color:#173325; color:#fff; border-radius:12px;" onclick="submitUnifiedMemberLogin(event)">
                     🌻 Log In to My Hub &rarr;
                 </button>
                 <div style="text-align:center; margin-top:14px; padding-top:12px; border-top:1px dashed var(--border); font-size:0.8rem;">
                     Need a Free Starter account?
-                    <a href="#" onclick="event.preventDefault(); openFreeStarterSignupModal();" style="color:#B87612; font-weight:800; text-decoration:underline; margin-left:4px;">Create Free Account &rarr;</a>
+                    <button type="button" onclick="openFreeStarterSignupModal()" style="background:none; border:none; color:#B87612; font-weight:800; text-decoration:underline; margin-left:4px; cursor:pointer;">Create Free Account &rarr;</button>
                 </div>
             </div>
         `;
@@ -17263,6 +17168,14 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             } catch (err) {}
         }
 
+        // Pre-save session BEFORE calling Supabase so if the base app reloads the URL on auth change, the session is ready on load!
+        const preSaveTier = targetEmail === FOUNDER_EMAIL ? 'paid_steward' : 'free_starter';
+        localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify({
+            id: 'usr_' + Date.now(), accountKey: targetEmail, name: targetEmail.split('@')[0],
+            username: targetEmail.split('@')[0], email: targetEmail, tier: preSaveTier
+        }));
+        localStorage.setItem('hh_logged_in_user_email', targetEmail);
+
         if (sb && targetEmail.includes('@')) {
             try {
                 const { data, error } = await sb.auth.signInWithPassword({ email: targetEmail, password: passVal });
@@ -17273,7 +17186,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                     const cloudSnap = cloudProfile?.saved_app_data || {};
                     if (Object.keys(cloudSnap).length > 0) restoreAppDataSnapshot(cloudSnap);
 
-                    const tierVal = cloudProfile?.tier || meta.tier || (targetEmail === FOUNDER_EMAIL ? 'paid_steward' : 'free_starter');
+                    const tierVal = cloudProfile?.tier || meta.tier || preSaveTier;
                     const loggedInAcc = {
                         id: sbUser.id, accountKey: targetEmail,
                         name: cloudProfile?.full_name || meta.full_name || targetEmail.split('@')[0],
@@ -17306,6 +17219,8 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         );
         if (localMatch) {
             if (localMatch.password && localMatch.password !== passVal) {
+                localStorage.removeItem(ACTIVE_SESSION_KEY);
+                localStorage.removeItem('hh_logged_in_user_email');
                 if (errBox) { errBox.textContent = 'Incorrect password. Please try again.'; errBox.style.display = 'block'; }
                 if (loginBtn) loginBtn.innerHTML = '🌻 Log In to My Hub &rarr;';
                 return;
@@ -17315,6 +17230,8 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
             return;
         }
 
+        localStorage.removeItem(ACTIVE_SESSION_KEY);
+        localStorage.removeItem('hh_logged_in_user_email');
         if (loginBtn) loginBtn.innerHTML = '🌻 Log In to My Hub &rarr;';
         if (errBox) {
             errBox.innerHTML = `No account found matching <strong>${escapeSafeHtml(idVal)}</strong>. Click <strong>"Create Free Account"</strong> below to register!`;
@@ -17403,7 +17320,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
     };
 
     // =========================================================================
-    // 6. SIMPLIFIED 5-PILLAR NAVIGATION (NO TERRAIN, NO HOMESTEAD, NO INVENTORY)
+    // 6. SAFE 5-PILLAR NAVIGATION & NON-DESTRUCTIVE HOMESTEAD/TERRAIN HIDING
     // =========================================================================
     window._homeschoolPillarEnabled = localStorage.getItem('hh_homeschool_pillar_enabled') !== 'false';
     window._activeHomeCoachTab = window._activeHomeCoachTab || 'maintenance';
@@ -17436,60 +17353,42 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    function removeHomesteadAndTerrainModesCompletely() {
-        try {
-            localStorage.setItem('hh_mode_homestead', 'false');
-            localStorage.setItem('homestead_mode_enabled', 'false');
-        } catch (e) {}
-
-        document.querySelectorAll('header *, nav *, .menu-dropdown *, [id*="menu"] *, div, span, label, button').forEach(el => {
+    // SAFE CSS-ONLY HIDING: Never calls .remove() on containers! Only hides small leaf pills (<28 chars).
+    function hideHomesteadAndTerrainPillsSafely() {
+        document.querySelectorAll('div, span, label, button, a').forEach(el => {
             if (el.closest('#hh-new-landing-master-wrap')) return;
-            const directTxt = Array.from(el.childNodes)
-                .filter(n => n.nodeType === 3)
-                .map(n => n.nodeValue.trim())
-                .join(' ');
+            if (el.id === 'dashboard-container' || el.tagName === 'MAIN' || el.tagName === 'HEADER') return;
+
+            const txt = (el.textContent || '').trim();
+            if (txt.length > 32) return; // Never touch any container with more than 32 characters of text!
 
             if (
-                directTxt === '🌾 Homestead' ||
-                directTxt === 'Homestead' ||
-                directTxt.includes('🌾 Homestead') ||
-                (el.tagName === 'INPUT' && ((el.id || '').toLowerCase().includes('homestead') || (el.getAttribute('onchange') || '').toLowerCase().includes('homestead')))
+                txt === '🌾 Homestead' ||
+                txt === 'Homestead' ||
+                txt === '🌾 Homestead OS' ||
+                txt === '🌿 Reclaim Your Terrain' ||
+                txt === '🧹 Room Auto-Pilot' ||
+                txt === '📦 The Table' ||
+                txt === '⚙️ Edit Links & Pricing'
             ) {
-                let card = el;
-                while (card && card.parentElement && card.parentElement !== document.body) {
-                    const parentTxt = (card.parentElement.textContent || '');
-                    if (parentTxt.includes('Morning Porch') || parentTxt.includes('CUSTOMIZE HOUSEHOLD MODES')) break;
-                    card = card.parentElement;
+                el.style.setProperty('display', 'none', 'important');
+                // If its immediate parent is just the small pill wrapper (also <= 32 chars), hide that pill box too
+                if (el.parentElement && (el.parentElement.textContent || '').trim().length <= 32 && el.parentElement.id !== 'dashboard-container') {
+                    el.parentElement.style.setProperty('display', 'none', 'important');
                 }
-                if (card && card !== document.body) card.remove();
-                else el.remove();
             }
         });
-
-        document.getElementById('view-reclaim-terrain')?.remove();
-        document.getElementById('view-homestead')?.remove();
     }
 
     function enforceSimplifiedFivePillarNavigation() {
         const isPaid = window.isFullHubPaidSteward();
         const hsEnabled = window._homeschoolPillarEnabled;
 
-        removeHomesteadAndTerrainModesCompletely();
+        hideHomesteadAndTerrainPillsSafely();
 
-        document.querySelectorAll('button, a, label').forEach(el => {
+        document.querySelectorAll('button, a').forEach(el => {
             if (el.closest('#hh-new-landing-master-wrap')) return;
             const txt = (el.textContent || '').trim();
-            if (
-                txt.includes('Room Auto-Pilot') ||
-                txt.includes('Homestead OS') ||
-                txt.includes('The Table') ||
-                txt.includes('Reclaim Your Terrain') ||
-                txt.includes('Edit Links & Pricing') ||
-                txt.includes('Food & Household Supply Inventory') ||
-                txt === '🌾 Homestead'
-            ) {
-                el.style.setProperty('display', 'none', 'important');
-            }
             if (txt === '🏡 Home' || txt === 'Home') el.innerHTML = '🏡 Today';
             if (txt.includes('Kitchen & Swaps')) {
                 el.innerHTML = '🍽️ Kitchen & Meals';
@@ -17507,7 +17406,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                 if (!isPaid || !hsEnabled) el.style.setProperty('display', 'none', 'important');
                 else el.style.removeProperty('display');
             }
-            if (txt.includes('Apothecary')) {
+            if (txt.includes('Apothecary') && txt.length < 25) {
                 if (!isPaid) el.style.setProperty('display', 'none', 'important');
                 else el.style.removeProperty('display');
             }
@@ -17545,28 +17444,11 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                 hsToggleBtn.innerHTML = hsEnabled ? '📚 Homeschool Tab: ON ✓' : '📚 Homeschool Tab: OFF';
             }
         }
-
-        const headerActions = Array.from(document.querySelectorAll('header div, .header-actions, nav')).find(el =>
-            !el.closest('#hh-new-landing-master-wrap') && ((el.textContent || '').includes('Alerts') || (el.textContent || '').includes('Menu'))
-        );
-        if (headerActions) {
-            let upgradeBtn = document.getElementById('hh-free-tier-upgrade-hdr-btn');
-            if (!isPaid) {
-                if (!upgradeBtn) {
-                    upgradeBtn = document.createElement('button');
-                    upgradeBtn.id = 'hh-free-tier-upgrade-hdr-btn';
-                    upgradeBtn.type = 'button';
-                    upgradeBtn.style.cssText = 'background:linear-gradient(135deg, #F59E0B 0%, #D97706 100%); color:#ffffff; border:1px solid #FDE68A; padding:5px 14px; font-size:0.75rem; font-weight:800; border-radius:999px; cursor:pointer; box-shadow:0 2px 8px rgba(245,158,11,0.25); margin-right:8px;';
-                    upgradeBtn.innerHTML = '⭐ Upgrade';
-                    upgradeBtn.onclick = () => window.openHubStewardUpgradeModal('Full Hub Steward Membership');
-                    headerActions.prepend(upgradeBtn);
-                }
-            } else if (upgradeBtn) {
-                upgradeBtn.remove();
-            }
-        }
     }
 
+    // =========================================================================
+    // 7. "⚡ PLAYING CATCH-UP" TODAY ENGINE & CLEAN SWAP PILLS
+    // =========================================================================
     const CONTEXTUAL_CLEAN_SWAPS = {
         counter_spray: { badge: '✨ Clean Swap: 2-Min Citrus Castile Counter Spray', title: 'All-Purpose Citrus & Castile Counter Spray', why: 'Replaces synthetic fragrance & quaternary ammonium sprays.', diyRecipe: 'In a 16 oz glass spray bottle, mix 16 oz filtered water + 1 tbsp unscented liquid Castile soap + 15 drops Wild Orange or Lemon essential oil.', storeBrands: 'Branch Basics All-Purpose Spray • Force of Nature • Attitude All-Purpose Cleaner' },
         dish_washer: { badge: '✨ Clean Swap: Non-Toxic Dishwasher Pods & Rinse Aid', title: 'Clean Dishwasher Pods & White Vinegar Rinse Aid', why: 'Conventional gel packs leave PVA microplastics and chemical surfactants on plates.', diyRecipe: 'Mix 1 cup washing soda + 1 cup baking soda + 1/2 cup citric acid + 1/4 cup salt (1 tbsp per load), and use white vinegar as rinse aid!', storeBrands: 'Blueland Dishwasher Tablets • Truly Free Dishwasher Soap • Puracy Pods' },
@@ -17771,17 +17653,26 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
     }
 
     // =========================================================================
-    // 7. MASTER BOOTSTRAP & CLICK INTERCEPTORS
+    // 8. MASTER BOOTSTRAP, AUTO-RESTORE SESSION & CLICK INTERCEPTORS
     // =========================================================================
     function runMasterBootstrap() {
-        if (window._isHubSessionActive) {
-            forceAppDashboardVisible();
+        const savedSession = getSavedActiveSession();
+        if (savedSession && !window._userClickedSignOut) {
+            window._isHubSessionActive = true;
+            window.currentUser = savedSession;
+            try { if (typeof currentUser !== 'undefined') currentUser = savedSession; } catch (e) {}
+            showLoggedInDashboardNow();
         } else {
             mountBestBlock3LandingPage();
         }
         enforceSimplifiedFivePillarNavigation();
         renderGuidedHomeCommandPage();
     }
+
+    // Prevent any native <form> in index.html from reloading/redirecting the page on submit
+    document.addEventListener('submit', (e) => {
+        e.preventDefault();
+    }, true);
 
     runMasterBootstrap();
     [80, 250, 650, 1400].forEach(ms => setTimeout(runMasterBootstrap, ms));
@@ -17794,7 +17685,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         const btn = e.target.closest('button, a');
         if (btn) {
             const txt = (btn.textContent || '').trim();
-            if (txt === 'Member Login' || txt === 'Member Sign In' || txt.includes('Existing Member Login')) {
+            if (txt === 'Member Login' || txt === 'Member Sign In' || txt.includes('Existing Member Login') || txt.includes('Member Login →')) {
                 e.preventDefault(); e.stopPropagation();
                 window.openUnifiedMemberLoginModal();
                 return;
@@ -17805,7 +17696,8 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                 return;
             }
             if (txt === 'Sign Out' || txt.includes('Log Out')) {
-                setTimeout(window.logoutAndShowGreenLandingPage, 80);
+                window._userClickedSignOut = true;
+                setTimeout(window.logoutAndShowGreenLandingPage, 60);
                 return;
             }
         }
