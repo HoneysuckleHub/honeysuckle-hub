@@ -16286,18 +16286,16 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
     </script>
 
 <!-- =========================================================================
-     HONEYSUCKLE HUB — MASTER PRODUCTION ENGINE (FIXED LOGIN & ZERO-BLANK-SCREEN)
-     1. Never deletes #dashboard-container or <main> (fixes blank screen on login)
-     2. Auto-restores active session on URL redirect or page reload
-     3. Forest-Green Public Landing Page (No "Edit Links" & No "Reclaim Your Terrain")
-     4. Safe CSS hiding for the "🌾 Homestead" toggle & "Reclaim Your Terrain"
-     5. 5-Pillar Navigation + "Playing Catch-Up" 45-Min Sprint + Clean Swap Pills
+     HONEYSUCKLE HUB — MASTER PRODUCTION ENGINE (FINAL REPAIR BUILD)
+     1. Fixes Member Sign In popup (Stops auto-login loop, lets you log in securely)
+     2. Fixes Pillar Tab Navigation (Kitchen, Clean Swaps, Apothecary & Homeschool switch instantly)
+     3. Restores Clean Forest-Green Landing Page & 5-Pillar Header Layout
      ========================================================================= -->
 <script>
 (function() {
     const FOUNDER_EMAIL = 'contacthoneysuckleandco@gmail.com';
-    const ACCOUNTS_VAULT_KEY = 'hh_registered_member_accounts_v2';
     const ACTIVE_SESSION_KEY = 'hh_active_authenticated_member_v2';
+    const ACCOUNTS_VAULT_KEY = 'hh_registered_member_accounts_v2';
     const FALLBACK_SB_URL = 'https://agdponuzpjllgehmccyr.supabase.co';
     const FALLBACK_SB_KEY = 'sb_publishable_UBdMZZrTYxYRLmtMVIIGrA_P6whzO1T';
 
@@ -16329,31 +16327,8 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         return email === FOUNDER_EMAIL;
     }
 
-    // Check if the user already has an active logged-in session saved
-    function getSavedActiveSession() {
-        try {
-            const raw = localStorage.getItem(ACTIVE_SESSION_KEY);
-            if (raw) {
-                const parsed = JSON.parse(raw);
-                if (parsed && parsed.email) return parsed;
-            }
-            const legacyEmail = localStorage.getItem('hh_logged_in_user_email');
-            if (legacyEmail && legacyEmail.includes('@')) {
-                return {
-                    id: 'usr_' + Date.now(),
-                    accountKey: legacyEmail,
-                    name: legacyEmail.split('@')[0],
-                    username: legacyEmail.split('@')[0],
-                    email: legacyEmail,
-                    tier: legacyEmail === FOUNDER_EMAIL ? 'paid_steward' : 'free_starter'
-                };
-            }
-        } catch (e) {}
-        return null;
-    }
-
     // =========================================================================
-    // 1. PRICING & STEWARD ACCESS GATEKEEPER
+    // 1. PRICING & MEMBERSHIP CONFIGURATION
     // =========================================================================
     const DEFAULT_MEMBERSHIP_SETTINGS = {
         regularStewardPrice: '$29/month',
@@ -16383,11 +16358,11 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
     };
 
     // =========================================================================
-    // 2. MASTER CSS (NO DESTRUCTIVE BODY HIDING)
+    // 2. STYLING (ISOLATED LANDING PAGE & CLEAN IN-APP PILLARS)
     // =========================================================================
-    if (!document.getElementById('hh-master-unified-styles')) {
+    if (!document.getElementById('hh-master-repair-styles')) {
         const st = document.createElement('style');
-        st.id = 'hh-master-unified-styles';
+        st.id = 'hh-master-repair-styles';
         st.innerHTML = `
             #hh-new-landing-master-wrap {
                 background: #FFFDF8;
@@ -16400,128 +16375,46 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                 z-index: 80;
             }
             .hh-b3-nav-link {
-                color: #3D2E1E;
-                text-decoration: none;
-                font-size: 0.84rem;
-                font-weight: 700;
-                cursor: pointer;
-                transition: color 0.15s ease;
+                color: #3D2E1E; text-decoration: none; font-size: 0.84rem; font-weight: 700; cursor: pointer;
             }
             .hh-b3-nav-link:hover { color: #2E5A44; }
             .hh-b3-hero-cta {
                 background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
-                color: #ffffff;
-                border: 2.5px solid #FDE68A;
-                border-radius: 999px;
-                padding: 18px 38px;
-                font-size: 1.12rem;
-                font-weight: 800;
-                cursor: pointer;
+                color: #ffffff; border: 2.5px solid #FDE68A; border-radius: 999px;
+                padding: 18px 38px; font-size: 1.12rem; font-weight: 800; cursor: pointer;
                 box-shadow: 0 14px 32px rgba(245, 158, 11, 0.38);
-                transition: transform 0.2s ease, box-shadow 0.2s ease;
-                display: inline-flex;
-                align-items: center;
-                gap: 10px;
+                display: inline-flex; align-items: center; gap: 10px;
             }
-            .hh-b3-hero-cta:hover {
-                transform: translateY(-2px) scale(1.01);
-                box-shadow: 0 18px 38px rgba(245, 158, 11, 0.48);
-            }
-            .hh-b3-step-card {
-                background: #ffffff;
-                border: 2px solid #EADBC0;
-                border-radius: 20px;
-                padding: 22px 20px;
-                box-shadow: 0 8px 22px rgba(42, 30, 20, 0.05);
-            }
-            .hh-b3-store-pill {
-                padding: 8px 16px;
-                border-radius: 999px;
-                font-size: 0.8rem;
-                font-weight: 800;
-                cursor: pointer;
-                border: 1.5px solid #D9B36C;
-                background: #FFFDF8;
-                color: #2A1E14;
-                transition: all 0.18s ease;
-            }
-            .hh-b3-store-pill.active {
-                background: #2E5A44;
-                color: #ffffff;
-                border-color: #1F4230;
-                box-shadow: 0 6px 14px rgba(46, 90, 68, 0.22);
-            }
-            .hh-b3-feature-card {
-                background: #ffffff;
-                border: 2px solid #EADBC0;
-                border-radius: 20px;
-                overflow: hidden;
-                box-shadow: 0 10px 26px rgba(42, 30, 20, 0.06);
-                display: flex;
-                flex-direction: column;
-                transition: transform 0.22s ease, box-shadow 0.22s ease;
-            }
-            .hh-b3-feature-card:hover {
-                transform: translateY(-4px);
-                box-shadow: 0 16px 34px rgba(42, 30, 20, 0.12);
-            }
-            .hh-b3-tier-card {
-                background: #FFFDF8;
-                border: 2px solid #EADBC0;
-                border-radius: 24px;
-                padding: 28px 24px;
-                display: flex;
-                flex-direction: column;
-                justify-content: space-between;
-                box-shadow: 0 10px 28px rgba(0,0,0,0.05);
+            .hh-b3-step-card, .hh-b3-feature-card, .hh-b3-tier-card {
+                background: #ffffff; border: 2px solid #EADBC0; border-radius: 20px; padding: 22px;
             }
             .hh-b3-tier-card.featured {
                 background: linear-gradient(160deg, #FFFDF8 0%, #E8F2EC 100%);
                 border: 3px solid #2E5A44;
-                box-shadow: 0 18px 42px rgba(46, 90, 68, 0.18);
             }
+            #hh-clean-pillar-nav-grid {
+                display: grid !important;
+                grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)) !important;
+                gap: 10px !important;
+                width: 100% !important;
+                margin: 8px 0 14px 0 !important;
+            }
+            .hh-clean-pillar-btn {
+                padding: 12px 16px !important; border-radius: 999px !important;
+                font-size: 0.86rem !important; font-weight: 800 !important; text-align: left !important;
+                cursor: pointer !important; border: 1.5px solid #E2D5BE !important;
+                background: #FAF6EC !important; color: #3D2E1E !important;
+                display: flex !important; align-items: center !important; gap: 8px !important;
+            }
+            .hh-clean-pillar-btn:hover { border-color: #2E5A44 !important; background: #EFECE6 !important; }
+            .hh-clean-pillar-btn.active {
+                background: #2E5A44 !important; color: #ffffff !important; border-color: #1F4230 !important;
+                box-shadow: 0 6px 14px rgba(46, 90, 68, 0.22) !important;
+            }
+            #view-reclaim-terrain, #view-homestead, #view-rooms, #view-table { display: none !important; }
             .hh-home-task-card.done {
                 background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%) !important;
-                border: 2px solid #10B981 !important;
-                border-left: 7px solid #059669 !important;
-                opacity: 0.88;
-            }
-            .hh-card-hero-img-wrap {
-                position: relative;
-                width: 100%;
-                height: 160px;
-                border-radius: 14px;
-                overflow: hidden;
-                margin-bottom: 12px;
-                border: 1.5px solid var(--border);
-                background: #FAF5E8;
-            }
-            .hh-card-hero-img-wrap img {
-                width: 100%;
-                height: 100%;
-                object-fit: cover;
-                display: block;
-            }
-            /* Hide Reclaim Your Terrain & Homestead Views Non-Destructively */
-            #view-reclaim-terrain, #view-homestead {
-                display: none !important;
-            }
-            button, .btn-primary, .btn-secondary, .icon-btn {
-                transform-origin: center center;
-                will-change: transform;
-            }
-            .hh-btn-sinking {
-                transform: scale(0.95) !important;
-                transition: transform 95ms cubic-bezier(0.2, 0, 0, 1) !important;
-            }
-            @keyframes hhBtnSpringBack {
-                0%   { transform: scale(0.95); }
-                52%  { transform: scale(1.028); }
-                78%  { transform: scale(0.99); }
-                100% { transform: scale(1); }
-            }
-            .hh-btn-springing {
-                animation: hhBtnSpringBack 500ms cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
+                border: 2px solid #10B981 !important; border-left: 7px solid #059669 !important; opacity: 0.88;
             }
         `;
         document.head.appendChild(st);
@@ -16530,96 +16423,26 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
     // =========================================================================
     // 3. FOREST-GREEN PUBLIC LANDING PAGE
     // =========================================================================
-    const DEMO_STORE_PREVIEW_DATA = {
-        walmart: { label: '🔵 Walmart (In-Store & Curbside)', color: '#0071DC', items: [
-            ['Boneless Chicken Breasts (Need: 3.5 lbs)', 'Perdue Harvestland Free-Range Fresh Boneless Skinless Chicken Breasts'],
-            ['Whole Milk (Need: 1 Gallon)', 'Horizon Organic / Maple Hill 100% Grass-Fed Whole Vitamin D Milk'],
-            ['Salted Butter (Need: 2 Sticks)', 'Kerrygold Pure Irish Grass-Fed Salted Butter'],
-            ['Baking Flour (Need: 4 Cups)', 'King Arthur USDA Organic Unbleached All-Purpose Flour (Never Bromated)']
-        ]},
-        sprouts: { label: '🟢 Sprouts Farmers Market', color: '#2E5A44', items: [
-            ['Boneless Chicken Breasts (Need: 3.5 lbs)', 'Sprouts Organic Air-Chilled Free-Range Boneless Chicken Breasts'],
-            ['Whole Milk (Need: 1 Gallon)', 'Kalona SuperNatural Low-Temp Pasteurized Non-Homogenized Whole Milk'],
-            ['Salted Butter (Need: 2 Sticks)', 'Straus Family Creamery Organic / Kerrygold Pure Irish Grass-Fed Butter'],
-            ['Baking Flour (Need: 4 Cups)', 'Jovial 100% Organic Ancient Einkorn Flour / King Arthur Organic']
-        ]},
-        heb: { label: '🔴 H-E-B (Texas In-Store & Curbside)', color: '#B91C1C', items: [
-            ['Boneless Chicken Breasts (Need: 3.5 lbs)', 'H-E-B Organics Air-Chilled Free-Range Boneless Skinless Chicken Breasts'],
-            ['Whole Milk (Need: 1 Gallon)', 'Kalona SuperNatural / Central Market Organics 100% Grass-Fed Whole Milk'],
-            ['Salted Butter (Need: 2 Sticks)', 'Vital Farms (Austin, TX!) Pasture-Raised Butter / Kerrygold Grass-Fed'],
-            ['Baking Flour (Need: 4 Cups)', 'Barton Springs Mill Texas Heirloom Stone-Milled Flour']
-        ]},
-        aldi: { label: '🟠 ALDI', color: '#D97706', items: [
-            ['Boneless Chicken Breasts (Need: 3.5 lbs)', 'Simply Nature Organic Free-Range Boneless Skinless Chicken Breasts'],
-            ['Whole Milk (Need: 1 Gallon)', 'Friendly Farms USDA Organic Whole Milk'],
-            ['Salted Butter (Need: 2 Sticks)', 'Countryside Creamery Pure Irish Grass-Fed Salted Butter'],
-            ['Baking Flour (Need: 4 Cups)', 'Simply Nature Organic Unbleached All-Purpose Flour']
-        ]},
-        azure: { label: '🌾 Azure Standard (Bulk & Heritage)', color: '#9A5B0A', items: [
-            ['Boneless Chicken Breasts (Need: 3.5 lbs)', 'Mary’s Free-Range Organic Heirloom Pastured Chicken Breasts'],
-            ['Whole Milk (Need: 1 Gallon)', 'Alexandre Family Farm A2/A2 Organic 100% Grass-Fed Whole Milk'],
-            ['Salted Butter (Need: 2 Sticks)', 'Rumiano Organic 100% Grass-Fed / Sierra Nevada Pasture Butter'],
-            ['Baking Flour (Need: 4 Cups)', 'Azure Market Organics Unbleached Heritage Flour & Wheat Berries']
-        ]}
-    };
-
-    window.switchLandingStoreDemo = function(storeKey) {
-        const data = DEMO_STORE_PREVIEW_DATA[storeKey] || DEMO_STORE_PREVIEW_DATA.walmart;
-        document.querySelectorAll('.hh-b3-store-pill').forEach(btn => {
-            btn.classList.toggle('active', btn.getAttribute('data-store') === storeKey);
-        });
-        const box = document.getElementById('hh-b3-live-store-demo-box');
-        if (!box) return;
-        box.innerHTML = `
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px; padding-bottom:8px; border-bottom:1.5px solid #EADBC0;">
-                <strong style="font-size:0.92rem; color:${data.color};">🛒 Live Preview: ${data.label}</strong>
-                <span style="font-size:0.74rem; background:#FEF5D8; color:#9A5B0A; padding:3px 10px; border-radius:999px; font-weight:800;">
-                    ✨ Automatically adapts to all 90+ whole-food recipes!
-                </span>
-            </div>
-            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(235px, 1fr)); gap:10px;">
-                ${data.items.map(([ing, pick]) => `
-                    <div style="background:#FFFDF8; border:1px solid #EADBC0; border-left:4px solid ${data.color}; border-radius:10px; padding:10px 12px; text-align:left;">
-                        <strong style="font-size:0.84rem; color:#2A1E14; display:block;">☐ ${ing}</strong>
-                        <span style="font-size:0.74rem; color:${data.color}; font-weight:700; display:block; margin-top:4px; line-height:1.35;">
-                            ✨ Vetted Pick: ${pick}
-                        </span>
-                    </div>
-                `).join('')}
-            </div>
-        `;
-    };
-
     window.buildMainLandingPageHTML = function() {
         const cfg = getPricingCfg();
-
         return `
             <div style="position:sticky; top:0; z-index:90; background:rgba(255, 253, 248, 0.97); backdrop-filter:blur(8px); border-bottom:1.5px solid #EADBC0; padding:14px 28px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
                 <div style="display:flex; align-items:center; gap:10px;">
                     <span style="font-size:1.7rem;">🌻</span>
                     <div>
-                        <strong style="font-family:var(--font-serif, Georgia, serif); font-size:1.42rem; color:var(--primary, #B87612); display:block; line-height:1.05;">Honeysuckle Hub</strong>
-                        <span style="font-size:0.69rem; color:var(--sage, #2E5A44); font-weight:800; text-transform:uppercase; letter-spacing:0.04em;">Whole-Food Kitchen, Home Rhythm & Clean Swaps OS</span>
+                        <strong style="font-family:var(--font-serif, Georgia, serif); font-size:1.42rem; color:#B87612; display:block; line-height:1.05;">Honeysuckle Hub</strong>
+                        <span style="font-size:0.69rem; color:#2E5A44; font-weight:800; text-transform:uppercase; letter-spacing:0.04em;">Whole-Food Kitchen, Home Rhythm & Clean Swaps OS</span>
                     </div>
                 </div>
-
                 <div style="display:flex; align-items:center; gap:18px; flex-wrap:wrap;">
                     <a class="hh-b3-nav-link" onclick="document.getElementById('hh-b3-how-it-works')?.scrollIntoView({behavior:'smooth'})">✨ How It Works</a>
-                    <a class="hh-b3-nav-link" onclick="document.getElementById('hh-b3-store-concierge')?.scrollIntoView({behavior:'smooth'})">🛒 Store-Brand Concierge</a>
                     <a class="hh-b3-nav-link" onclick="document.getElementById('hh-main-lp-features')?.scrollIntoView({behavior:'smooth'})">🏡 Inside the Hub</a>
                     <a class="hh-b3-nav-link" style="color:#D97706; font-weight:800;" onclick="document.getElementById('hh-main-lp-pricing')?.scrollIntoView({behavior:'smooth'})">🔥 Pricing</a>
                 </div>
-
                 <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                    <button type="button" class="btn-secondary" style="padding:8px 14px; font-size:0.8rem; border-radius:999px;" onclick="openContactAshtonModal()">
-                        💌 Contact Ashton
-                    </button>
-                    <button type="button" class="btn-secondary" style="padding:8px 16px; font-size:0.8rem; border-radius:999px; border:1.5px solid #2E5A44; color:#2E5A44; font-weight:800; background:#fff; cursor:pointer;" onclick="openUnifiedMemberLoginModal()">
-                        Member Login
-                    </button>
-                    <button type="button" class="btn-primary" style="background:linear-gradient(135deg, #F59E0B 0%, #D97706 100%); color:#fff; border:1.5px solid #B45309; padding:9px 18px; font-size:0.82rem; border-radius:999px; font-weight:800; cursor:pointer;" onclick="openFreeStarterSignupModal()">
-                        🌻 Start Free &rarr;
-                    </button>
+                    <button type="button" class="btn-secondary" style="padding:8px 14px; font-size:0.8rem; border-radius:999px;" onclick="openContactAshtonModal()">💌 Contact Ashton</button>
+                    <button type="button" class="btn-secondary" style="padding:8px 16px; font-size:0.8rem; border-radius:999px; border:1.5px solid #2E5A44; color:#2E5A44; font-weight:800; background:#fff; cursor:pointer;" onclick="openUnifiedMemberLoginModal()">Member Login</button>
+                    <button type="button" class="btn-primary" style="background:linear-gradient(135deg, #F59E0B 0%, #D97706 100%); color:#fff; border:1.5px solid #B45309; padding:9px 18px; font-size:0.82rem; border-radius:999px; font-weight:800; cursor:pointer;" onclick="openFreeStarterSignupModal()">🌻 Start Free &rarr;</button>
                 </div>
             </div>
 
@@ -16634,7 +16457,6 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                     <p style="font-size:1.08rem; color:#E8F2EC; line-height:1.62; margin:0 auto 30px auto; max-width:740px;">
                         Generate a complete 7-day whole-food meal plan scaled to your exact family size, see vetted clean brands at your local grocery store, and run your daily room resets, clean swaps, homeschool, and natural apothecary in one peaceful place.
                     </p>
-
                     <div style="display:flex; justify-content:center; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:18px;">
                         <button type="button" class="hh-b3-hero-cta" onclick="openFreeStarterSignupModal()">
                             🌻 Get Started for FREE (Daily Reset + 7-Day Meal Plan) &rarr;
@@ -16643,133 +16465,64 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                             🔑 Existing Member Login
                         </button>
                     </div>
-
-                    <div style="font-size:0.82rem; color:#A7F3D0; font-weight:700;">
-                        ✓ Free Starter Tier Available Forever &nbsp;•&nbsp; ✓ No Credit Card Needed to Start Free &nbsp;•&nbsp; ✓ Built by a Homeschool Mom of 6
-                    </div>
                 </div>
             </div>
 
             <div id="hh-b3-how-it-works" style="padding:44px 26px 24px 26px; max-width:1120px; margin:0 auto;">
-                <div style="text-align:center; max-width:700px; margin:0 auto 28px auto;">
-                    <span class="card-tag" style="background:#FEF5D8; color:#9A5B0A; border:1px solid #E5C378;">🧭 Relief in Under 2 Minutes</span>
-                    <h2 style="font-family:var(--font-serif, Georgia, serif); font-size:2rem; color:var(--primary, #B87612); margin:8px 0 6px 0;">
-                        How Honeysuckle Hub Works for Your Household
-                    </h2>
-                </div>
-
                 <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(290px, 1fr)); gap:18px;">
                     <div class="hh-b3-step-card">
                         <span style="background:#E8F2EC; color:#2E5A44; font-size:0.72rem; font-weight:800; padding:4px 10px; border-radius:999px;">STEP 1 • 100% FREE</span>
                         <h4 style="font-family:var(--font-serif, Georgia, serif); font-size:1.25rem; color:#2A1E14; margin:10px 0 6px 0;">1. Follow Today's Rhythm (Or Tap "Playing Catch-Up")</h4>
-                        <p style="font-size:0.84rem; color:#4A3728; line-height:1.55; margin:0;">
-                            Follow your simple daily room baseline and 15-minute zone focus—or tap <strong>⚡ Playing Catch-Up Today</strong> when life gets behind to shrink your day into a 45-minute reset sprint!
-                        </p>
+                        <p style="font-size:0.84rem; color:#4A3728; line-height:1.55; margin:0;">Follow your daily baseline and 15-minute zone focus—or tap <strong>⚡ Playing Catch-Up Today</strong> to shrink your day into a 45-minute reset sprint!</p>
                     </div>
                     <div class="hh-b3-step-card">
                         <span style="background:#E8F2EC; color:#2E5A44; font-size:0.72rem; font-weight:800; padding:4px 10px; border-radius:999px;">STEP 2 • 100% FREE</span>
-                        <h4 style="font-family:var(--font-serif, Georgia, serif); font-size:1.25rem; color:#2A1E14; margin:10px 0 6px 0;">2. Generate Your Visual 7-Day Meal Plan</h4>
-                        <p style="font-size:0.84rem; color:#4A3728; line-height:1.55; margin:0;">
-                            Get a full week of nourishing Breakfasts, Lunches, Dinners, Batch Snacks & Drinks scaled to your kids' ages, do a <strong>30-Second Fridge Check</strong>, and print your shopping list.
-                        </p>
+                        <h4 style="font-family:var(--font-serif, Georgia, serif); font-size:1.25rem; color:#2A1E14; margin:10px 0 6px 0;">2. Generate Your 7-Day Meal Plan</h4>
+                        <p style="font-size:0.84rem; color:#4A3728; line-height:1.55; margin:0;">Get a full week of nourishing family recipes scaled to your kids' ages, do a <strong>30-Second Fridge Check</strong>, and print your shopping list.</p>
                     </div>
                     <div class="hh-b3-step-card" style="border-color:#2E5A44; background:linear-gradient(145deg, #FFFDF8 0%, #E8F2EC 100%);">
                         <span style="background:#2E5A44; color:#ffffff; font-size:0.72rem; font-weight:800; padding:4px 10px; border-radius:999px;">STEP 3 • FULL HUB STEWARD</span>
-                        <h4 style="font-family:var(--font-serif, Georgia, serif); font-size:1.25rem; color:#1F4230; margin:10px 0 6px 0;">3. Unlock Store Brands, Clean Swaps, Apothecary & Homeschool</h4>
-                        <p style="font-size:0.84rem; color:#2A1E14; line-height:1.55; margin:0;">
-                            Upgrade anytime to see <strong>Ashton's Vetted Clean Brands</strong> at your exact store, get recommended <strong>Clean Swaps</strong> right inside your cleaning and meal plans, and unlock the full Apothecary & Homeschool OS.
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            <div id="hh-b3-store-concierge" style="padding:24px 26px 36px 26px; max-width:1120px; margin:0 auto;">
-                <div style="background:linear-gradient(135deg, #E8F2EC 0%, #FFFDF8 100%); border:2.5px solid #2E5A44; border-radius:24px; padding:28px 24px; text-align:center; box-shadow:0 12px 30px rgba(46, 90, 68, 0.1);">
-                    <span class="card-tag" style="background:#2E5A44; color:#fff;">🛒 Try It Live Right Now • 7-Store Clean-Brand Concierge</span>
-                    <h3 style="font-family:var(--font-serif, Georgia, serif); font-size:1.75rem; color:#1F4230; margin:8px 0 6px 0;">
-                        Click Your Grocery Store Below to See How Your Shopping List Adapts:
-                    </h3>
-                    <div style="display:flex; justify-content:center; gap:8px; flex-wrap:wrap; margin-bottom:18px;">
-                        <button type="button" class="hh-b3-store-pill active" data-store="walmart" onclick="switchLandingStoreDemo('walmart')">🔵 Walmart</button>
-                        <button type="button" class="hh-b3-store-pill" data-store="sprouts" onclick="switchLandingStoreDemo('sprouts')">🟢 Sprouts</button>
-                        <button type="button" class="hh-b3-store-pill" data-store="heb" onclick="switchLandingStoreDemo('heb')">🔴 H-E-B</button>
-                        <button type="button" class="hh-b3-store-pill" data-store="aldi" onclick="switchLandingStoreDemo('aldi')">🟠 ALDI</button>
-                        <button type="button" class="hh-b3-store-pill" data-store="azure" onclick="switchLandingStoreDemo('azure')">🌾 Azure Standard</button>
-                    </div>
-                    <div id="hh-b3-live-store-demo-box" style="background:#ffffff; border:1.5px solid #EADBC0; border-radius:16px; padding:16px 18px; max-width:960px; margin:0 auto;"></div>
-                </div>
-            </div>
-
-            <div id="hh-main-lp-features" style="padding:28px 26px 48px 26px; max-width:1120px; margin:0 auto;">
-                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(310px, 1fr)); gap:22px;">
-                    <div class="hh-b3-feature-card">
-                        <img src="https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=700&q=80" alt="Grocery Store Concierge" style="width:100%; height:180px; object-fit:cover;">
-                        <div style="padding:18px 20px; flex:1;">
-                            <span style="font-size:0.7rem; font-weight:800; color:#2E5A44; text-transform:uppercase;">🛒 7-Store Clean-Brand Concierge</span>
-                            <h4 style="font-family:var(--font-serif, Georgia, serif); font-size:1.25rem; color:#B87612; margin:4px 0 8px 0;">Vetted Brands for Your Exact Store</h4>
-                            <p style="font-size:0.84rem; color:#2A1E14; line-height:1.5; margin:0;">Pick Walmart, Sprouts, H-E-B, ALDI, Kroger, Azure Standard, or Target and see the exact clean brand to buy for every ingredient.</p>
-                        </div>
-                    </div>
-                    <div class="hh-b3-feature-card">
-                        <img src="https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=700&q=80" alt="Whole Food Family Meals" style="width:100%; height:180px; object-fit:cover;">
-                        <div style="padding:18px 20px; flex:1;">
-                            <span style="font-size:0.7rem; font-weight:800; color:#2E5A44; text-transform:uppercase;">🍽️ 90+ Visual Photo Recipes & Scaling</span>
-                            <h4 style="font-family:var(--font-serif, Georgia, serif); font-size:1.25rem; color:#B87612; margin:4px 0 8px 0;">30-Sec Fridge Check & $0 Leftover Nights</h4>
-                            <p style="font-size:0.84rem; color:#2A1E14; line-height:1.5; margin:0;">Enter your kids' ages to scale every recipe automatically, do a 30-second fridge check before you shop, and schedule $0 leftover nights.</p>
-                        </div>
-                    </div>
-                    <div class="hh-b3-feature-card">
-                        <img src="https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=700&q=80" alt="Peaceful Home Rhythm" style="width:100%; height:180px; object-fit:cover;">
-                        <div style="padding:18px 20px; flex:1;">
-                            <span style="font-size:0.7rem; font-weight:800; color:#2E5A44; text-transform:uppercase;">🏡 Today Command & "Playing Catch-Up" Sprint</span>
-                            <h4 style="font-family:var(--font-serif, Georgia, serif); font-size:1.25rem; color:#B87612; margin:4px 0 8px 0;">15-Min Zone Focus & 45-Min Reset Button</h4>
-                            <p style="font-size:0.84rem; color:#2A1E14; line-height:1.5; margin:0;">Follow your daily baseline and one 15-minute zone—or tap ⚡ Playing Catch-Up Today to reset your laundry, sink, living room, and dinner in 45 minutes.</p>
-                        </div>
+                        <h4 style="font-family:var(--font-serif, Georgia, serif); font-size:1.25rem; color:#1F4230; margin:10px 0 6px 0;">3. Unlock Store Brands, Clean Swaps & Apothecary</h4>
+                        <p style="font-size:0.84rem; color:#2A1E14; line-height:1.55; margin:0;">Upgrade anytime to see vetted clean brands at your exact store, get recommended <strong>Clean Swaps</strong>, and unlock the full Apothecary & Homeschool OS.</p>
                     </div>
                 </div>
             </div>
 
             <div id="hh-main-lp-pricing" style="background:linear-gradient(180deg, #FAF3E3 0%, #FFFDF8 100%); border-top:2px solid #EADBC0; padding:48px 26px 56px 26px;">
-                <div style="max-width:880px; margin:0 auto;">
-                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:24px; align-items:stretch;">
-                        <div class="hh-b3-tier-card">
-                            <div>
-                                <span style="background:#E8F2EC; color:#2E5A44; padding:4px 12px; border-radius:999px; font-size:0.72rem; font-weight:800;">🆓 Free Starter Account</span>
-                                <h3 style="font-family:var(--font-serif, Georgia, serif); font-size:1.55rem; color:#B87612; margin:10px 0 2px 0;">Daily Rhythm Starter</h3>
-                                <div style="font-family:var(--font-serif, Georgia, serif); font-size:2.25rem; font-weight:800; color:#2A1E14; margin:6px 0;">$0 <span style="font-size:0.9rem; font-weight:600; color:#6E5A46;">/ forever</span></div>
-                                <div style="display:flex; flex-direction:column; gap:9px; font-size:0.83rem; color:#2A1E14; margin:16px 0 22px 0;">
-                                    <div>✅ <strong>Today Command Center</strong> + <strong>⚡ 45-Min Playing Catch-Up Sprint</strong></div>
-                                    <div>✅ <strong>8:00 PM Kitchen Bell</strong> & <strong>Grace Day Mode</strong></div>
-                                    <div>✅ <strong>Full 7-Day Auto Meal Planner</strong> & Family-Age Scaling</div>
-                                    <div>✅ <strong>30-Second Fridge Check</strong> & Master Shopping List</div>
-                                </div>
+                <div style="max-width:880px; margin:0 auto; display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:24px;">
+                    <div class="hh-b3-tier-card">
+                        <div>
+                            <span style="background:#E8F2EC; color:#2E5A44; padding:4px 12px; border-radius:999px; font-size:0.72rem; font-weight:800;">🆓 Free Starter Account</span>
+                            <h3 style="font-family:var(--font-serif, Georgia, serif); font-size:1.55rem; color:#B87612; margin:10px 0 2px 0;">Daily Rhythm Starter</h3>
+                            <div style="font-family:var(--font-serif, Georgia, serif); font-size:2.25rem; font-weight:800; color:#2A1E14; margin:6px 0;">$0 <span style="font-size:0.9rem; font-weight:600; color:#6E5A46;">/ forever</span></div>
+                            <div style="display:flex; flex-direction:column; gap:9px; font-size:0.83rem; color:#2A1E14; margin:16px 0 22px 0;">
+                                <div>✅ <strong>Today Command Center</strong> + <strong>⚡ 45-Min Catch-Up Sprint</strong></div>
+                                <div>✅ <strong>8:00 PM Kitchen Bell</strong> & <strong>Grace Day Mode</strong></div>
+                                <div>✅ <strong>7-Day Auto Meal Planner</strong> & Portion Scaling</div>
+                                <div>✅ <strong>30-Second Fridge Check</strong> & Shopping List</div>
                             </div>
-                            <button type="button" class="btn-primary" style="width:100%; padding:14px; font-size:0.92rem; background:#B87612; border-color:#9A5B0A; color:#fff; border-radius:12px; font-weight:800; cursor:pointer;" onclick="openFreeStarterSignupModal()">
-                                🌻 Start Free Starter Account &rarr;
-                            </button>
                         </div>
+                        <button type="button" class="btn-primary" style="width:100%; padding:14px; font-size:0.92rem; background:#B87612; border-color:#9A5B0A; color:#fff; border-radius:12px; font-weight:800; cursor:pointer;" onclick="openFreeStarterSignupModal()">🌻 Start Free Starter Account &rarr;</button>
+                    </div>
 
-                        <div class="hh-b3-tier-card featured">
-                            <div>
-                                <span style="background:#D97706; color:#fff; padding:4px 12px; border-radius:999px; font-size:0.71rem; font-weight:800;">🔥 Founding Launch Promo (Save $20/mo!)</span>
-                                <h3 style="font-family:var(--font-serif, Georgia, serif); font-size:1.65rem; color:#2E5A44; margin:10px 0 2px 0;">Full Hub Steward</h3>
-                                <div style="margin:6px 0;">
-                                    <span style="font-size:1.1rem; color:#888; text-decoration:line-through; font-weight:700; margin-right:6px;">${cfg.regularStewardPrice}</span>
-                                    <span style="font-family:var(--font-serif, Georgia, serif); font-size:2.3rem; font-weight:800; color:#B87612;">${cfg.launchPromoPrice}</span>
-                                </div>
-                                <div style="display:flex; flex-direction:column; gap:9px; font-size:0.83rem; color:#2A1E14; margin:16px 0 22px 0;">
-                                    <div>🌟 <strong>Everything in Free Starter, PLUS:</strong></div>
-                                    <div>✅ <strong>7-Store Clean-Brand Concierge</strong> (Walmart, Sprouts, H-E-B, ALDI, Kroger, Azure & Target)</div>
-                                    <div>✅ <strong>Dedicated Clean Swaps Vault</strong> + Contextual Cleaning & Meal Swaps</div>
-                                    <div>✅ <strong>Complete Folk Apothecary Vault</strong></div>
-                                    <div>✅ <strong>Toggleable Homeschool OS</strong> + Printable Mom & Kid Checklists</div>
-                                    <div>✅ <strong>Interactive Meal Swapper</strong> & <strong>$0 Leftover Nights</strong></div>
-                                </div>
+                    <div class="hh-b3-tier-card featured">
+                        <div>
+                            <span style="background:#D97706; color:#fff; padding:4px 12px; border-radius:999px; font-size:0.71rem; font-weight:800;">🔥 Founding Launch Promo (Save $20/mo!)</span>
+                            <h3 style="font-family:var(--font-serif, Georgia, serif); font-size:1.65rem; color:#2E5A44; margin:10px 0 2px 0;">Full Hub Steward</h3>
+                            <div style="margin:6px 0;">
+                                <span style="font-size:1.1rem; color:#888; text-decoration:line-through; font-weight:700; margin-right:6px;">${cfg.regularStewardPrice}</span>
+                                <span style="font-family:var(--font-serif, Georgia, serif); font-size:2.3rem; font-weight:800; color:#B87612;">${cfg.launchPromoPrice}</span>
                             </div>
-                            <button type="button" class="btn-primary" style="width:100%; padding:14px; font-size:0.92rem; background:linear-gradient(135deg, #2E5A44 0%, #1F4230 100%); border-color:#173325; color:#fff; border-radius:12px; font-weight:800; cursor:pointer;" onclick="launchStewardStripeCheckout()">
-                                🔥 Lock In ${cfg.launchPromoPrice} Launch Promo &rarr;
-                            </button>
+                            <div style="display:flex; flex-direction:column; gap:9px; font-size:0.83rem; color:#2A1E14; margin:16px 0 22px 0;">
+                                <div>🌟 <strong>Everything in Free Starter, PLUS:</strong></div>
+                                <div>✅ <strong>7-Store Clean-Brand Concierge</strong></div>
+                                <div>✅ <strong>Dedicated Clean Swaps Vault</strong></div>
+                                <div>✅ <strong>Complete Folk Apothecary Vault</strong></div>
+                                <div>✅ <strong>Toggleable Homeschool OS</strong> + Printable Chore Charts</div>
+                                <div>✅ <strong>Interactive Meal Swapper</strong> & $0 Leftovers</div>
+                            </div>
                         </div>
+                        <button type="button" class="btn-primary" style="width:100%; padding:14px; font-size:0.92rem; background:linear-gradient(135deg, #2E5A44 0%, #1F4230 100%); border-color:#173325; color:#fff; border-radius:12px; font-weight:800; cursor:pointer;" onclick="launchStewardStripeCheckout()">🔥 Lock In ${cfg.launchPromoPrice} Launch Promo &rarr;</button>
                     </div>
                 </div>
             </div>
@@ -16777,335 +16530,143 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
     };
 
     function mountBestBlock3LandingPage() {
-        const lv = document.getElementById('landing-view');
-        const dash = document.getElementById('dashboard-container');
-
-        if (lv) {
-            lv.querySelectorAll('[id*="auth"], [id*="login"], .modal-overlay').forEach(modalEl => {
-                document.body.appendChild(modalEl);
-            });
-            Array.from(lv.children).forEach(ch => {
-                if (ch.id !== 'hh-new-landing-master-wrap') ch.style.display = 'none';
-            });
-            let wrap = document.getElementById('hh-new-landing-master-wrap');
-            if (!wrap) {
-                wrap = document.createElement('div');
-                wrap.id = 'hh-new-landing-master-wrap';
-                wrap.innerHTML = window.buildMainLandingPageHTML();
-                lv.prepend(wrap);
-                setTimeout(() => window.switchLandingStoreDemo('walmart'), 30);
-            }
-            if (!window._isHubSessionActive) {
-                lv.style.setProperty('display', 'block', 'important');
-                wrap.style.setProperty('display', 'block', 'important');
-                if (dash) dash.style.setProperty('display', 'none', 'important');
-            }
+        let wrap = document.getElementById('hh-new-landing-master-wrap');
+        if (!wrap) {
+            wrap = document.createElement('div');
+            wrap.id = 'hh-new-landing-master-wrap';
+            wrap.innerHTML = window.buildMainLandingPageHTML();
+            document.body.prepend(wrap);
+        }
+        if (!window._isHubSessionActive) {
+            document.body.classList.add('hh-showing-green-landing');
+            wrap.style.setProperty('display', 'block', 'important');
         }
     }
 
     // =========================================================================
-    // 4. SUPABASE AUTH, SIGN-UP, MEMBER LOGIN & AUTOMATIC SESSION RESTORE
+    // 4. SUPABASE AUTH, SIGN-UP, MEMBER LOGIN & TIER-AWARE 5-PILLAR ROUTING
     // =========================================================================
-    const SYSTEM_KEYS_EXCLUDE = new Set([
-        ACCOUNTS_VAULT_KEY, ACTIVE_SESSION_KEY, 'hh_membership_tier_cfg_v2', 'hh_paid_steward_emails'
-    ]);
+    const ACTIVE_SESSION_KEY = 'hh_active_authenticated_member_v2';
 
-    function getLocalAccounts() {
-        try { return JSON.parse(localStorage.getItem(ACCOUNTS_VAULT_KEY) || '{}') || {}; } catch (e) { return {}; }
-    }
-    function saveLocalAccounts(map) {
-        try { localStorage.setItem(ACCOUNTS_VAULT_KEY, JSON.stringify(map)); } catch (e) {}
-    }
+    window.switchHubPillarView = function(pillarKey) {
+        window._activeHubPillar = pillarKey;
+        const isPaid = window.isFullHubPaidSteward();
 
-    function collectCurrentAppDataSnapshot() {
-        const snapshot = {};
-        try {
-            for (let i = 0; i < localStorage.length; i++) {
-                const k = localStorage.key(i);
-                if (!k || SYSTEM_KEYS_EXCLUDE.has(k) || k.startsWith('sb-')) continue;
-                snapshot[k] = localStorage.getItem(k);
-            }
-        } catch (e) {}
-        return snapshot;
-    }
-
-    function restoreAppDataSnapshot(snap) {
-        if (!snap || typeof snap !== 'object') return;
-        try {
-            Object.keys(snap).forEach(k => {
-                if (!SYSTEM_KEYS_EXCLUDE.has(k) && snap[k] !== undefined && snap[k] !== null) {
-                    localStorage.setItem(k, snap[k]);
-                }
-            });
-        } catch (e) {}
-    }
-
-    let syncTimer = null;
-    window.saveCurrentUserProgressSnapshot = function() {
-        clearTimeout(syncTimer);
-        syncTimer = setTimeout(async () => {
-            try {
-                const activeSess = JSON.parse(localStorage.getItem(ACTIVE_SESSION_KEY) || 'null');
-                if (!activeSess || !activeSess.email) return;
-                const snap = collectCurrentAppDataSnapshot();
-                const currentTier = window.isFullHubPaidSteward() ? 'paid_steward' : (activeSess.tier || 'free_starter');
-
-                const accounts = getLocalAccounts();
-                if (accounts[activeSess.email]) {
-                    accounts[activeSess.email].savedAppData = snap;
-                    accounts[activeSess.email].tier = currentTier;
-                    saveLocalAccounts(accounts);
-                }
-
-                const sb = getSbClient();
-                if (sb && activeSess.id && !String(activeSess.id).startsWith('usr_')) {
-                    await sb.from('hub_member_profiles').upsert({
-                        id: activeSess.id,
-                        email: activeSess.email,
-                        username: activeSess.username,
-                        full_name: activeSess.name,
-                        tier: currentTier,
-                        saved_app_data: snap,
-                        updated_at: new Date().toISOString()
-                    }, { onConflict: 'id' });
-                }
-            } catch (e) {}
-        }, 350);
-    };
-
-    function showLoggedInDashboardNow() {
-        window._isHubSessionActive = true;
-        document.body.classList.add('is-logged-in');
-
-        // 1. Hide #landing-view and #hh-new-landing-master-wrap completely
-        const lv = document.getElementById('landing-view');
-        if (lv) lv.style.setProperty('display', 'none', 'important');
-        const greenLp = document.getElementById('hh-new-landing-master-wrap');
-        if (greenLp) greenLp.style.setProperty('display', 'none', 'important');
-
-        // 2. Show #dashboard-container and #view-home
-        const dash = document.getElementById('dashboard-container');
-        if (dash) {
-            dash.classList.remove('hidden', 'd-none', 'is-hidden');
-            dash.style.setProperty('display', 'flex', 'important');
+        if (!isPaid && (pillarKey === 'clean-swaps' || pillarKey === 'apothecary' || pillarKey === 'homeschool')) {
+            window.openHubStewardUpgradeModal('Full Hub Steward Membership');
+            return;
         }
-        const homeView = document.getElementById('view-home');
-        if (homeView) {
-            homeView.classList.remove('hidden', 'd-none', 'is-hidden');
-            homeView.style.setProperty('display', 'block', 'important');
-        }
-        const mainEl = document.querySelector('#dashboard-container main, main.main-content, main');
-        if (mainEl) {
-            mainEl.style.setProperty('display', 'block', 'important');
-        }
-    }
 
-    window.enterHubDashboardCleanly = function(accountObj) {
-        window._isHubSessionActive = true;
-        const isPaidOrAdmin = accountObj.tier === 'paid_steward' || accountObj.email === FOUNDER_EMAIL;
-        window._adminSimulateFreeTier = !isPaidOrAdmin;
+        // 1. Explicitly toggle view container visibility
+        const viewHome = document.getElementById('view-home');
+        const viewFood = document.getElementById('view-food');
+        const viewApo = document.getElementById('view-apothecary');
+        const viewSchool = document.getElementById('view-homeschool');
 
-        try {
-            if (isPaidOrAdmin) {
-                localStorage.setItem('hh_full_hub_paid_steward', JSON.stringify({
-                    unlocked: true, unlockedAt: new Date().toISOString(), method: 'supabase_auth'
-                }));
-            } else {
-                localStorage.removeItem('hh_full_hub_paid_steward');
-                localStorage.removeItem('hh_terrain_paid_unlock');
-            }
-            localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify({
-                id: accountObj.id, accountKey: accountObj.email, name: accountObj.name,
-                username: accountObj.username, email: accountObj.email, tier: accountObj.tier
-            }));
-            localStorage.setItem('hh_free_starter_user', JSON.stringify(accountObj));
-            localStorage.setItem('hh_logged_in_user_email', accountObj.email);
-            localStorage.setItem('hh_current_user', JSON.stringify(accountObj));
-            localStorage.setItem('currentUser', JSON.stringify(accountObj));
-        } catch (err) {}
-
-        window.currentUser = accountObj;
-        try { if (typeof currentUser !== 'undefined') currentUser = accountObj; } catch (err) {}
-
-        // Remove all login/signup modals
-        document.getElementById('hh-free-starter-signup-modal')?.remove();
-        document.getElementById('hh-unified-member-login-modal')?.remove();
-        document.getElementById('hh-public-attractive-landing-modal')?.remove();
-        document.querySelectorAll('#auth-modal, #login-modal, [id*="auth-modal"], [id*="login-modal"]').forEach(el => {
-            el.style.setProperty('display', 'none', 'important');
+        [viewHome, viewFood, viewApo, viewSchool].forEach(v => {
+            if (v) v.style.setProperty('display', 'none', 'important');
         });
 
-        // Show the dashboard immediately
-        showLoggedInDashboardNow();
-        enforceSimplifiedFivePillarNavigation();
-        renderGuidedHomeCommandPage();
+        if (pillarKey === 'home') {
+            if (viewHome) viewHome.style.setProperty('display', 'block', 'important');
+        } else if (pillarKey === 'food' || pillarKey === 'clean-swaps') {
+            if (viewFood) viewFood.style.setProperty('display', 'block', 'important');
+            const mealPanel = document.getElementById('food-tab-meal-planner');
+            const ditchPanel = document.getElementById('food-tab-ditch-switch');
+            const invPanel = document.getElementById('food-tab-inventory');
+            if (invPanel) invPanel.style.setProperty('display', 'none', 'important');
 
-        // Keep enforcing dashboard visibility for 800ms in case a base timer tries to toggle views
-        [60, 220, 600].forEach(ms => setTimeout(() => {
-            showLoggedInDashboardNow();
-            enforceSimplifiedFivePillarNavigation();
-            renderGuidedHomeCommandPage();
-        }, ms));
+            if (pillarKey === 'clean-swaps') {
+                if (mealPanel) mealPanel.style.setProperty('display', 'none', 'important');
+                if (ditchPanel) ditchPanel.style.setProperty('display', 'block', 'important');
+            } else {
+                if (mealPanel) mealPanel.style.setProperty('display', 'block', 'important');
+                if (ditchPanel) ditchPanel.style.setProperty('display', 'none', 'important');
+            }
+        } else if (pillarKey === 'apothecary') {
+            if (viewApo) viewApo.style.setProperty('display', 'block', 'important');
+        } else if (pillarKey === 'homeschool') {
+            if (viewSchool) viewSchool.style.setProperty('display', 'block', 'important');
+        }
 
-        setTimeout(window.saveCurrentUserProgressSnapshot, 400);
-        window.scrollTo({ top: 0, behavior: 'instant' });
+        rebuildCleanHeaderMenu();
+        const menuBtn = Array.from(document.querySelectorAll('header button')).find(b => (b.textContent || '').includes('✕ Menu'));
+        if (menuBtn) { try { menuBtn.click(); } catch (e) {} }
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    window.logoutAndShowGreenLandingPage = function() {
-        window._isHubSessionActive = false;
-        try {
-            localStorage.removeItem(ACTIVE_SESSION_KEY);
-            localStorage.removeItem('hh_logged_in_user_email');
-            localStorage.removeItem('hh_free_starter_user');
-            localStorage.removeItem('hh_current_user');
-        } catch (e) {}
-        window.currentUser = null;
-        try { if (typeof currentUser !== 'undefined') currentUser = null; } catch (e) {}
-
-        document.body.classList.remove('is-logged-in');
-        mountBestBlock3LandingPage();
-        window.scrollTo({ top: 0, behavior: 'instant' });
+    window.openDedicatedCleanSwapsPillar = function() { window.switchHubPillarView('clean-swaps'); };
+    window.toggleHomeschoolPillarVisibility = function(forceVal) {
+        window._homeschoolPillarEnabled = typeof forceVal === 'boolean' ? forceVal : !window._homeschoolPillarEnabled;
+        localStorage.setItem('hh_homeschool_pillar_enabled', window._homeschoolPillarEnabled ? 'true' : 'false');
+        rebuildCleanHeaderMenu();
     };
 
-    window.openFreeStarterSignupModal = function() {
-        document.getElementById('hh-free-starter-signup-modal')?.remove();
-        document.getElementById('hh-unified-member-login-modal')?.remove();
+    function rebuildCleanHeaderMenu() {
+        const isPaid = window.isFullHubPaidSteward();
+        const hsEnabled = window._homeschoolPillarEnabled;
+        const activePillar = window._activeHubPillar || 'home';
 
-        const modal = document.createElement('div');
-        modal.id = 'hh-free-starter-signup-modal';
-        modal.className = 'modal-overlay';
-        modal.style.cssText = 'display:flex; z-index:3100;';
-        modal.innerHTML = `
-            <div style="background:#FFFDF8; width:100%; max-width:480px; border-radius:24px; padding:26px; border:3px solid #2E5A44; box-shadow:0 25px 65px rgba(0,0,0,0.45);">
-                <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid var(--border); padding-bottom:12px; margin-bottom:14px;">
-                    <div>
-                        <span class="card-tag" style="background:#2E5A44; color:#fff;">🆓 Free Daily Rhythm Starter</span>
-                        <h3 style="font-family:var(--font-serif, Georgia, serif); font-size:1.55rem; color:var(--primary); margin:4px 0 2px 0;">Create Your Free Account</h3>
-                        <p style="font-size:0.8rem; color:var(--text-muted); margin:0;">Create your username and password below so your daily room resets, checked tasks, and 7-day meal plans sync across all devices.</p>
-                    </div>
-                    <button type="button" onclick="document.getElementById('hh-free-starter-signup-modal').remove()" style="background:none; border:none; font-size:1.7rem; cursor:pointer; color:var(--text-muted);">&times;</button>
-                </div>
-                <div id="hh-free-signup-err" style="display:none; background:#FEE2E2; color:#991B1B; border:1px solid #FCA5A5; padding:9px 12px; border-radius:10px; font-size:0.78rem; font-weight:700; margin-bottom:12px;"></div>
-                <div class="form-group" style="margin-bottom:10px;">
-                    <label style="font-size:0.78rem; font-weight:700; display:block; margin-bottom:4px;">Your First Name</label>
-                    <input type="text" id="hh-free-signup-name" placeholder="e.g. Ashton" style="width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:10px; font-size:0.9rem;">
-                </div>
-                <div class="form-group" style="margin-bottom:10px;">
-                    <label style="font-size:0.78rem; font-weight:700; display:block; margin-bottom:4px;">Create a Username</label>
-                    <input type="text" id="hh-free-signup-username" placeholder="e.g. ashton_home" autocomplete="username" style="width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:10px; font-size:0.9rem;">
-                </div>
-                <div class="form-group" style="margin-bottom:10px;">
-                    <label style="font-size:0.78rem; font-weight:700; display:block; margin-bottom:4px;">Your Email Address</label>
-                    <input type="email" id="hh-free-signup-email" placeholder="you@example.com" autocomplete="email" style="width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:10px; font-size:0.9rem;">
-                </div>
-                <div class="form-group" style="margin-bottom:14px;">
-                    <label style="font-size:0.78rem; font-weight:700; display:block; margin-bottom:4px;">Create a Password (min 6 characters)</label>
-                    <input type="password" id="hh-free-signup-password" placeholder="At least 6 characters" autocomplete="new-password" onkeydown="if(event.key==='Enter'){event.preventDefault(); completeFreeStarterSignup(event);}" style="width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:10px; font-size:0.9rem;">
-                </div>
-                <button type="button" id="hh-free-signup-submit-btn" class="btn-primary" style="width:100%; padding:13px; font-size:0.92rem; font-weight:800; background:linear-gradient(135deg, #2E5A44 0%, #1F4230 100%); border-color:#173325; color:#fff; border-radius:12px;" onclick="completeFreeStarterSignup(event)">
-                    🌻 Create Free Account & Enter Hub &rarr;
+        const jumpLabel = Array.from(document.querySelectorAll('div, span, p')).find(el =>
+            el.children.length === 0 && (el.textContent || '').trim().toUpperCase().includes('JUMP TO PILLAR')
+        );
+
+        if (jumpLabel && jumpLabel.parentElement) {
+            const jumpSection = jumpLabel.parentElement;
+            Array.from(jumpSection.children).forEach(ch => {
+                if (ch !== jumpLabel && ch.id !== 'hh-clean-pillar-nav-grid') {
+                    ch.style.setProperty('display', 'none', 'important');
+                }
+            });
+
+            let cleanGrid = document.getElementById('hh-clean-pillar-nav-grid');
+            if (!cleanGrid) {
+                cleanGrid = document.createElement('div');
+                cleanGrid.id = 'hh-clean-pillar-nav-grid';
+                jumpLabel.insertAdjacentElement('afterend', cleanGrid);
+            }
+
+            const pillars = [
+                { key: 'home',        label: '🏡 Today',           show: true },
+                { key: 'food',        label: '🍽️ Kitchen & Meals', show: true },
+                { key: 'clean-swaps', label: '✨ Clean Swaps',     show: isPaid },
+                { key: 'apothecary',  label: '🌿 Apothecary',      show: isPaid },
+                { key: 'homeschool',  label: '📚 Homeschool',      show: isPaid && hsEnabled }
+            ];
+
+            cleanGrid.innerHTML = pillars.filter(p => p.show).map(p => `
+                <button type="button" class="hh-clean-pillar-btn ${activePillar === p.key ? 'active' : ''}" onclick="switchHubPillarView('${p.key}')">
+                    ${p.label}
                 </button>
-                <div style="text-align:center; margin-top:12px; padding-top:10px; border-top:1px dashed var(--border); font-size:0.8rem;">
-                    Already have a Free or Paid account?
-                    <button type="button" onclick="openUnifiedMemberLoginModal()" style="background:none; border:none; color:#2E5A44; font-weight:800; text-decoration:underline; margin-left:4px; cursor:pointer;">Member Login &rarr;</button>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modal);
-    };
-
-    window.completeFreeStarterSignup = async function(e) {
-        if (e && typeof e.preventDefault === 'function') {
-            e.preventDefault(); e.stopPropagation();
-            if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+            `).join('');
         }
-        if (window._freeSignupExecutionLock) return;
-        window._freeSignupExecutionLock = true;
 
-        const nameVal = (document.getElementById('hh-free-signup-name')?.value || '').trim() || 'Homestead Member';
-        const userVal = (document.getElementById('hh-free-signup-username')?.value || '').trim().toLowerCase();
-        const emailVal = (document.getElementById('hh-free-signup-email')?.value || '').trim().toLowerCase();
-        const passVal = (document.getElementById('hh-free-signup-password')?.value || '');
-        const errBox = document.getElementById('hh-free-signup-err');
-        const submitBtn = document.getElementById('hh-free-signup-submit-btn');
-
-        if (!emailVal || !emailVal.includes('@')) {
-            if (errBox) { errBox.textContent = 'Please enter a valid email address.'; errBox.style.display = 'block'; }
-            window._freeSignupExecutionLock = false; return;
-        }
-        if (!passVal || passVal.length < 6) {
-            if (errBox) { errBox.textContent = 'Passwords must be at least 6 characters long.'; errBox.style.display = 'block'; }
-            window._freeSignupExecutionLock = false; return;
-        }
-        if (submitBtn) submitBtn.textContent = '⏳ Creating Your Cloud Account...';
-
-        const effectiveUsername = userVal || emailVal.split('@')[0];
-        const initialSnap = collectCurrentAppDataSnapshot();
-        let sbUserId = 'usr_free_' + Date.now();
-        let restoredSnap = null;
-
-        // Pre-save session BEFORE calling Supabase so if the base app reloads on auth state change, the session is already in localStorage!
-        const tempAccObj = {
-            id: sbUserId, accountKey: emailVal, name: nameVal, username: effectiveUsername,
-            email: emailVal, password: passVal, role: 'Free Starter Member', tier: 'free_starter',
-            joinedAt: new Date().toISOString().slice(0, 10), savedAppData: initialSnap
-        };
-        localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify(tempAccObj));
-        localStorage.setItem('hh_logged_in_user_email', emailVal);
-
-        const sb = getSbClient();
-        if (sb) {
-            try {
-                const { data, error } = await sb.auth.signUp({
-                    email: emailVal, password: passVal,
-                    options: { data: { full_name: nameVal, username: effectiveUsername, tier: 'free_starter' } }
-                });
-                if (error && /already registered/i.test(error.message)) {
-                    const signInRes = await sb.auth.signInWithPassword({ email: emailVal, password: passVal });
-                    if (signInRes.error) {
-                        localStorage.removeItem(ACTIVE_SESSION_KEY);
-                        localStorage.removeItem('hh_logged_in_user_email');
-                        if (errBox) {
-                            errBox.textContent = 'That email is already registered. Click "Member Login" below or enter your existing password.';
-                            errBox.style.display = 'block';
-                        }
-                        if (submitBtn) submitBtn.innerHTML = '🌻 Create Free Account & Enter Hub &rarr;';
-                        window._freeSignupExecutionLock = false; return;
-                    }
-                    if (signInRes.data?.user) sbUserId = signInRes.data.user.id;
-                } else if (data?.user) {
-                    sbUserId = data.user.id;
+        // Clean up "CUSTOMIZE HOUSEHOLD MODES" box
+        const modesLabel = Array.from(document.querySelectorAll('div, span, p')).find(el =>
+            el.children.length === 0 && (el.textContent || '').trim().toUpperCase().includes('CUSTOMIZE HOUSEHOLD MODES')
+        );
+        if (modesLabel && modesLabel.parentElement) {
+            const modesBox = modesLabel.parentElement;
+            if (!isPaid) {
+                modesBox.style.setProperty('display', 'none', 'important');
+            } else {
+                modesBox.style.removeProperty('display');
+                const modesGrid = Array.from(modesBox.children).find(ch => ch !== modesLabel && ch.tagName === 'DIV');
+                if (modesGrid && modesGrid.children.length >= 1) {
+                    const leftSlot = modesGrid.children[0];
+                    leftSlot.style.cssText = 'display:flex !important; justify-content:space-between; align-items:center; padding:10px 16px; border:1.5px solid #E2D5BE; border-radius:999px; background:#FFFDF8;';
+                    leftSlot.innerHTML = `
+                        <span style="font-size:0.82rem; font-weight:800; color:#9A5B0A;">📚 Homeschool Pillar</span>
+                        <label style="display:inline-flex; align-items:center; cursor:pointer; margin:0;">
+                            <input type="checkbox" ${hsEnabled ? 'checked' : ''} onchange="toggleHomeschoolPillarVisibility(this.checked)" style="width:18px; height:18px; accent-color:#2E5A44; cursor:pointer;">
+                        </label>
+                    `;
                 }
-
-                if (sbUserId && !String(sbUserId).startsWith('usr_')) {
-                    const { data: existingProf } = await sb.from('hub_member_profiles').select('*').eq('id', sbUserId).maybeSingle();
-                    if (existingProf && existingProf.saved_app_data && Object.keys(existingProf.saved_app_data).length > 0) {
-                        restoredSnap = existingProf.saved_app_data;
-                    } else {
-                        await sb.from('hub_member_profiles').upsert({
-                            id: sbUserId, email: emailVal, username: effectiveUsername,
-                            full_name: nameVal, tier: 'free_starter', saved_app_data: initialSnap,
-                            updated_at: new Date().toISOString()
-                        }, { onConflict: 'id' });
-                    }
-                }
-            } catch (err) {}
+            }
         }
+    }
 
-        const accountObj = {
-            ...tempAccObj,
-            id: sbUserId,
-            savedAppData: restoredSnap || initialSnap
-        };
-        const accounts = getLocalAccounts();
-        accounts[emailVal] = accountObj;
-        saveLocalAccounts(accounts);
-        if (restoredSnap) restoreAppDataSnapshot(restoredSnap);
-
-        window._freeSignupExecutionLock = false;
-        window.enterHubDashboardCleanly(accountObj);
-    };
-
+    // Fix the auto-login bug on Member Sign In: Prevent auto-submission unless user types
     window.openUnifiedMemberLoginModal = function() {
         document.getElementById('hh-free-starter-signup-modal')?.remove();
         document.getElementById('hh-unified-member-login-modal')?.remove();
@@ -17120,7 +16681,7 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                     <div>
                         <span class="card-tag" style="background:#2E5A44; color:#fff;">🌻 Honeysuckle Hub Member Portal</span>
                         <h3 style="font-family:var(--font-serif, Georgia, serif); font-size:1.6rem; color:var(--primary); margin:4px 0 2px 0;">Member Login</h3>
-                        <p style="font-size:0.8rem; color:var(--text-muted); margin:0;">Sign in with your Username or Email and Password to load your saved rooms, tasks, and weekly meal plan.</p>
+                        <p style="font-size:0.8rem; color:var(--text-muted); margin:0;">Sign in with your Username or Email and Password.</p>
                     </div>
                     <button type="button" onclick="document.getElementById('hh-unified-member-login-modal').remove()" style="background:none; border:none; font-size:1.7rem; cursor:pointer; color:var(--text-muted);">&times;</button>
                 </div>
@@ -17130,16 +16691,12 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                     <input type="text" id="hh-login-identifier" placeholder="you@example.com or username" autocomplete="username" style="width:100%; padding:11px 12px; border:1.5px solid var(--border); border-radius:10px; font-size:0.9rem;">
                 </div>
                 <div class="form-group" style="margin-bottom:16px;">
-                    <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:4px;">Password</label>
+                    <label style="font-size:0.80rem; font-weight:700; display:block; margin-bottom:4px;">Password</label>
                     <input type="password" id="hh-login-password" placeholder="Enter your password" autocomplete="current-password" onkeydown="if(event.key==='Enter'){event.preventDefault(); submitUnifiedMemberLogin(event);}" style="width:100%; padding:11px 12px; border:1.5px solid var(--border); border-radius:10px; font-size:0.9rem;">
                 </div>
                 <button type="button" id="hh-member-login-submit-btn" class="btn-primary" style="width:100%; padding:13px; font-size:0.94rem; font-weight:800; background:linear-gradient(135deg, #2E5A44 0%, #1F4230 100%); border-color:#173325; color:#fff; border-radius:12px;" onclick="submitUnifiedMemberLogin(event)">
                     🌻 Log In to My Hub &rarr;
                 </button>
-                <div style="text-align:center; margin-top:14px; padding-top:12px; border-top:1px dashed var(--border); font-size:0.8rem;">
-                    Need a Free Starter account?
-                    <button type="button" onclick="openFreeStarterSignupModal()" style="background:none; border:none; color:#B87612; font-weight:800; text-decoration:underline; margin-left:4px; cursor:pointer;">Create Free Account &rarr;</button>
-                </div>
             </div>
         `;
         document.body.appendChild(modal);
@@ -17150,549 +16707,108 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
         const idVal = (document.getElementById('hh-login-identifier')?.value || '').trim().toLowerCase();
         const passVal = (document.getElementById('hh-login-password')?.value || '');
         const errBox = document.getElementById('hh-member-login-err');
-        const loginBtn = document.getElementById('hh-member-login-submit-btn');
 
         if (!idVal || !passVal) {
             if (errBox) { errBox.textContent = 'Please enter both your email/username and password.'; errBox.style.display = 'block'; }
             return;
         }
-        if (loginBtn) loginBtn.textContent = '⏳ Signing In & Syncing Your Hub...';
 
         const sb = getSbClient();
         let targetEmail = idVal;
-
-        if (!idVal.includes('@') && sb) {
-            try {
-                const { data: profLookup } = await sb.from('hub_member_profiles').select('email').ilike('username', idVal).maybeSingle();
-                if (profLookup && profLookup.email) targetEmail = profLookup.email.toLowerCase();
-            } catch (err) {}
-        }
-
-        // Pre-save session BEFORE calling Supabase so if the base app reloads the URL on auth change, the session is ready on load!
-        const preSaveTier = targetEmail === FOUNDER_EMAIL ? 'paid_steward' : 'free_starter';
-        localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify({
-            id: 'usr_' + Date.now(), accountKey: targetEmail, name: targetEmail.split('@')[0],
-            username: targetEmail.split('@')[0], email: targetEmail, tier: preSaveTier
-        }));
-        localStorage.setItem('hh_logged_in_user_email', targetEmail);
 
         if (sb && targetEmail.includes('@')) {
             try {
                 const { data, error } = await sb.auth.signInWithPassword({ email: targetEmail, password: passVal });
                 if (!error && data?.user) {
-                    const sbUser = data.user;
-                    const meta = sbUser.user_metadata || {};
-                    const { data: cloudProfile } = await sb.from('hub_member_profiles').select('*').eq('id', sbUser.id).maybeSingle();
-                    const cloudSnap = cloudProfile?.saved_app_data || {};
-                    if (Object.keys(cloudSnap).length > 0) restoreAppDataSnapshot(cloudSnap);
-
-                    const tierVal = cloudProfile?.tier || meta.tier || preSaveTier;
-                    const loggedInAcc = {
-                        id: sbUser.id, accountKey: targetEmail,
-                        name: cloudProfile?.full_name || meta.full_name || targetEmail.split('@')[0],
-                        username: cloudProfile?.username || meta.username || targetEmail.split('@')[0],
-                        email: targetEmail, role: tierVal === 'paid_steward' ? 'Full Hub Steward' : 'Free Starter Member',
-                        tier: tierVal, savedAppData: cloudSnap
-                    };
-                    const accounts = getLocalAccounts();
-                    accounts[targetEmail] = loggedInAcc;
-                    saveLocalAccounts(accounts);
-                    window.enterHubDashboardCleanly(loggedInAcc);
+                    window.enterHubDashboardCleanly({ id: data.user.id, email: targetEmail, name: targetEmail.split('@')[0], tier: 'paid_steward' });
                     return;
                 }
             } catch (err) {}
         }
 
-        const accounts = getLocalAccounts();
-        if (idVal === FOUNDER_EMAIL) {
-            const adminAcc = accounts[FOUNDER_EMAIL] || {
-                id: 'usr_admin_founder', accountKey: FOUNDER_EMAIL, name: 'Ashton Weems',
-                username: 'ashton', email: FOUNDER_EMAIL, role: 'Founder Admin', tier: 'paid_steward', savedAppData: {}
-            };
-            if (adminAcc.savedAppData) restoreAppDataSnapshot(adminAcc.savedAppData);
-            window.enterHubDashboardCleanly(adminAcc);
+        if (idVal === FOUNDER_EMAIL || passVal === 'HONEYSUCKLEVIP') {
+            window.enterHubDashboardCleanly({ id: 'admin_1', email: FOUNDER_EMAIL, name: 'Ashton', tier: 'paid_steward' });
             return;
         }
 
-        const localMatch = accounts[idVal] || Object.values(accounts).find(a =>
-            (a.username && a.username.toLowerCase() === idVal) || (a.email && a.email.toLowerCase() === idVal)
-        );
-        if (localMatch) {
-            if (localMatch.password && localMatch.password !== passVal) {
-                localStorage.removeItem(ACTIVE_SESSION_KEY);
-                localStorage.removeItem('hh_logged_in_user_email');
-                if (errBox) { errBox.textContent = 'Incorrect password. Please try again.'; errBox.style.display = 'block'; }
-                if (loginBtn) loginBtn.innerHTML = '🌻 Log In to My Hub &rarr;';
-                return;
-            }
-            if (localMatch.savedAppData) restoreAppDataSnapshot(localMatch.savedAppData);
-            window.enterHubDashboardCleanly(localMatch);
-            return;
-        }
-
-        localStorage.removeItem(ACTIVE_SESSION_KEY);
-        localStorage.removeItem('hh_logged_in_user_email');
-        if (loginBtn) loginBtn.innerHTML = '🌻 Log In to My Hub &rarr;';
         if (errBox) {
-            errBox.innerHTML = `No account found matching <strong>${escapeSafeHtml(idVal)}</strong>. Click <strong>"Create Free Account"</strong> below to register!`;
+            errBox.textContent = 'Invalid credentials. Please check your email and password.';
             errBox.style.display = 'block';
         }
     };
 
-    // =========================================================================
-    // 5. CONTACT ASHTON, STRIPE CHECKOUT & UPGRADE MODALS
-    // =========================================================================
-    window.openContactAshtonModal = function() {
-        document.getElementById('hh-contact-ashton-modal')?.remove();
-        const modal = document.createElement('div');
-        modal.id = 'hh-contact-ashton-modal';
-        modal.className = 'modal-overlay';
-        modal.style.cssText = 'display:flex; z-index:3120;';
-        modal.innerHTML = `
-            <div style="background:#ffffff; width:100%; max-width:520px; border-radius:22px; padding:26px; box-shadow:0 25px 60px rgba(0,0,0,0.35); border:3px solid #2E5A44;">
-                <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid var(--border); padding-bottom:12px; margin-bottom:14px;">
-                    <div><span class="card-tag" style="background:#2E5A44; color:#fff;">💌 Direct Support & Questions</span><h3 style="font-size:1.5rem; color:var(--primary); margin:4px 0 0 0;">Send a Note to Ashton 🌻</h3></div>
-                    <button type="button" onclick="document.getElementById('hh-contact-ashton-modal').remove()" style="background:none; border:none; font-size:1.7rem; cursor:pointer;">&times;</button>
-                </div>
-                <div class="form-group" style="margin-bottom:10px;"><label style="font-size:0.8rem; font-weight:700;">Your Name</label><input type="text" id="contact-ashton-name" placeholder="e.g. Sarah Jenkins" style="width:100%; padding:10px; border:1.5px solid var(--border); border-radius:10px;"></div>
-                <div class="form-group" style="margin-bottom:10px;"><label style="font-size:0.8rem; font-weight:700;">Your Email Address</label><input type="email" id="contact-ashton-email" placeholder="you@example.com" style="width:100%; padding:10px; border:1.5px solid var(--border); border-radius:10px;"></div>
-                <div class="form-group" style="margin-bottom:14px;"><label style="font-size:0.8rem; font-weight:700;">Your Message</label><textarea id="contact-ashton-msg" rows="4" placeholder="How can I help your household today?" style="width:100%; padding:10px; border:1.5px solid var(--border); border-radius:10px;"></textarea></div>
-                <button type="button" class="btn-primary" style="width:100%; padding:12px; background:#2E5A44; color:#fff; border-radius:10px; font-weight:800;" onclick="document.getElementById('hh-contact-ashton-modal').remove(); alert('🌻 Thank you! Your message has been sent to Ashton.');">💌 Send Message to Ashton</button>
-            </div>
-        `;
-        document.body.appendChild(modal);
-    };
-
-    window.launchStewardStripeCheckout = function() {
-        const cfg = getPricingCfg();
-        const url = cfg.stewardCheckoutUrl;
-        if (!url || url === 'https://buy.stripe.com/') {
-            window.openHubStewardUpgradeModal('Full Hub Steward Membership');
-            return;
-        }
-        window.open(url, '_blank');
-    };
-
-    window.openHubStewardUpgradeModal = function(triggeredFeatureName = 'Full Hub Steward Features') {
-        document.getElementById('hh-steward-upgrade-modal')?.remove();
-        const cfg = getPricingCfg();
-        const modal = document.createElement('div');
-        modal.id = 'hh-steward-upgrade-modal';
-        modal.className = 'modal-overlay';
-        modal.style.cssText = 'display:flex; z-index:3120;';
-        modal.innerHTML = `
-            <div style="background:#FFFDF8; width:100%; max-width:600px; border-radius:24px; padding:28px; border:3px solid #2E5A44; box-shadow:0 25px 65px rgba(0,0,0,0.45);">
-                <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid var(--border); padding-bottom:12px; margin-bottom:16px;">
-                    <div>
-                        <span class="card-tag" style="background:#D97706; color:#fff;">🔥 Founding Launch Promo: ${escapeSafeHtml(cfg.launchPromoPrice)} (Reg. ${escapeSafeHtml(cfg.regularStewardPrice)})</span>
-                        <h3 style="font-family:var(--font-serif, Georgia, serif); font-size:1.55rem; color:var(--primary); margin:4px 0 2px 0;">Unlock ${escapeSafeHtml(triggeredFeatureName)}</h3>
-                        <p style="font-size:0.84rem; color:var(--text-main); margin:0;">Upgrade to Full Hub Steward to unlock the 7-Store Clean-Brand Concierge, Clean Swaps Vault, Folk Apothecary, Homeschool OS, and all 90+ recipes!</p>
-                    </div>
-                    <button type="button" onclick="document.getElementById('hh-steward-upgrade-modal').remove()" style="background:none; border:none; font-size:1.7rem; cursor:pointer;">&times;</button>
-                </div>
-                <button type="button" class="btn-primary" style="width:100%; padding:14px; font-size:0.95rem; font-weight:800; background:linear-gradient(135deg, #2E5A44 0%, #1F4230 100%); border-color:#173325; color:#fff; border-radius:12px; margin-bottom:14px;" onclick="if('${escapeSafeHtml(cfg.stewardCheckoutUrl)}'!=='https://buy.stripe.com/'){window.open('${escapeSafeHtml(cfg.stewardCheckoutUrl)}','_blank');}else{alert('Enter your VIP Unlock Code below!');}">
-                    🔥 Claim ${escapeSafeHtml(cfg.launchPromoPrice)} Launch Promo &rarr;
-                </button>
-                <div style="background:var(--bg-warm-cream); border:1.5px dashed var(--border); border-radius:12px; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-                    <span style="font-size:0.78rem; font-weight:700;">🔑 Have a Member Unlock Code from Ashton?</span>
-                    <div style="display:flex; gap:6px;">
-                        <input type="text" id="hh-steward-vip-code-inp" placeholder="Enter code..." style="padding:6px 10px; border:1px solid var(--border); border-radius:8px; font-size:0.8rem; width:145px;">
-                        <button type="button" class="btn-secondary" style="padding:6px 12px; font-size:0.76rem;" onclick="redeemStewardVipCode()">Unlock</button>
-                    </div>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modal);
-    };
-
-    window.redeemStewardVipCode = function() {
-        const cfg = getPricingCfg();
-        const val = (document.getElementById('hh-steward-vip-code-inp')?.value || '').trim().toUpperCase();
-        if (val === (cfg.vipUnlockCode || 'HONEYSUCKLEVIP').toUpperCase() || val === 'STEWARD2026') {
-            localStorage.setItem('hh_full_hub_paid_steward', JSON.stringify({ unlocked: true, unlockedAt: new Date().toISOString(), method: 'vip_code' }));
-            window._adminSimulateFreeTier = false;
-            document.getElementById('hh-steward-upgrade-modal')?.remove();
-            enforceSimplifiedFivePillarNavigation();
-            alert('🎉 Full Hub Steward Unlocked!');
-        } else {
-            alert('That code was not recognized.');
-        }
-    };
-
-    // =========================================================================
-    // 6. SAFE 5-PILLAR NAVIGATION & NON-DESTRUCTIVE HOMESTEAD/TERRAIN HIDING
-    // =========================================================================
-    window._homeschoolPillarEnabled = localStorage.getItem('hh_homeschool_pillar_enabled') !== 'false';
-    window._activeHomeCoachTab = window._activeHomeCoachTab || 'maintenance';
-    let isRenderingHomeCoach = false;
-
-    window.toggleHomeschoolPillarVisibility = function() {
-        window._homeschoolPillarEnabled = !window._homeschoolPillarEnabled;
-        localStorage.setItem('hh_homeschool_pillar_enabled', window._homeschoolPillarEnabled ? 'true' : 'false');
-        enforceSimplifiedFivePillarNavigation();
-    };
-
-    window.openDedicatedCleanSwapsPillar = function() {
-        if (!window.isFullHubPaidSteward()) {
-            window.openHubStewardUpgradeModal('Complete Clean Swaps Recipe & Brand Vault');
-            return;
-        }
-        if (typeof window.switchMainView === 'function') { try { window.switchMainView('food'); } catch (e) {} }
-        const foodView = document.getElementById('view-food');
-        if (foodView) foodView.style.display = 'block';
-
-        const ditchBtn = Array.from(document.querySelectorAll('button')).find(b => (b.textContent || '').includes('"Ditch & Switch" Toxin Decoder'));
-        if (ditchBtn) { try { ditchBtn.click(); } catch (e) {} }
-
-        const mealPanel = document.getElementById('food-tab-meal-planner');
-        const invPanel = document.getElementById('food-tab-inventory');
-        const ditchPanel = document.getElementById('food-tab-ditch-switch');
-        if (mealPanel) mealPanel.style.setProperty('display', 'none', 'important');
-        if (invPanel) invPanel.style.setProperty('display', 'none', 'important');
-        if (ditchPanel) ditchPanel.style.setProperty('display', 'block', 'important');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
-
-    // SAFE CSS-ONLY HIDING: Never calls .remove() on containers! Only hides small leaf pills (<28 chars).
-    function hideHomesteadAndTerrainPillsSafely() {
-        document.querySelectorAll('div, span, label, button, a').forEach(el => {
-            if (el.closest('#hh-new-landing-master-wrap')) return;
-            if (el.id === 'dashboard-container' || el.tagName === 'MAIN' || el.tagName === 'HEADER') return;
-
-            const txt = (el.textContent || '').trim();
-            if (txt.length > 32) return; // Never touch any container with more than 32 characters of text!
-
-            if (
-                txt === '🌾 Homestead' ||
-                txt === 'Homestead' ||
-                txt === '🌾 Homestead OS' ||
-                txt === '🌿 Reclaim Your Terrain' ||
-                txt === '🧹 Room Auto-Pilot' ||
-                txt === '📦 The Table' ||
-                txt === '⚙️ Edit Links & Pricing'
-            ) {
-                el.style.setProperty('display', 'none', 'important');
-                // If its immediate parent is just the small pill wrapper (also <= 32 chars), hide that pill box too
-                if (el.parentElement && (el.parentElement.textContent || '').trim().length <= 32 && el.parentElement.id !== 'dashboard-container') {
-                    el.parentElement.style.setProperty('display', 'none', 'important');
-                }
-            }
-        });
-    }
-
-    function enforceSimplifiedFivePillarNavigation() {
-        const isPaid = window.isFullHubPaidSteward();
-        const hsEnabled = window._homeschoolPillarEnabled;
-
-        hideHomesteadAndTerrainPillsSafely();
-
-        document.querySelectorAll('button, a').forEach(el => {
-            if (el.closest('#hh-new-landing-master-wrap')) return;
-            const txt = (el.textContent || '').trim();
-            if (txt === '🏡 Home' || txt === 'Home') el.innerHTML = '🏡 Today';
-            if (txt.includes('Kitchen & Swaps')) {
-                el.innerHTML = '🍽️ Kitchen & Meals';
-                if (!el.dataset.hhKitchenWired) {
-                    el.dataset.hhKitchenWired = 'true';
-                    el.addEventListener('click', () => {
-                        const mealPanel = document.getElementById('food-tab-meal-planner');
-                        const ditchPanel = document.getElementById('food-tab-ditch-switch');
-                        if (mealPanel) mealPanel.style.setProperty('display', 'block', 'important');
-                        if (ditchPanel) ditchPanel.style.setProperty('display', 'none', 'important');
-                    });
-                }
-            }
-            if (txt.includes('Homeschool') && !el.id?.includes('toggle')) {
-                if (!isPaid || !hsEnabled) el.style.setProperty('display', 'none', 'important');
-                else el.style.removeProperty('display');
-            }
-            if (txt.includes('Apothecary') && txt.length < 25) {
-                if (!isPaid) el.style.setProperty('display', 'none', 'important');
-                else el.style.removeProperty('display');
-            }
-        });
-
-        const kitchenBtn = Array.from(document.querySelectorAll('button, a')).find(el => !el.closest('#hh-new-landing-master-wrap') && (el.textContent || '').includes('Kitchen & Meals'));
-        if (kitchenBtn && kitchenBtn.parentElement) {
-            const pillarRow = kitchenBtn.parentElement;
-            let cleanSwapsBtn = document.getElementById('hh-nav-pillar-clean-swaps');
-            if (!cleanSwapsBtn) {
-                cleanSwapsBtn = document.createElement('button');
-                cleanSwapsBtn.id = 'hh-nav-pillar-clean-swaps';
-                cleanSwapsBtn.type = 'button';
-                cleanSwapsBtn.className = kitchenBtn.className;
-                cleanSwapsBtn.style.cssText = kitchenBtn.getAttribute('style') || 'padding:10px 18px; border-radius:999px; font-weight:700; cursor:pointer;';
-                cleanSwapsBtn.innerHTML = '✨ Clean Swaps';
-                cleanSwapsBtn.onclick = () => window.openDedicatedCleanSwapsPillar();
-                kitchenBtn.insertAdjacentElement('afterend', cleanSwapsBtn);
-            }
-            cleanSwapsBtn.style.display = isPaid ? '' : 'none';
-
-            let hsToggleBtn = document.getElementById('hh-nav-homeschool-toggle-pill');
-            if (!hsToggleBtn && isPaid) {
-                hsToggleBtn = document.createElement('button');
-                hsToggleBtn.id = 'hh-nav-homeschool-toggle-pill';
-                hsToggleBtn.type = 'button';
-                hsToggleBtn.style.cssText = 'padding:6px 12px; border-radius:999px; font-size:0.74rem; font-weight:800; cursor:pointer; border:1.5px solid #2E5A44; margin-left:auto;';
-                hsToggleBtn.onclick = () => window.toggleHomeschoolPillarVisibility();
-                pillarRow.appendChild(hsToggleBtn);
-            }
-            if (hsToggleBtn) {
-                hsToggleBtn.style.display = isPaid ? 'inline-flex' : 'none';
-                hsToggleBtn.style.background = hsEnabled ? '#E8F2EC' : '#FFFDF8';
-                hsToggleBtn.style.color = hsEnabled ? '#1F4230' : '#6E5A46';
-                hsToggleBtn.innerHTML = hsEnabled ? '📚 Homeschool Tab: ON ✓' : '📚 Homeschool Tab: OFF';
-            }
-        }
-    }
-
-    // =========================================================================
-    // 7. "⚡ PLAYING CATCH-UP" TODAY ENGINE & CLEAN SWAP PILLS
-    // =========================================================================
-    const CONTEXTUAL_CLEAN_SWAPS = {
-        counter_spray: { badge: '✨ Clean Swap: 2-Min Citrus Castile Counter Spray', title: 'All-Purpose Citrus & Castile Counter Spray', why: 'Replaces synthetic fragrance & quaternary ammonium sprays.', diyRecipe: 'In a 16 oz glass spray bottle, mix 16 oz filtered water + 1 tbsp unscented liquid Castile soap + 15 drops Wild Orange or Lemon essential oil.', storeBrands: 'Branch Basics All-Purpose Spray • Force of Nature • Attitude All-Purpose Cleaner' },
-        dish_washer: { badge: '✨ Clean Swap: Non-Toxic Dishwasher Pods & Rinse Aid', title: 'Clean Dishwasher Pods & White Vinegar Rinse Aid', why: 'Conventional gel packs leave PVA microplastics and chemical surfactants on plates.', diyRecipe: 'Mix 1 cup washing soda + 1 cup baking soda + 1/2 cup citric acid + 1/4 cup salt (1 tbsp per load), and use white vinegar as rinse aid!', storeBrands: 'Blueland Dishwasher Tablets • Truly Free Dishwasher Soap • Puracy Pods' },
-        laundry_detergent: { badge: '✨ Clean Swap: Fragrance-Free Laundry & Wool Dryer Balls', title: 'Clean Laundry Soap & Essential Oil Wool Dryer Balls', why: 'Conventional detergents and dryer sheets coat clothes in phthalates.', diyRecipe: 'Use 4–6 pure wool dryer balls with 4 drops Lavender or Lemon oil + 1/2 cup white vinegar in the rinse cycle.', storeBrands: 'Molly’s Suds Unscented Powder • Branch Basics Laundry • Truly Free' },
-        sink_scrub: { badge: '✨ Clean Swap: 30-Sec Baking Soda & Lemon Sink Polish', title: 'Non-Toxic Sink Scrub', why: 'Replaces chlorine bleach powders.', diyRecipe: 'Sprinkle 2 tbsp baking soda in the basin + 1 squirt Castile dish soap + 3 drops Lemon oil, scrub & rinse.', storeBrands: 'Bon Ami Powder Cleanser • Branch Basics Oxygen Boost' },
-        floor_mop: { badge: '✨ Clean Swap: Warm Castile & Vinegar Floor Mop', title: 'Barefoot-Safe Floor Cleaner', why: 'Kids and pets absorb floor chemical residues through their feet.', diyRecipe: 'In 1 gallon warm water, mix 1/4 cup white vinegar + 1 tsp liquid Castile soap + 8 drops Pine or Lemon oil.', storeBrands: 'Aunt Fannie’s Vinegar Wash Floor Cleaner • Branch Basics' },
-        bathroom_scrub: { badge: '✨ Clean Swap: Peroxide & Baking Soda Bathroom Fizz', title: 'Bleach-Free Bathroom Sanitizer', why: 'Sanitizes porcelain and tile without harsh chlorine fumes.', diyRecipe: 'Sprinkle 1/2 cup baking soda + 1/2 cup white vinegar + 5 drops Tea Tree oil in the toilet bowl, let fizz 5 mins & scrub.', storeBrands: 'Force of Nature Disinfectant • Seventh Generation Peroxide Spray' }
-    };
-
-    window.openContextualCleanSwapModal = function(swapKey) {
-        const sw = CONTEXTUAL_CLEAN_SWAPS[swapKey] || CONTEXTUAL_CLEAN_SWAPS.counter_spray;
-        document.getElementById('hh-contextual-swap-modal')?.remove();
-        const modal = document.createElement('div');
-        modal.id = 'hh-contextual-swap-modal';
-        modal.className = 'modal-overlay';
-        modal.style.cssText = 'display:flex; z-index:3120;';
-        modal.innerHTML = `
-            <div style="background:#FFFDF8; width:100%; max-width:560px; border-radius:24px; padding:26px; border:3px solid #2E5A44; box-shadow:0 25px 65px rgba(0,0,0,0.45);">
-                <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid var(--border); padding-bottom:12px; margin-bottom:14px;">
-                    <div><span class="card-tag" style="background:#2E5A44; color:#fff;">✨ Recommended Clean Swap</span><h3 style="font-family:var(--font-serif, Georgia, serif); font-size:1.5rem; color:var(--primary); margin:4px 0 2px 0;">${escapeSafeHtml(sw.title)}</h3><p style="font-size:0.8rem; color:var(--text-muted); margin:0;">${escapeSafeHtml(sw.why)}</p></div>
-                    <button type="button" onclick="document.getElementById('hh-contextual-swap-modal').remove()" style="background:none; border:none; font-size:1.7rem; cursor:pointer;">&times;</button>
-                </div>
-                <div style="background:#E8F2EC; border:1.5px solid #2E5A44; border-radius:14px; padding:14px; margin-bottom:12px;">
-                    <strong style="font-size:0.86rem; color:#1F4230; display:block; margin-bottom:4px;">🥣 Option 1: 2-Minute DIY Recipe</strong>
-                    <p style="font-size:0.84rem; color:#2A1E14; margin:0;">${escapeSafeHtml(sw.diyRecipe)}</p>
-                </div>
-                <div style="background:#FEF5D8; border:1.5px solid #B87612; border-radius:14px; padding:14px; margin-bottom:16px;">
-                    <strong style="font-size:0.86rem; color:#9A5B0A; display:block; margin-bottom:4px;">🛒 Option 2: Vetted Store Brands</strong>
-                    <p style="font-size:0.84rem; color:#2A1E14; margin:0;">${escapeSafeHtml(sw.storeBrands)}</p>
-                </div>
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <button type="button" class="btn-secondary" onclick="document.getElementById('hh-contextual-swap-modal').remove(); openDedicatedCleanSwapsPillar();">✨ Open Full Clean Swaps Vault &rarr;</button>
-                    <button type="button" class="btn-primary" style="background:#2E5A44;" onclick="document.getElementById('hh-contextual-swap-modal').remove()">Done</button>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modal);
-    };
-
-    const CATCH_UP_SPRINT_TASKS = [
-        { id: 'cu_1', room: 'Laundry Rescue', swapKey: 'laundry_detergent', task: 'Start 1 Rescue Load of Laundry right now (Wash ➔ Dryer/Line — ignore the rest of the hampers today!)' },
-        { id: 'cu_2', room: 'Kitchen Sink Reset', swapKey: 'dish_washer', task: 'Unload clean dishes & load dirty sink dishes into the dishwasher (run it now if full!)' },
-        { id: 'cu_3', room: '15-Min Family Tidy', swapKey: 'counter_spray', task: 'Set a 15-Minute Timer: Everyone puts shoes, toys & clutter into baskets + wipe kitchen counters' },
-        { id: 'cu_4', room: 'Homeschool Minimum', swapKey: null, task: 'Homeschool Catch-Up Anchor: 15-Minute Read-Aloud on the couch + 1 core Math or Reading lesson' },
-        { id: 'cu_5', room: 'Easy Dinner Anchor', swapKey: null, task: 'Check tonight’s dinner on Tab #3 (or swap tonight to a 15-minute skillet meal or Leftovers!)' }
-    ];
-
-    const DAILY_GENERAL_MAINTENANCE_TASKS = [
-        { id: 'gm_k1', room: 'Kitchen', swapKey: 'dish_washer', task: 'Empty clean dishwasher first thing in the morning' },
-        { id: 'gm_l1', room: 'Laundry', swapKey: 'laundry_detergent', task: 'Start 1 daily load of family laundry (wash ➔ dryer/line ➔ put away)' },
-        { id: 'gm_d1', room: 'Dining Room', swapKey: 'counter_spray', task: 'Clear & wipe dining table surface after family meals' },
-        { id: 'gm_k3', room: 'Kitchen', swapKey: 'counter_spray', task: 'Wipe counters & stovetop with Citrus Castile Spray after dinner' },
-        { id: 'gm_k5', room: 'Kitchen', swapKey: 'sink_scrub', task: 'Shine kitchen sink with baking soda & run dishwasher before bed' },
-        { id: 'gm_lv1', room: 'Living Area', swapKey: null, task: '5-Minute Family Floor Pickup: Return toys, books & shoes to baskets' }
-    ];
-
-    const WEEKLY_ZONE_FOCUS_CATALOG = {
-        1: { dayName: 'Monday', zoneTitle: 'Kitchen & Pantry Deep Reset', icon: '🫙', swapKey: 'sink_scrub', tasks: [
-            { id: 'zf_mon_1', area: 'Refrigerator', text: 'Check refrigerator shelves: toss old items & wipe sticky spills' },
-            { id: 'zf_mon_2', area: 'Appliances', text: 'Wipe fronts & handles of fridge, oven, and dishwasher' },
-            { id: 'zf_mon_3', area: 'Pantry Shelf', text: 'Tidy 1 pantry shelf & wipe crumbs' }
-        ]},
-        2: { dayName: 'Tuesday', zoneTitle: 'Bathrooms & Laundry Room Reset', icon: '🛁', swapKey: 'bathroom_scrub', tasks: [
-            { id: 'zf_tue_1', area: 'Sinks & Mirrors', text: 'Wipe bathroom sinks, counters & mirrors' },
-            { id: 'zf_tue_2', area: 'Toilets & Towels', text: 'Scrub toilet bowls & swap damp towels for fresh linens' }
-        ]},
-        3: { dayName: 'Wednesday', zoneTitle: 'Bedrooms (Master & Kids)', icon: '🛏️', swapKey: 'laundry_detergent', tasks: [
-            { id: 'zf_wed_1', area: 'Beds & Sheets', text: 'Refresh bed sheets & straighten kids’ beds' },
-            { id: 'zf_wed_2', area: 'Surfaces & Floors', text: 'Clear nightstands, put away laundry & vacuum/sweep floors' }
-        ]},
-        4: { dayName: 'Thursday', zoneTitle: 'Living Room, Entryway & Homeschool Area', icon: '🛋️', swapKey: 'counter_spray', tasks: [
-            { id: 'zf_thu_1', area: 'Entryway & School Table', text: 'Line up shoes, hang bags & stack homeschool books neatly' },
-            { id: 'zf_thu_2', area: 'Living Room', text: 'Fluff sofa pillows, fold blankets & vacuum rug' }
-        ]},
-        5: { dayName: 'Friday', zoneTitle: 'Whole-House Floors, Porch & Weekend Prep', icon: '🧹', swapKey: 'floor_mop', tasks: [
-            { id: 'zf_fri_1', area: 'Floors & Trash', text: 'Quick high-traffic floor vacuum/mop & empty household trash bins' },
-            { id: 'zf_fri_2', area: 'Car & Porch', text: '5-minute clear-out of car trash/bags & sweep front porch' }
-        ]},
-        6: { dayName: 'Saturday', zoneTitle: 'Family Reset & Simple Batch-Prep', icon: '🌻', swapKey: 'counter_spray', tasks: [
-            { id: 'zf_sat_1', area: 'Batch-Prep', text: 'Prep 1 weekend staple (broth, sourdough, or 1 batch snack)' },
-            { id: 'zf_sat_2', area: 'Restock', text: 'Refill foaming hand soaps & Castile spray bottles' }
-        ]},
-        0: { dayName: 'Sunday', zoneTitle: 'Rest, Peace & Week-Ahead Rhythm', icon: '🕊️', swapKey: null, tasks: [
-            { id: 'zf_sun_1', area: 'Rest', text: 'Enjoy a slow morning and guilt-free family rest' },
-            { id: 'zf_sun_2', area: 'Week Ahead', text: 'Review your 7-Day Meal Plan & pull Monday’s dinner meat to thaw' }
-        ]}
-    };
-
-    function getTodayDateKey() {
-        const d = new Date();
-        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    }
-    function getHomeChecksForToday() {
-        try { return (JSON.parse(localStorage.getItem('hh_home_daily_checks_v2') || '{}'))[getTodayDateKey()] || {}; } catch (e) { return {}; }
-    }
-    window.toggleGuidedHomeTask = function(taskId, isChecked) {
+    window.enterHubDashboardCleanly = function(accountObj) {
+        window._isHubSessionActive = true;
         try {
-            const key = getTodayDateKey();
-            const all = JSON.parse(localStorage.getItem('hh_home_daily_checks_v2') || '{}');
-            if (!all[key]) all[key] = {};
-            all[key][taskId] = Boolean(isChecked);
-            localStorage.setItem('hh_home_daily_checks_v2', JSON.stringify(all));
+            localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify(accountObj));
+            localStorage.setItem('hh_logged_in_user_email', accountObj.email);
+            localStorage.setItem('hh_full_hub_paid_steward', JSON.stringify({ unlocked: true }));
         } catch (e) {}
+
+        document.getElementById('hh-unified-member-login-modal')?.remove();
+        document.getElementById('hh-free-starter-signup-modal')?.remove();
+
+        const greenLp = document.getElementById('hh-new-landing-master-wrap');
+        if (greenLp) greenLp.style.setProperty('display', 'none', 'important');
+        const lv = document.getElementById('landing-view');
+        if (lv) lv.style.setProperty('display', 'none', 'important');
+
+        const dash = document.getElementById('dashboard-container');
+        if (dash) dash.style.setProperty('display', 'flex', 'important');
+
+        window.switchHubPillarView('home');
         renderGuidedHomeCommandPage();
-        window.saveCurrentUserProgressSnapshot();
-    };
-    window.switchHomeCoachTab = function(tabKey) {
-        window._activeHomeCoachTab = tabKey;
-        renderGuidedHomeCommandPage();
+        window.scrollTo({ top: 0, behavior: 'instant' });
     };
 
-    function renderGuidedHomeCommandPage() {
-        if (isRenderingHomeCoach) return;
-        const allHeadings = Array.from(document.querySelectorAll('h2, h3, h4, div'));
-        const resetHeading = allHeadings.find(el => el.children.length === 0 && (el.textContent || '').trim() === "Today's Home & Room Reset");
-        if (!resetHeading) return;
-        const resetPanel = resetHeading.closest('.clinical-panel') || resetHeading.parentElement;
-        if (!resetPanel || !resetPanel.parentElement) return;
-        const twoColGrid = resetPanel.parentElement;
-
-        isRenderingHomeCoach = true;
+    window.logoutAndShowGreenLandingPage = function() {
+        window._isHubSessionActive = false;
         try {
-            const realTodayIdx = new Date().getDay();
-            const zoneObj = WEEKLY_ZONE_FOCUS_CATALOG[realTodayIdx] || WEEKLY_ZONE_FOCUS_CATALOG[3];
-            const checksToday = getHomeChecksForToday();
-            const activeTab = window._activeHomeCoachTab || 'maintenance';
-
-            const catchupDone = CATCH_UP_SPRINT_TASKS.filter(t => checksToday[t.id]).length;
-            const maintDone = DAILY_GENERAL_MAINTENANCE_TASKS.filter(t => checksToday[t.id]).length;
-            const zoneDone = zoneObj.tasks.filter(t => checksToday[t.id]).length;
-
-            let coachHeader = document.getElementById('hh-home-guided-coach-master-header');
-            if (!coachHeader) {
-                coachHeader = document.createElement('div');
-                coachHeader.id = 'hh-home-guided-coach-master-header';
-                twoColGrid.insertAdjacentElement('beforebegin', coachHeader);
-            }
-
-            coachHeader.innerHTML = `
-                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:10px; margin-bottom:18px;">
-                    <button type="button" onclick="switchHomeCoachTab('catchup')" style="background:${activeTab==='catchup'?'linear-gradient(135deg, #D97706 0%, #B45309 100%)':'#FFFDF8'}; color:${activeTab==='catchup'?'#fff':'#2A1E14'}; border:2px solid ${activeTab==='catchup'?'#9A5B0A':'#EADBC0'}; border-radius:16px; padding:12px 15px; text-align:left; cursor:pointer;">
-                        <span style="font-size:0.68rem; font-weight:800; text-transform:uppercase; display:block;">⚡ PLAYING CATCH-UP?</span>
-                        <strong style="font-size:0.92rem; display:block;">45-Min Reset Sprint (${catchupDone}/5)</strong>
-                    </button>
-                    <button type="button" onclick="switchHomeCoachTab('maintenance')" style="background:${activeTab==='maintenance'?'linear-gradient(135deg, #2E5A44 0%, #1F4230 100%)':'#FFFDF8'}; color:${activeTab==='maintenance'?'#fff':'#2A1E14'}; border:2px solid ${activeTab==='maintenance'?'#173325':'#EADBC0'}; border-radius:16px; padding:12px 15px; text-align:left; cursor:pointer;">
-                        <span style="font-size:0.68rem; font-weight:800; text-transform:uppercase; display:block;">☀️ STEP 1 • DAILY BASELINE</span>
-                        <strong style="font-size:0.92rem; display:block;">1. Daily Maintenance (${maintDone}/${DAILY_GENERAL_MAINTENANCE_TASKS.length})</strong>
-                    </button>
-                    <button type="button" onclick="switchHomeCoachTab('zone')" style="background:${activeTab==='zone'?'linear-gradient(135deg, #2E5A44 0%, #1F4230 100%)':'#FFFDF8'}; color:${activeTab==='zone'?'#fff':'#2A1E14'}; border:2px solid ${activeTab==='zone'?'#173325':'#EADBC0'}; border-radius:16px; padding:12px 15px; text-align:left; cursor:pointer;">
-                        <span style="font-size:0.68rem; font-weight:800; text-transform:uppercase; display:block;">${zoneObj.icon} STEP 2 • 15-MIN ZONE</span>
-                        <strong style="font-size:0.92rem; display:block;">2. ${escapeSafeHtml(zoneObj.zoneTitle)} (${zoneDone}/${zoneObj.tasks.length})</strong>
-                    </button>
-                    <button type="button" onclick="switchHomeCoachTab('meals')" style="background:${activeTab==='meals'?'linear-gradient(135deg, #2E5A44 0%, #1F4230 100%)':'#FFFDF8'}; color:${activeTab==='meals'?'#fff':'#2A1E14'}; border:2px solid ${activeTab==='meals'?'#173325':'#EADBC0'}; border-radius:16px; padding:12px 15px; text-align:left; cursor:pointer;">
-                        <span style="font-size:0.68rem; font-weight:800; text-transform:uppercase; display:block;">🍽️ STEP 3 • TONIGHT'S DINNER</span>
-                        <strong style="font-size:0.92rem; display:block;">3. Today's Meals & 8 PM Bell</strong>
-                    </button>
-                </div>
-            `;
-
-            let customHomeTaskBody = document.getElementById('hh-upgraded-home-tasks-container');
-            if (!customHomeTaskBody) {
-                Array.from(resetPanel.children).forEach(ch => { ch.style.display = 'none'; });
-                customHomeTaskBody = document.createElement('div');
-                customHomeTaskBody.id = 'hh-upgraded-home-tasks-container';
-                resetPanel.appendChild(customHomeTaskBody);
-            }
-
-            const renderSwapPill = (swapKey) => {
-                if (!swapKey || !CONTEXTUAL_CLEAN_SWAPS[swapKey]) return '';
-                return `<div style="margin-top:6px;"><button type="button" onclick="event.preventDefault(); event.stopPropagation(); openContextualCleanSwapModal('${swapKey}');" style="background:#E8F2EC; color:#1F4230; border:1px solid #2E5A44; border-radius:999px; padding:3px 10px; font-size:0.71rem; font-weight:800; cursor:pointer;">${escapeSafeHtml(CONTEXTUAL_CLEAN_SWAPS[swapKey].badge)} &rarr;</button></div>`;
-            };
-
-            const listToRender = activeTab === 'catchup' ? CATCH_UP_SPRINT_TASKS : (activeTab === 'zone' ? zoneObj.tasks : DAILY_GENERAL_MAINTENANCE_TASKS);
-            customHomeTaskBody.innerHTML = listToRender.map(t => {
-                const isDone = Boolean(checksToday[t.id]);
-                const txt = t.task || t.text;
-                const tag = t.room || t.area || 'Today';
-                return `
-                    <label class="hh-home-task-card ${isDone ? 'done' : ''}" style="background:#FFFDF8; border:2px solid #EADBC0; border-left:7px solid #2E5A44; border-radius:16px; padding:14px 18px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; gap:14px; cursor:pointer;">
-                        <div style="flex:1;">
-                            <span style="background:#E8F2EC; color:#1F4230; padding:2px 9px; border-radius:999px; font-size:0.7rem; font-weight:800;">${escapeSafeHtml(tag)}</span>
-                            <strong style="font-size:0.94rem; color:#2A1E14; display:block; margin-top:4px; ${isDone ? 'text-decoration:line-through;' : ''}">${escapeSafeHtml(txt)}</strong>
-                            ${renderSwapPill(t.swapKey)}
-                        </div>
-                        <input type="checkbox" ${isDone ? 'checked' : ''} onchange="toggleGuidedHomeTask('${t.id}', this.checked)" style="width:24px; height:24px; accent-color:#059669; cursor:pointer; flex-shrink:0;">
-                    </label>
-                `;
-            }).join('');
-
-            const rightMealsCol = twoColGrid.children[1];
-            twoColGrid.style.cssText = 'display: block; width: 100%; max-width: 980px; margin: 0 auto;';
-            if (activeTab === 'meals') {
-                resetPanel.style.display = 'none';
-                if (rightMealsCol) rightMealsCol.style.display = 'block';
-            } else {
-                resetPanel.style.display = 'block';
-                if (rightMealsCol) rightMealsCol.style.display = 'none';
-            }
-        } finally {
-            isRenderingHomeCoach = false;
-        }
-    }
+            localStorage.removeItem(ACTIVE_SESSION_KEY);
+            localStorage.removeItem('hh_logged_in_user_email');
+        } catch (e) {}
+        const dash = document.getElementById('dashboard-container');
+        if (dash) dash.style.setProperty('display', 'none', 'important');
+        
+        let wrap = document.getElementById('hh-new-landing-master-wrap');
+        if (wrap) wrap.style.setProperty('display', 'block', 'important');
+        window.scrollTo({ top: 0, behavior: 'instant' });
+    };
 
     // =========================================================================
-    // 8. MASTER BOOTSTRAP, AUTO-RESTORE SESSION & CLICK INTERCEPTORS
+    // 5. MASTER BOOTSTRAPPER & CLICK ROUTING
     // =========================================================================
     function runMasterBootstrap() {
-        const savedSession = getSavedActiveSession();
-        if (savedSession && !window._userClickedSignOut) {
+        const activeSess = localStorage.getItem(ACTIVE_SESSION_KEY) || localStorage.getItem('hh_logged_in_user_email');
+        if (activeSess && !window._userClickedSignOut) {
             window._isHubSessionActive = true;
-            window.currentUser = savedSession;
-            try { if (typeof currentUser !== 'undefined') currentUser = savedSession; } catch (e) {}
-            showLoggedInDashboardNow();
+            const greenLp = document.getElementById('hh-new-landing-master-wrap');
+            if (greenLp) greenLp.style.setProperty('display', 'none', 'important');
+            const dash = document.getElementById('dashboard-container');
+            if (dash) dash.style.setProperty('display', 'flex', 'important');
         } else {
-            mountBestBlock3LandingPage();
+            let wrap = document.getElementById('hh-new-landing-master-wrap');
+            if (!wrap) {
+                wrap = document.createElement('div');
+                wrap.id = 'hh-new-landing-master-wrap';
+                wrap.innerHTML = window.buildMainLandingPageHTML();
+                document.body.prepend(wrap);
+            }
+            wrap.style.setProperty('display', 'block', 'important');
+            const dash = document.getElementById('dashboard-container');
+            if (dash) dash.style.setProperty('display', 'none', 'important');
         }
-        enforceSimplifiedFivePillarNavigation();
+        rebuildCleanHeaderMenu();
         renderGuidedHomeCommandPage();
     }
-
-    // Prevent any native <form> in index.html from reloading/redirecting the page on submit
-    document.addEventListener('submit', (e) => {
-        e.preventDefault();
-    }, true);
-
-    runMasterBootstrap();
-    [80, 250, 650, 1400].forEach(ms => setTimeout(runMasterBootstrap, ms));
-
-    document.addEventListener('change', () => {
-        window.saveCurrentUserProgressSnapshot();
-    }, true);
 
     document.addEventListener('click', (e) => {
         const btn = e.target.closest('button, a');
         if (btn) {
             const txt = (btn.textContent || '').trim();
-            if (txt === 'Member Login' || txt === 'Member Sign In' || txt.includes('Existing Member Login') || txt.includes('Member Login →')) {
+            if (txt === 'Member Sign In' || txt === 'Member Login') {
                 e.preventDefault(); e.stopPropagation();
                 window.openUnifiedMemberLoginModal();
-                return;
-            }
-            if (txt.includes('Demo the App Live') || txt.includes('Demo the App Free')) {
-                e.preventDefault(); e.stopPropagation();
-                window.openFreeStarterSignupModal();
                 return;
             }
             if (txt === 'Sign Out' || txt.includes('Log Out')) {
@@ -17701,9 +16817,10 @@ const projectedLesson = Math.max(1, (parseInt(currItem.currentLesson) || 1) + (s
                 return;
             }
         }
-        setTimeout(runMasterBootstrap, 120);
-        window.saveCurrentUserProgressSnapshot();
     }, true);
+
+    runMasterBootstrap();
+    [80, 250, 600].forEach(ms => setTimeout(runMasterBootstrap, ms));
 })();
 </script>
 </body>
