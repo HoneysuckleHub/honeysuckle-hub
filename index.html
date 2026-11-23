@@ -3714,427 +3714,638 @@
 
 
 
-    function ShopCatalogView({ onAddToCart, onSelectProduct, onOpenCart, cartItemCount }) {
+    function ShopProductEditorModal({ editingProduct, onSave, onClose }) {
+      const initialVariants = (editingProduct?.variants && editingProduct.variants.length > 0)
+        ? editingProduct.variants
+        : [{
+            id: 'var_default',
+            label: 'Standard',
+            price: editingProduct?.price ?? 24,
+            stripeLink: editingProduct?.stripeLink || ''
+          }];
 
-      const [typeFilter, setTypeFilter] = useState('all');
+      const [name, setName] = useState(editingProduct?.name || '');
+      const [type, setType] = useState(editingProduct?.type || 'physical');
+      const [category, setCategory] = useState(editingProduct?.category || 'Kitchen & Home');
+      const [badge, setBadge] = useState(editingProduct?.badge || '');
+      const [price, setPrice] = useState(editingProduct?.price ?? 24);
+      const [imageUrl, setImageUrl] = useState(editingProduct?.imageUrl || '');
+      const [shortDesc, setShortDesc] = useState(editingProduct?.shortDesc || '');
+      const [fullDesc, setFullDesc] = useState(editingProduct?.fullDesc || '');
+      const [detailsText, setDetailsText] = useState(
+        Array.isArray(editingProduct?.details) ? editingProduct.details.join('\n') : ''
+      );
+      const [stripeLink, setStripeLink] = useState(editingProduct?.stripeLink || '');
+      const [variants, setVariants] = useState(initialVariants);
+      const [saving, setSaving] = useState(false);
 
-      const [categoryFilter, setCategoryFilter] = useState('All');
-
-      const [sortBy, setSortBy] = useState('featured');
-
-      const [addedFeedbackId, setAddedFeedbackId] = useState(null);
-
-
-
-      const categories = ['All', ...Array.from(new Set(SHOP_PRODUCTS.map(p => p.category)))];
-
-
-
-      const filteredProducts = useMemo(() => {
-
-        let list = SHOP_PRODUCTS.filter(p => {
-
-          if (typeFilter !== 'all' && p.type !== typeFilter) return false;
-
-          if (categoryFilter !== 'All' && p.category !== categoryFilter) return false;
-
-          return true;
-
-        });
-
-
-
-        if (sortBy === 'price_asc') list = [...list].sort((a, b) => a.price - b.price);
-
-        if (sortBy === 'price_desc') list = [...list].sort((a, b) => b.price - a.price);
-
-        return list;
-
-      }, [typeFilter, categoryFilter, sortBy]);
-
-
-
-      const handleQuickAdd = (product) => {
-
-        const defaultVariant = (product.variants && product.variants[0]) || {
-
-          id: 'default',
-
-          label: 'Standard',
-
-          price: product.price,
-
-          stripeLink: product.stripeLink
-
+      // Compresses uploaded photos cleanly so they save straight into Supabase without extra storage setup
+      const handlePhotoUpload = (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          const img = new Image();
+          img.onload = () => {
+            const maxW = 800;
+            const scale = Math.min(1, maxW / img.width);
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.round(img.width * scale);
+            canvas.height = Math.round(img.height * scale);
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            setImageUrl(canvas.toDataURL('image/jpeg', 0.82));
+          };
+          img.src = ev.target.result;
         };
-
-        onAddToCart(product, defaultVariant, 1);
-
-        setAddedFeedbackId(product.id);
-
-        setTimeout(() => {
-
-          setAddedFeedbackId(prev => (prev === product.id ? null : prev));
-
-        }, 1600);
-
+        reader.readAsDataURL(file);
       };
 
+      const updateVariant = (idx, field, val) => {
+        setVariants(prev => prev.map((v, i) => (i === idx ? { ...v, [field]: val } : v)));
+      };
 
+      const addVariantRow = () => {
+        setVariants(prev => [
+          ...prev,
+          {
+            id: 'var_' + Math.random().toString(36).substring(2, 8),
+            label: '',
+            price: Number(price) || 0,
+            stripeLink: stripeLink || ''
+          }
+        ]);
+      };
+
+      const removeVariantRow = (idx) => {
+        if (variants.length <= 1) return;
+        setVariants(prev => prev.filter((_, i) => i !== idx));
+      };
+
+      const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!name.trim()) return;
+        setSaving(true);
+
+        const basePrice = Math.max(0, Number(price) || 0);
+        const cleanVariants = variants
+          .filter(v => (v.label || '').trim())
+          .map((v, i) => ({
+            id: v.id || `var_${i}_${Date.now()}`,
+            label: v.label.trim(),
+            price: Math.max(0, Number(v.price) || basePrice),
+            stripeLink: (v.stripeLink || stripeLink || '').trim()
+          }));
+
+        const finalVariants = cleanVariants.length > 0
+          ? cleanVariants
+          : [{ id: 'default', label: 'Standard', price: basePrice, stripeLink: stripeLink.trim() }];
+
+        const payload = {
+          id: editingProduct?.id || ('prod_' + Date.now()),
+          name: name.trim(),
+          type,
+          category: category.trim() || 'Kitchen & Home',
+          badge: badge.trim(),
+          price: finalVariants[0].price,
+          imageUrl: imageUrl.trim(),
+          shortDesc: shortDesc.trim(),
+          fullDesc: (fullDesc.trim() || shortDesc.trim()),
+          details: detailsText.split('\n').map(l => l.trim()).filter(Boolean),
+          stripeLink: (stripeLink.trim() || finalVariants[0].stripeLink || ''),
+          variants: finalVariants
+        };
+
+        await onSave(payload);
+        setSaving(false);
+        onClose();
+      };
 
       return (
-
-        <div className="space-y-8">
-
-          <div className="bg-white border border-[#4a4238]/10 rounded-2xl p-6 md:p-10 shadow-sm">
-
-            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
-
-              <div className="max-w-2xl">
-
-                <span className="text-xs font-lora font-bold text-[#798771] uppercase tracking-[0.2em] block mb-2">
-
-                  The Honeysuckle Storefront
-
+        <div className="fixed inset-0 bg-[#4a4238]/65 z-50 flex items-center justify-center p-4 no-print print:hidden">
+          <div className="bg-[#fdfbf7] w-full max-w-3xl rounded-2xl shadow-2xl overflow-hidden max-h-[92vh] flex flex-col border border-[#4a4238]/15">
+            <div className="px-6 py-4 bg-white border-b border-[#4a4238]/10 flex items-center justify-between">
+              <div>
+                <span className="text-xs font-lora font-bold uppercase tracking-widest text-[#798771] block">
+                  Shop Admin Studio
                 </span>
-
-                <h2 className="font-playfair text-3xl md:text-4xl italic text-[#4a4238] mb-3">
-
-                  Heirloom Guides &amp; Homestead Goods
-
+                <h2 className="font-playfair text-2xl text-[#4a4238]">
+                  {editingProduct ? `Edit: ${editingProduct.name}` : 'Add New Shop Product'}
                 </h2>
-
-                <p className="font-lora text-sm md:text-base text-[#4a4238]/75 leading-relaxed">
-
-                  Thoughtfully crafted digital downloads for instant kitchen and home rhythm, alongside small-batch physical goods made for a low-toxin household.
-
-                </p>
-
               </div>
-
-
-
-              <div className="flex flex-wrap items-center gap-3">
-
-                <div className="bg-[#fdfbf7] border border-[#4a4238]/10 rounded-xl px-4 py-3 font-lora text-xs text-[#4a4238]/80 space-y-1">
-
-                  <div className="flex items-center gap-2"><FileText size={14} className="text-[#798771]" /> Instant PDF Delivery</div>
-
-                  <div className="flex items-center gap-2"><Truck size={14} className="text-[#798771]" /> Free Shipping Over ${FREE_SHIPPING_THRESHOLD}</div>
-
-                </div>
-
-                <button
-
-                  type="button"
-
-                  onClick={onOpenCart}
-
-                  className="inline-flex items-center gap-2 bg-[#798771] text-white px-5 py-3 rounded-xl font-lora text-xs font-bold uppercase tracking-wider hover:bg-[#6b7764] transition-colors"
-
-                >
-
-                  <ShoppingBag size={16} /> View Bag ({cartItemCount})
-
-                </button>
-
-              </div>
-
+              <button
+                type="button"
+                onClick={onClose}
+                className="p-2 hover:bg-[#4a4238]/5 rounded-full text-[#4a4238]"
+              >
+                <XIcon size={20} />
+              </button>
             </div>
 
+            <form onSubmit={handleSubmit} className="overflow-y-auto p-6 space-y-5 font-lora">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-[#798771] mb-1">
+                    Product Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                    placeholder="e.g., Whipped Grass-Fed Tallow Balm"
+                    className="w-full bg-white border border-[#4a4238]/20 rounded-xl px-3.5 py-2.5 text-sm"
+                  />
+                </div>
 
-
-            <div className="mt-8 pt-6 border-t border-[#4a4238]/10 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-
-              <div className="flex flex-wrap items-center gap-2">
-
-                {[
-
-                  { id: 'all', label: 'All Products' },
-
-                  { id: 'digital', label: 'Digital Downloads' },
-
-                  { id: 'physical', label: 'Physical Goods' }
-
-                ].map(tab => (
-
-                  <button
-
-                    key={tab.id}
-
-                    type="button"
-
-                    onClick={() => setTypeFilter(tab.id)}
-
-                    className={`px-4 py-2 rounded-full text-xs font-bold tracking-wider font-lora border transition-colors ${
-
-                      typeFilter === tab.id
-
-                        ? 'bg-[#4a4238] text-white border-[#4a4238]'
-
-                        : 'bg-[#fdfbf7] text-[#4a4238] border-[#4a4238]/20 hover:border-[#798771]'
-
-                    }`}
-
-                  >
-
-                    {tab.label}
-
-                  </button>
-
-                ))}
-
-              </div>
-
-
-
-              <div className="flex flex-wrap items-center gap-2">
-
-                {categories.map(cat => (
-
-                  <button
-
-                    key={cat}
-
-                    type="button"
-
-                    onClick={() => setCategoryFilter(cat)}
-
-                    className={`px-3.5 py-1.5 rounded-full text-xs font-bold tracking-wider font-lora border transition-colors ${
-
-                      categoryFilter === cat
-
-                        ? 'bg-[#798771] text-white border-[#798771]'
-
-                        : 'bg-transparent text-[#4a4238]/75 border-[#4a4238]/15 hover:border-[#798771]'
-
-                    }`}
-
-                  >
-
-                    {cat}
-
-                  </button>
-
-                ))}
-
-
-
-                <div className="relative ml-1">
-
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-[#798771] mb-1">
+                    Product Format
+                  </label>
                   <select
-
-                    value={sortBy}
-
-                    onChange={(e) => setSortBy(e.target.value)}
-
-                    aria-label="Sort products"
-
-                    className="appearance-none bg-[#fdfbf7] border border-[#4a4238]/20 rounded-full py-1.5 pl-3.5 pr-8 font-lora text-xs font-bold text-[#4a4238] focus:outline-none focus:border-[#798771]"
-
+                    value={type}
+                    onChange={e => setType(e.target.value)}
+                    className="w-full bg-white border border-[#4a4238]/20 rounded-xl px-3.5 py-2.5 text-sm"
                   >
-
-                    <option value="featured">Sort: Featured</option>
-
-                    <option value="price_asc">Price: Low to High</option>
-
-                    <option value="price_desc">Price: High to Low</option>
-
+                    <option value="physical">Physical Item (Ships)</option>
+                    <option value="digital">Digital Download (Instant PDF)</option>
                   </select>
-
-                  <ChevronDown size={13} className="absolute right-2.5 top-2 text-[#4a4238]/55 pointer-events-none" />
-
                 </div>
 
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-[#798771] mb-1">
+                    Category
+                  </label>
+                  <input
+                    type="text"
+                    value={category}
+                    onChange={e => setCategory(e.target.value)}
+                    placeholder="e.g., Guides & Printables, Apothecary & Skincare, Kitchen & Home"
+                    className="w-full bg-white border border-[#4a4238]/20 rounded-xl px-3.5 py-2.5 text-sm"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-[#798771] mb-1">
+                      Base Price ($)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      required
+                      value={price}
+                      onChange={e => {
+                        setPrice(e.target.value);
+                        if (variants.length === 1) updateVariant(0, 'price', e.target.value);
+                      }}
+                      className="w-full bg-white border border-[#4a4238]/20 rounded-xl px-3.5 py-2.5 text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-[#798771] mb-1">
+                      Badge (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={badge}
+                      onChange={e => setBadge(e.target.value)}
+                      placeholder="e.g., Bestseller"
+                      className="w-full bg-white border border-[#4a4238]/20 rounded-xl px-3.5 py-2.5 text-sm"
+                    />
+                  </div>
+                </div>
               </div>
 
-            </div>
+              {/* Photo Upload or URL */}
+              <div className="bg-white border border-[#4a4238]/10 rounded-xl p-4 space-y-2.5">
+                <label className="block text-xs font-bold uppercase tracking-wider text-[#798771]">
+                  Product Photo (Upload Photo or Paste Image URL)
+                </label>
+                <div className="flex flex-col sm:flex-row gap-3 items-center">
+                  <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#798771]/15 text-[#798771] border border-[#798771]/30 text-xs font-bold hover:bg-[#798771] hover:text-white transition-colors shrink-0">
+                    Upload Photo
+                    <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
+                  </label>
+                  <input
+                    type="text"
+                    value={imageUrl.startsWith('data:') ? '(Uploaded photo attached)' : imageUrl}
+                    onChange={e => setImageUrl(e.target.value)}
+                    placeholder="Or paste image filename / https://... URL"
+                    className="flex-1 w-full bg-[#fdfbf7] border border-[#4a4238]/20 rounded-xl px-3.5 py-2 text-xs"
+                  />
+                  {imageUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setImageUrl('')}
+                      className="text-xs text-red-700 underline shrink-0"
+                    >
+                      Clear Photo
+                    </button>
+                  )}
+                </div>
+              </div>
 
-          </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-[#798771] mb-1">
+                  Short Card Summary
+                </label>
+                <textarea
+                  rows={2}
+                  value={shortDesc}
+                  onChange={e => setShortDesc(e.target.value)}
+                  placeholder="Brief 1–2 sentence summary shown on the main shop card..."
+                  className="w-full bg-white border border-[#4a4238]/20 rounded-xl px-3.5 py-2.5 text-sm"
+                />
+              </div>
 
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-[#798771] mb-1">
+                  Full Description (Shown in Details Popup)
+                </label>
+                <textarea
+                  rows={3}
+                  value={fullDesc}
+                  onChange={e => setFullDesc(e.target.value)}
+                  placeholder="Detailed product story, ingredients, or guide overview..."
+                  className="w-full bg-white border border-[#4a4238]/20 rounded-xl px-3.5 py-2.5 text-sm"
+                />
+              </div>
 
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-[#798771] mb-1">
+                  Bullet Highlights (One Bullet Per Line)
+                </label>
+                <textarea
+                  rows={3}
+                  value={detailsText}
+                  onChange={e => setDetailsText(e.target.value)}
+                  placeholder={"100% grass-fed suet tallow & local honey\nZero synthetic fragrances or seed oils\nReusable amber glass jar"}
+                  className="w-full bg-white border border-[#4a4238]/20 rounded-xl px-3.5 py-2.5 text-xs"
+                />
+              </div>
 
-          {filteredProducts.length === 0 ? (
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-[#798771] mb-1">
+                  Stripe Payment Link (`https://buy.stripe.com/...`)
+                </label>
+                <input
+                  type="url"
+                  value={stripeLink}
+                  onChange={e => {
+                    setStripeLink(e.target.value);
+                    if (variants.length === 1) updateVariant(0, 'stripeLink', e.target.value);
+                  }}
+                  placeholder="https://buy.stripe.com/..."
+                  className="w-full bg-white border border-[#4a4238]/20 rounded-xl px-3.5 py-2.5 text-sm"
+                />
+              </div>
 
-            <div className="bg-white border border-dashed border-[#4a4238]/20 rounded-2xl p-12 text-center font-lora text-[#4a4238]/65">
-
-              No products match this filter yet. Try selecting &ldquo;All Products&rdquo; above.
-
-            </div>
-
-          ) : (
-
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-7">
-
-              {filteredProducts.map(product => {
-
-                const isAdded = addedFeedbackId === product.id;
-
-                const hasMultipleVariants = product.variants && product.variants.length > 1;
-
-                const minPrice = hasMultipleVariants
-
-                  ? Math.min(...product.variants.map(v => v.price))
-
-                  : product.price;
-
-
-
-                return (
-
-                  <article
-
-                    key={product.id}
-
-                    className="bg-white border border-[#4a4238]/10 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col group"
-
+              {/* Variants / Size Options */}
+              <div className="bg-white border border-[#4a4238]/10 rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-wider text-[#798771]">
+                    Size / Option Variants (Optional)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={addVariantRow}
+                    className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-[#798771]/15 text-[#798771] text-xs font-bold hover:bg-[#798771] hover:text-white transition-colors"
                   >
+                    <Plus size={12} /> Add Option
+                  </button>
+                </div>
 
-                    <div onClick={() => onSelectProduct(product)} className="cursor-pointer relative">
-
-                      <ProductArtwork product={product} className="h-60" />
-
-                      {product.badge && (
-
-                        <span className="absolute top-3.5 left-3.5 px-3 py-1 rounded-full bg-white/95 text-[#4a4238] border border-[#4a4238]/10 font-lora text-[11px] font-bold uppercase tracking-wider shadow-sm">
-
-                          {product.badge}
-
-                        </span>
-
-                      )}
-
-                      <span className="absolute top-3.5 right-3.5 px-3 py-1 rounded-full bg-[#4a4238]/85 text-white font-lora text-[10px] font-bold uppercase tracking-wider">
-
-                        {product.type === 'digital' ? 'Digital PDF' : 'Physical'}
-
-                      </span>
-
-                    </div>
-
-
-
-                    <div className="p-6 flex flex-col flex-1">
-
-                      <div className="flex items-start justify-between gap-3 mb-2">
-
-                        <span className="text-[11px] font-lora font-bold uppercase tracking-widest text-[#798771]">
-
-                          {product.category}
-
-                        </span>
-
-                        <span className="font-playfair text-lg font-bold text-[#4a4238] shrink-0">
-
-                          {hasMultipleVariants ? `From ${formatCurrency(minPrice)}` : formatCurrency(product.price)}
-
-                        </span>
-
-                      </div>
-
-
-
-                      <h3
-
-                        onClick={() => onSelectProduct(product)}
-
-                        className="font-playfair text-xl text-[#4a4238] leading-snug mb-2.5 cursor-pointer group-hover:text-[#798771] transition-colors"
-
+                <div className="space-y-2.5">
+                  {variants.map((v, idx) => (
+                    <div key={v.id || idx} className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center bg-[#fdfbf7] p-2.5 rounded-lg border border-[#4a4238]/10">
+                      <input
+                        type="text"
+                        value={v.label}
+                        onChange={e => updateVariant(idx, 'label', e.target.value)}
+                        placeholder="Option label (e.g., 2 oz Jar)"
+                        className="sm:col-span-4 bg-white border border-[#4a4238]/20 rounded-lg px-2.5 py-1.5 text-xs"
+                      />
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={v.price}
+                        onChange={e => updateVariant(idx, 'price', e.target.value)}
+                        placeholder="Price"
+                        className="sm:col-span-2 bg-white border border-[#4a4238]/20 rounded-lg px-2.5 py-1.5 text-xs"
+                      />
+                      <input
+                        type="url"
+                        value={v.stripeLink}
+                        onChange={e => updateVariant(idx, 'stripeLink', e.target.value)}
+                        placeholder="Stripe Link for this option"
+                        className="sm:col-span-5 bg-white border border-[#4a4238]/20 rounded-lg px-2.5 py-1.5 text-xs"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeVariantRow(idx)}
+                        disabled={variants.length <= 1}
+                        className="sm:col-span-1 p-1.5 text-[#4a4238]/40 hover:text-red-700 disabled:opacity-25 flex justify-center"
+                        title="Remove option"
                       >
-
-                        {product.name}
-
-                      </h3>
-
-
-
-                      <p className="font-lora text-sm text-[#4a4238]/70 leading-relaxed mb-6 flex-1">
-
-                        {product.shortDesc}
-
-                      </p>
-
-
-
-                      <div className="pt-4 border-t border-[#4a4238]/10 flex items-center gap-2.5">
-
-                        {hasMultipleVariants ? (
-
-                          <button
-
-                            type="button"
-
-                            onClick={() => onSelectProduct(product)}
-
-                            className="flex-1 inline-flex items-center justify-center gap-2 bg-[#798771] text-white py-2.5 px-4 rounded-xl font-lora text-xs font-bold uppercase tracking-wider hover:bg-[#6b7764] transition-colors"
-
-                          >
-
-                            Select Options
-
-                          </button>
-
-                        ) : (
-
-                          <button
-
-                            type="button"
-
-                            onClick={() => handleQuickAdd(product)}
-
-                            className={`flex-1 inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl font-lora text-xs font-bold uppercase tracking-wider transition-colors ${
-
-                              isAdded
-
-                                ? 'bg-[#4a4238] text-white'
-
-                                : 'bg-[#798771] text-white hover:bg-[#6b7764]'
-
-                            }`}
-
-                          >
-
-                            {isAdded ? <><Check size={14} /> Added to Bag</> : <><ShoppingBag size={14} /> Add to Bag</>}
-
-                          </button>
-
-                        )}
-
-
-
-                        <button
-
-                          type="button"
-
-                          onClick={() => onSelectProduct(product)}
-
-                          className="px-4 py-2.5 rounded-xl border border-[#4a4238]/20 font-lora text-xs font-bold uppercase tracking-wider text-[#4a4238]/80 hover:border-[#798771] hover:text-[#798771] transition-colors"
-
-                        >
-
-                          Details
-
-                        </button>
-
-                      </div>
-
+                        <Trash2 size={14} />
+                      </button>
                     </div>
+                  ))}
+                </div>
+              </div>
 
-                  </article>
+              <div className="pt-2 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-5 py-2.5 rounded-full border border-[#4a4238]/20 text-xs font-bold uppercase tracking-wider text-[#4a4238]/75"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="px-6 py-2.5 rounded-full bg-[#798771] text-white text-xs font-bold uppercase tracking-wider hover:bg-[#6b7764] transition-colors disabled:opacity-50"
+                >
+                  {saving ? 'Saving Product...' : 'Save Product to Live Shop'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      );
+    }
 
-                );
+    function ShopCatalogView({
+      products = SHOP_PRODUCTS,
+      isAdmin = false,
+      onAddToCart,
+      onSelectProduct,
+      onOpenCart,
+      cartItemCount,
+      onOpenNewProduct,
+      onEditProduct,
+      onDeleteProduct
+    }) {
+      const [typeFilter, setTypeFilter] = useState('all');
+      const [categoryFilter, setCategoryFilter] = useState('All');
+      const [sortBy, setSortBy] = useState('featured');
+      const [addedFeedbackId, setAddedFeedbackId] = useState(null);
 
-              })}
+      const categories = ['All', ...Array.from(new Set(products.map(p => p.category)))];
 
+      const filteredProducts = useMemo(() => {
+        let list = products.filter(p => {
+          if (typeFilter !== 'all' && p.type !== typeFilter) return false;
+          if (categoryFilter !== 'All' && p.category !== categoryFilter) return false;
+          return true;
+        });
+
+        if (sortBy === 'price_asc') list = [...list].sort((a, b) => a.price - b.price);
+        if (sortBy === 'price_desc') list = [...list].sort((a, b) => b.price - a.price);
+        return list;
+      }, [products, typeFilter, categoryFilter, sortBy]);
+
+      const handleQuickAdd = (product) => {
+        const defaultVariant = (product.variants && product.variants[0]) || {
+          id: 'default',
+          label: 'Standard',
+          price: product.price,
+          stripeLink: product.stripeLink
+        };
+        onAddToCart(product, defaultVariant, 1);
+        setAddedFeedbackId(product.id);
+        setTimeout(() => {
+          setAddedFeedbackId(prev => (prev === product.id ? null : prev));
+        }, 1600);
+      };
+
+      return (
+        <div className="space-y-8">
+          {/* Admin Storefront Manager Bar (Only visible to contacthoneysuckleandco@gmail.com) */}
+          {isAdmin && (
+            <div className="bg-white border-2 border-[#798771]/45 rounded-2xl p-5 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <span className="text-[11px] font-lora font-bold uppercase tracking-widest text-[#798771] block">
+                  Practitioner &amp; Admin Storefront Controls
+                </span>
+                <p className="font-lora text-xs text-[#4a4238]/75 mt-0.5">
+                  Add new items, upload photos, update Stripe links, or remove products—changes go live immediately for all visitors.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={onOpenNewProduct}
+                className="shrink-0 inline-flex items-center justify-center gap-2 bg-[#4a4238] text-white px-5 py-2.5 rounded-full font-lora text-xs font-bold uppercase tracking-wider hover:bg-[#3a332b] transition-colors"
+              >
+                <Plus size={15} /> Add New Product
+              </button>
             </div>
-
           )}
 
+          {/* Editorial Storefront Header */}
+          <div className="bg-white border border-[#4a4238]/10 rounded-2xl p-6 md:p-10 shadow-sm">
+            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+              <div className="max-w-2xl">
+                <span className="text-xs font-lora font-bold text-[#798771] uppercase tracking-[0.2em] block mb-2">
+                  The Honeysuckle Storefront
+                </span>
+                <h2 className="font-playfair text-3xl md:text-4xl italic text-[#4a4238] mb-3">
+                  Heirloom Guides &amp; Homestead Goods
+                </h2>
+                <p className="font-lora text-sm md:text-base text-[#4a4238]/75 leading-relaxed">
+                  Thoughtfully crafted digital downloads for instant kitchen and home rhythm, alongside small-batch physical goods made for a low-toxin household.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="bg-[#fdfbf7] border border-[#4a4238]/10 rounded-xl px-4 py-3 font-lora text-xs text-[#4a4238]/80 space-y-1">
+                  <div className="flex items-center gap-2"><FileText size={14} className="text-[#798771]" /> Instant PDF Delivery</div>
+                  <div className="flex items-center gap-2"><Truck size={14} className="text-[#798771]" /> Free Shipping Over ${FREE_SHIPPING_THRESHOLD}</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={onOpenCart}
+                  className="inline-flex items-center gap-2 bg-[#798771] text-white px-5 py-3 rounded-xl font-lora text-xs font-bold uppercase tracking-wider hover:bg-[#6b7764] transition-colors"
+                >
+                  <ShoppingBag size={16} /> View Bag ({cartItemCount})
+                </button>
+              </div>
+            </div>
+
+            {/* Filter & Sort Controls */}
+            <div className="mt-8 pt-6 border-t border-[#4a4238]/10 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div className="flex flex-wrap items-center gap-2">
+                {[
+                  { id: 'all', label: 'All Products' },
+                  { id: 'digital', label: 'Digital Downloads' },
+                  { id: 'physical', label: 'Physical Goods' }
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setTypeFilter(tab.id)}
+                    className={`px-4 py-2 rounded-full text-xs font-bold tracking-wider font-lora border transition-colors ${
+                      typeFilter === tab.id
+                        ? 'bg-[#4a4238] text-white border-[#4a4238]'
+                        : 'bg-[#fdfbf7] text-[#4a4238] border-[#4a4238]/20 hover:border-[#798771]'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                {categories.map(cat => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setCategoryFilter(cat)}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-bold tracking-wider font-lora border transition-colors ${
+                      categoryFilter === cat
+                        ? 'bg-[#798771] text-white border-[#798771]'
+                        : 'bg-transparent text-[#4a4238]/75 border-[#4a4238]/15 hover:border-[#798771]'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+
+                <div className="relative ml-1">
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    aria-label="Sort products"
+                    className="appearance-none bg-[#fdfbf7] border border-[#4a4238]/20 rounded-full py-1.5 pl-3.5 pr-8 font-lora text-xs font-bold text-[#4a4238] focus:outline-none focus:border-[#798771]"
+                  >
+                    <option value="featured">Sort: Featured</option>
+                    <option value="price_asc">Price: Low to High</option>
+                    <option value="price_desc">Price: High to Low</option>
+                  </select>
+                  <ChevronDown size={13} className="absolute right-2.5 top-2 text-[#4a4238]/55 pointer-events-none" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Product Grid */}
+          {filteredProducts.length === 0 ? (
+            <div className="bg-white border border-dashed border-[#4a4238]/20 rounded-2xl p-12 text-center font-lora text-[#4a4238]/65">
+              No products match this filter yet.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-7">
+              {filteredProducts.map(product => {
+                const isAdded = addedFeedbackId === product.id;
+                const hasMultipleVariants = product.variants && product.variants.length > 1;
+                const minPrice = hasMultipleVariants
+                  ? Math.min(...product.variants.map(v => v.price))
+                  : product.price;
+
+                return (
+                  <article
+                    key={product.id}
+                    className="bg-white border border-[#4a4238]/10 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col group"
+                  >
+                    <div onClick={() => onSelectProduct(product)} className="cursor-pointer relative">
+                      <ProductArtwork product={product} className="h-60" />
+                      {product.badge && (
+                        <span className="absolute top-3.5 left-3.5 px-3 py-1 rounded-full bg-white/95 text-[#4a4238] border border-[#4a4238]/10 font-lora text-[11px] font-bold uppercase tracking-wider shadow-sm">
+                          {product.badge}
+                        </span>
+                      )}
+                      <span className="absolute top-3.5 right-3.5 px-3 py-1 rounded-full bg-[#4a4238]/85 text-white font-lora text-[10px] font-bold uppercase tracking-wider">
+                        {product.type === 'digital' ? 'Digital PDF' : 'Physical'}
+                      </span>
+                    </div>
+
+                    <div className="p-6 flex flex-col flex-1">
+                      <div className="flex items-start justify-between gap-3 mb-2">
+                        <span className="text-[11px] font-lora font-bold uppercase tracking-widest text-[#798771]">
+                          {product.category}
+                        </span>
+                        <span className="font-playfair text-lg font-bold text-[#4a4238] shrink-0">
+                          {hasMultipleVariants ? `From ${formatCurrency(minPrice)}` : formatCurrency(product.price)}
+                        </span>
+                      </div>
+
+                      <h3
+                        onClick={() => onSelectProduct(product)}
+                        className="font-playfair text-xl text-[#4a4238] leading-snug mb-2.5 cursor-pointer group-hover:text-[#798771] transition-colors"
+                      >
+                        {product.name}
+                      </h3>
+
+                      <p className="font-lora text-sm text-[#4a4238]/70 leading-relaxed mb-6 flex-1">
+                        {product.shortDesc}
+                      </p>
+
+                      <div className="pt-4 border-t border-[#4a4238]/10 flex items-center gap-2.5">
+                        {hasMultipleVariants ? (
+                          <button
+                            type="button"
+                            onClick={() => onSelectProduct(product)}
+                            className="flex-1 inline-flex items-center justify-center gap-2 bg-[#798771] text-white py-2.5 px-4 rounded-xl font-lora text-xs font-bold uppercase tracking-wider hover:bg-[#6b7764] transition-colors"
+                          >
+                            Select Options
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleQuickAdd(product)}
+                            className={`flex-1 inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl font-lora text-xs font-bold uppercase tracking-wider transition-colors ${
+                              isAdded
+                                ? 'bg-[#4a4238] text-white'
+                                : 'bg-[#798771] text-white hover:bg-[#6b7764]'
+                            }`}
+                          >
+                            {isAdded ? <><Check size={14} /> Added to Bag</> : <><ShoppingBag size={14} /> Add to Bag</>}
+                          </button>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => onSelectProduct(product)}
+                          className="px-4 py-2.5 rounded-xl border border-[#4a4238]/20 font-lora text-xs font-bold uppercase tracking-wider text-[#4a4238]/80 hover:border-[#798771] hover:text-[#798771] transition-colors"
+                        >
+                          Details
+                        </button>
+                      </div>
+
+                      {/* Admin Edit / Delete Row */}
+                      {isAdmin && (
+                        <div className="mt-3 pt-3 border-t border-dashed border-[#4a4238]/15 flex items-center justify-between gap-2">
+                          <button
+                            type="button"
+                            onClick={() => onEditProduct(product)}
+                            className="flex-1 inline-flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg bg-[#fdfbf7] border border-[#4a4238]/20 font-lora text-xs font-bold text-[#4a4238] hover:border-[#798771] hover:text-[#798771]"
+                          >
+                            <Edit2 size={13} /> Edit Item
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onDeleteProduct(product)}
+                            className="inline-flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg bg-red-50 border border-red-200 font-lora text-xs font-bold text-red-700 hover:bg-red-100"
+                          >
+                            <Trash2 size={13} /> Delete
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
         </div>
-
       );
-
     }
+
 
 
 
@@ -9466,7 +9677,102 @@
 
       const [selectedProduct, setSelectedProduct] = useState(null);
 
+const [cloudShopProducts, setCloudShopProducts] = useState(null);
+   const [editingShopProduct, setEditingShopProduct] = useState(null);
+   const [isShopEditorOpen, setIsShopEditorOpen] = useState(false);
 
+   const isShopCloudEmpty = Array.isArray(cloudShopProducts) && cloudShopProducts.length === 0;
+   const activeShopProducts = (Array.isArray(cloudShopProducts) && cloudShopProducts.length > 0)
+     ? cloudShopProducts
+     : SHOP_PRODUCTS;
+
+   const loadShopProducts = async () => {
+     if (!supabaseClient) return;
+     try {
+       const { data, error } = await supabaseClient
+         .from('shop_products')
+         .select('*')
+         .order('sort_order', { ascending: true })
+         .order('created_at', { ascending: true });
+       if (error) return;
+       const mapped = (data || []).map(row => ({
+         id: row.id,
+         name: row.name,
+         type: row.type || 'physical',
+         category: row.category || 'Kitchen & Home',
+         badge: row.badge || '',
+         price: Number(row.price) || 0,
+         imageUrl: row.image_url || '',
+         shortDesc: row.short_desc || '',
+         fullDesc: row.full_desc || '',
+         details: Array.isArray(row.details) ? row.details : [],
+         stripeLink: row.stripe_link || '',
+         variants: Array.isArray(row.variants) ? row.variants : []
+       }));
+       setCloudShopProducts(mapped);
+     } catch (_err) {}
+   };
+
+   useEffect(() => {
+     loadShopProducts();
+   }, []);
+
+   const toShopDbRow = (p, idx = 0) => ({
+     id: p.id,
+     name: p.name,
+     type: p.type || 'physical',
+     category: p.category || 'Kitchen & Home',
+     badge: p.badge || '',
+     price: Number(p.price) || 0,
+     image_url: p.imageUrl || '',
+     short_desc: p.shortDesc || '',
+     full_desc: p.fullDesc || '',
+     details: Array.isArray(p.details) ? p.details : [],
+     stripe_link: p.stripeLink || '',
+     variants: Array.isArray(p.variants) ? p.variants : [],
+     sort_order: idx,
+     updated_at: new Date().toISOString()
+   });
+
+   const handleSaveShopProduct = async (productObj) => {
+     if (!supabaseClient || !isPractitioner) return;
+     try {
+       // If the cloud table is still empty, seed the starter catalog first so other items stay visible
+       if (isShopCloudEmpty) {
+         const seedRows = SHOP_PRODUCTS.map((sp, i) =>
+           sp.id === productObj.id ? toShopDbRow(productObj, i) : toShopDbRow(sp, i)
+         );
+         const existsInSeed = SHOP_PRODUCTS.some(sp => sp.id === productObj.id);
+         if (!existsInSeed) {
+           seedRows.push(toShopDbRow(productObj, seedRows.length));
+         }
+         await supabaseClient.from('shop_products').upsert(seedRows, { onConflict: 'id' });
+       } else {
+         const nextOrder = activeShopProducts.findIndex(p => p.id === productObj.id);
+         const row = toShopDbRow(productObj, nextOrder >= 0 ? nextOrder : activeShopProducts.length);
+         await supabaseClient.from('shop_products').upsert([row], { onConflict: 'id' });
+       }
+       await loadShopProducts();
+     } catch (_err) {}
+   };
+
+   const handleDeleteShopProduct = async (productObj) => {
+     if (!supabaseClient || !isPractitioner) return;
+     if (!window.confirm(`Delete "${productObj.name}" from your live Shop?`)) return;
+     try {
+       if (isShopCloudEmpty) {
+         const remainingRows = SHOP_PRODUCTS
+           .filter(sp => sp.id !== productObj.id)
+           .map((sp, i) => toShopDbRow(sp, i));
+         if (remainingRows.length > 0) {
+           await supabaseClient.from('shop_products').upsert(remainingRows, { onConflict: 'id' });
+         }
+       } else {
+         await supabaseClient.from('shop_products').delete().eq('id', productObj.id);
+       }
+       await loadShopProducts();
+     } catch (_err) {}
+   };
 
       // Wellness Hub & Practitioner Studio State
 
@@ -11489,16 +11795,13 @@
                 <main className="flex-1 max-w-7xl mx-auto px-6 py-10 w-full">
 
                   <ShopCatalogView
-
-                    onAddToCart={addToCart}
-
-                    onSelectProduct={setSelectedProduct}
-
-                    onOpenCart={() => setIsCartOpen(true)}
-
-                    cartItemCount={cartItemCount}
-
-                  />
+               products={activeShopProducts}
+               isAdmin={false}
+               onAddToCart={addToCart}
+               onSelectProduct={setSelectedProduct}
+               onOpenCart={() => setIsCartOpen(true)}
+               cartItemCount={cartItemCount}
+             />
 
                 </main>
 
@@ -14595,20 +14898,24 @@
             )}
 
             {activeTab === 'shop' && (
-
-              <ShopCatalogView
-
-                onAddToCart={addToCart}
-
-                onSelectProduct={setSelectedProduct}
-
-                onOpenCart={() => setIsCartOpen(true)}
-
-                cartItemCount={cartItemCount}
-
-              />
-
-            )}
+         <ShopCatalogView
+           products={activeShopProducts}
+           isAdmin={isPractitioner}
+           onAddToCart={addToCart}
+           onSelectProduct={setSelectedProduct}
+           onOpenCart={() => setIsCartOpen(true)}
+           cartItemCount={cartItemCount}
+           onOpenNewProduct={() => {
+             setEditingShopProduct(null);
+             setIsShopEditorOpen(true);
+           }}
+           onEditProduct={(prod) => {
+             setEditingShopProduct(prod);
+             setIsShopEditorOpen(true);
+           }}
+           onDeleteProduct={handleDeleteShopProduct}
+         />
+       )}
 
           </main>
 
@@ -14640,21 +14947,13 @@
 
           />
 
-          {selectedProduct && (
-
-            <ProductDetailModal
-
-              product={selectedProduct}
-
-              userEmail={currentUser.email || ''}
-
-              onAddToCart={addToCart}
-
-              onClose={() => setSelectedProduct(null)}
-
-            />
-
-          )}
+          {isPractitioner && isShopEditorOpen && (
+         <ShopProductEditorModal
+           editingProduct={editingShopProduct}
+           onSave={handleSaveShopProduct}
+           onClose={() => setIsShopEditorOpen(false)}
+         />
+       )}
 
           {isRoomModalOpen && (
 
